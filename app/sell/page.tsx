@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import SellStart from '@/components/SellStart'
+import Dither from '@/components/Dither'
 import Calculator from '@/components/Calculator'
 import { sql, getUser, getMarket, priceOf } from '@/lib/server'
 import { money, cents, payout, signal, tier, matchesCall, SELLER_SHARE, HOLD_DAYS, type Labels } from '@/lib/score'
@@ -47,10 +48,12 @@ export default async function Sell() {
 
       {user && (
         <dl className="grid grid-cols-3 gap-3">
-          {[[`$${earned.toFixed(2)}`, 'Earned'], [sales, 'Licences sold'], [rows.filter((r) => r.status === 'scored' && r.quality_score >= 2 && !r.withdrawn_at).length, 'Clips on the market']].map(([n, l], i) => (
-            <div key={l} className={`card p-4 md:p-5 ${i === 0 ? 'card-warm' : ''}`}>
-              <dd className="text-2xl font-semibold tracking-tight tabular-nums md:text-4xl">{n}</dd>
-              <dt className="muted mt-1 text-xs md:text-sm">{l}</dt>
+          {/* the landing page's posters, small: one tone each, the number at the foot */}
+          {([[`$${earned.toFixed(2)}`, 'Earned', 'flame'], [sales, 'Licences sold', 'coal'], [rows.filter((r) => r.status === 'scored' && r.quality_score >= 2 && !r.withdrawn_at).length, 'Clips on the market', 'flow']] as const).map(([n, l, tone], i) => (
+            <div key={l} className={`tile flex min-h-28 flex-col justify-end p-3 md:min-h-36 md:p-5 ${tone === 'flame' ? 'tile-flame text-ink' : tone === 'flow' ? 'on-flow' : 'tile-coal'}`}>
+              <Dither tone={tone} seed={i * 2.1 + 1.4} />
+              <dd className="text-lg font-semibold tracking-tight tabular-nums sm:text-2xl md:text-4xl">{n}</dd>
+              <dt className="mt-1 text-xs opacity-85 md:text-sm">{l}</dt>
             </div>
           ))}
         </dl>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import Glyph from './Glyph'
+import Dither from './Dither'
 import UploadForm from './UploadForm'
 
 /**
@@ -61,32 +61,36 @@ export default function SellStart({ years = 0 }: { years?: number }) {
       </section>
     )
   }
-  const card = 'card block overflow-hidden text-left transition-transform duration-200 hover:-translate-y-1'
+  // the same posters as the landing page: one tone each, words at the foot
+  const card = 'tile [--shade-inset:10%_0_0_0] flex min-h-60 flex-col justify-end text-left transition-transform duration-200 hover:-translate-y-1 md:min-h-80'
   return (
     <section>
       {requestId && <p className="card-warm mb-3 rounded-box p-4 text-sm">You are submitting into a buyer&apos;s request. Record your screen doing the task, and it is paid when it passes the checks.</p>}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <Link href="/record" className={`${card} card-warm`}>
-          <Glyph name="record" className="h-24 w-full md:h-40" />
+        <Link href="/record" className={`${card} on-flow`}>
+          <Dither tone="flow" seed={1} label="verified live" />
+          <p className="mb-auto p-5 text-xs tabular-nums opacity-80">01 Hands</p>
           <div className="p-5 pt-3">
             <h2 className="text-xl font-semibold md:text-2xl">Film your hands</h2>
             <p className="mt-1 text-sm text-paper/80">Physical tasks, tracked live and verified. Can fill paid requests.</p>
-            <span className="btn btn-warm mt-4 !min-h-10 text-sm">Start filming</span>
+            <span className="btn mt-4 !min-h-10 text-sm">Start filming</span>
           </div>
         </Link>
-        <button onClick={screen} disabled={!canScreen} className={`${card} ${recording ? '!bg-red-900/60' : ''} disabled:opacity-50`}>
-          <Glyph name="box" className="h-24 w-full md:h-40" />
+        <button onClick={screen} disabled={!canScreen} className={`${card} tile-coal disabled:opacity-50`}>
+          <Dither tone="coal" seed={3.3} label="screen task" />
+          <p className="mb-auto p-5 text-xs tabular-nums opacity-80">02 Screen{recording ? ', recording' : ''}</p>
           <div className="p-5 pt-3">
             <h2 className="text-xl font-semibold md:text-2xl">{recording ? 'Recording. Click to stop' : 'Record your screen'}</h2>
             <p className="muted mt-1 text-sm">{canScreen ? 'Software tasks: a spreadsheet, a form, a workflow. Do the task, then stop.' : 'Software tasks. Available in a desktop browser.'}</p>
             <span className="btn mt-4 !min-h-10 text-sm">{recording ? 'Stop recording' : 'Start recording'}</span>
           </div>
         </button>
-        <label className={`${card} cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-slate`}>
-          <Glyph name="upload" className="h-24 w-full md:h-40" />
+        <label className={`${card} tile-flame cursor-pointer text-ink has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-paper`}>
+          <Dither tone="flame" seed={5.6} label="not verified" />
+          <p className="mb-auto p-5 text-xs tabular-nums opacity-80">03 Gallery</p>
           <div className="p-5 pt-3">
             <h2 className="text-xl font-semibold md:text-2xl">Upload a video</h2>
-            <p className="muted mt-1 text-sm">One you already have. Listed as not verified live.</p>
+            <p className="mt-1 text-sm opacity-90">One you already have. Listed as not verified live.</p>
             <span className="btn mt-4 !min-h-10 text-sm">Choose a video</span>
           </div>
           {/* accept=video/* opens the phone gallery */}
