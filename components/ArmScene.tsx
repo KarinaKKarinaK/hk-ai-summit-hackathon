@@ -111,9 +111,9 @@ export default function ArmScene() {
         <div className="order-2 md:order-1">
           <p className="label">Data democratization</p>
           <h2 className="text-2xl font-semibold md:text-5xl">Robot data, open to everyone.</h2>
-          <ol className="mt-3 space-y-1.5 md:mt-8 md:space-y-2">
+          <ol className="plots mt-3 space-y-2 md:mt-10 md:space-y-5">
             {MISSION.map(([t, d], i) => (
-              <li key={t} className={`rounded-2xl p-3 transition-all duration-500 md:p-4 ${step === i ? 'card-warm' : 'bg-white/[.03] opacity-60'}`}>
+              <li key={t} className={`plot p-3 pr-10 transition-all duration-500 md:p-4 ${['', 'md:ml-10', 'md:ml-4', 'md:ml-14'][i]} ${step === i ? 'plot-warm' : 'opacity-60'}`}>
                 <h3 className="flex items-baseline gap-3 text-lg font-semibold md:text-xl"><span className="muted text-xs font-normal tabular-nums">0{i + 1}</span>{t}</h3>
                 <p className={`mt-1 pl-7 text-sm text-paper/80 ${step === i ? '' : 'max-md:hidden'}`}>{d}</p>
               </li>

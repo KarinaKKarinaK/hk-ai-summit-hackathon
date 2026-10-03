@@ -68,9 +68,9 @@ export default async function Home() {
 
       {/* The whole product in four steps. */}
       <section data-tilt className={section}>
-        <ol className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
+        <ol className="plots stagger grid grid-cols-2 gap-5 pb-6 md:grid-cols-[1.15fr_0.95fr_1.3fr_1fr] md:gap-8 md:pb-12">
           {[['Request', 'A company asks for examples of the task it needs.'], ['Record', 'A person films their hands, or records their screen, doing it.'], ['Label', 'Kimi turns the recording into steps and labels.'], ['Buy', 'The company downloads a checked, labelled dataset.']].map(([t, d], i) => (
-            <li key={t} className={`card p-4 md:p-6 ${i === 2 ? 'card-warm' : ''}`}>
+            <li key={t} className={`plot p-4 md:p-6 ${i === 2 ? 'plot-warm' : i === 0 ? 'plot-solid' : ''}`}>
               <p className="muted text-xs tabular-nums">0{i + 1}</p>
               <h2 className="mt-2 text-xl font-semibold md:text-3xl">{t}</h2>
               <p className="mt-1 text-xs text-paper/75 md:text-sm">{d}</p>

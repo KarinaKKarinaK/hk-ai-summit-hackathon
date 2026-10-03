@@ -142,6 +142,59 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
   .card-slate { background: rgb(142 154 155 / 0.12); }
   .btn-warm { background: var(--color-tan); color: var(--color-paper); }
   .chip-warm { background: var(--color-amber); color: var(--color-paper); }
+  /* Drafting-sheet surface for the landing page: a faint uneven grid, edge lines that run past the corners,
+     one rounded corner and the compass circle it was drawn with. */
+  .plot {
+    --line: rgb(142 154 155 / 0.1);
+    --edge: rgb(142 154 155 / 0.24);
+    --r: 18px; /* corner radius, and the circle that draws it */
+    position: relative;
+    border-radius: 0 var(--r) 0 0;
+    background:
+      linear-gradient(var(--line) 1px, transparent 1px) 0 13px / 100% 41px,
+      linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 67px,
+      linear-gradient(90deg, var(--line) 1px, transparent 1px) 17px 0 / 53px 100%,
+      linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 89px 100%,
+      var(--fill, linear-gradient(rgb(255 255 255 / 0.025), rgb(255 255 255 / 0.025)));
+  }
+  .plot::before {
+    content: "";
+    position: absolute;
+    inset: -14px;
+    pointer-events: none;
+    background:
+      linear-gradient(var(--edge), var(--edge)) 0 14px / 100% 1px no-repeat,
+      linear-gradient(var(--edge), var(--edge)) 0 calc(100% - 14px) / 100% 1px no-repeat,
+      linear-gradient(var(--edge), var(--edge)) 14px 0 / 1px 100% no-repeat,
+      linear-gradient(var(--edge), var(--edge)) calc(100% - 14px) 0 / 1px 100% no-repeat;
+  }
+  .plot::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: calc(var(--r) * 2);
+    height: calc(var(--r) * 2);
+    border-radius: 50%;
+    border: 1px solid var(--edge);
+    pointer-events: none;
+    background: radial-gradient(circle, transparent calc(var(--r) / 4), var(--edge) calc(var(--r) / 4) calc(var(--r) / 4 + 1px), transparent calc(var(--r) / 4 + 1.5px));
+  }
+  .plot-check::after { background: none; }
+  .plot > * { position: relative; }
+  .plot-warm { --fill: linear-gradient(155deg, rgb(85 47 15 / 0.6), rgb(49 22 4 / 0.5) 60%, rgb(36 11 4 / 0.55)); --line: rgb(241 236 230 / 0.07); --edge: rgb(190 150 110 / 0.4); }
+  .plot-solid { --fill: linear-gradient(rgb(142 154 155 / 0.13), rgb(142 154 155 / 0.13)); }
+  /* every second one is drawn from the opposite corner */
+  .plots > :nth-child(even) { border-radius: 0 0 var(--r) 0; }
+  .plots > :nth-child(even)::after { top: auto; bottom: 0; }
+  /* and they sit off the baseline, not in a row */
+  .stagger > :nth-child(even) { translate: 0 16px; }
+  @media (min-width: 768px) {
+    .plot { --r: 30px; }
+    .stagger > :nth-child(4n + 2) { translate: 0 26px; }
+    .stagger > :nth-child(4n + 3) { translate: 0 -8px; }
+    .stagger > :nth-child(4n + 4) { translate: 0 40px; }
+  }
   /* small boxed fact: score, length, sample */
   .stat {
     display: inline-flex;
