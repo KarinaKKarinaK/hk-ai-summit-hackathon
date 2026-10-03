@@ -1,0 +1,30 @@
+{
+  "name": "guild",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "rm -rf public/mediapipe && cp -R node_modules/@mediapipe/tasks-vision/wasm public/mediapipe && next build",
+    "start": "next start",
+    "test": "node --test lib/score.test.mjs"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^1.0.1",
+    "@neondatabase/serverless": "^1.2.0",
+    "@vercel/blob": "^2.8.0",
+    "next": "16.3.8",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/three": "^0.186.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "packageManager": "pnpm@10.27.0"
+}

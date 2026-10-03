@@ -1,104 +1,87 @@
-# Implementation Plan: 4 people in parallel
+# Implementation Plan: MVP, 4 people, full parallel
 
-Goal: live demo (wave hand, robot mirrors, export episode) plus a working marketplace with upload, auto-labels, quality score, and buyer view.
+Priority order: 1) marketplace, 2) live capture demo, 3) simple labeling pass. The labeling pipeline only needs to work on stage, not be advanced.
 
-## Stack (keep it boring)
+## Stack
 
-- Capture + 3D: web app (works on phone browser, no app store needed). MediaPipe Hands (21 landmarks, 3D, runs in browser for free) + three.js for the robot arm.
-- Marketplace: Next.js + Supabase (auth, Postgres, file storage). One repo, two routes: `/record` and `/market`.
-- Auto-labeling + quality score: Claude API with vision over sampled frames.
+- One Next.js repo on Vercel. Routes: `/record`, `/sell`, `/buy`, `/calls`, `/login`.
+- As built: Neon Postgres + Vercel Blob instead of Supabase (both provision from the Vercel CLI, no extra account). Auth is email + password with a session cookie, not magic link (no email provider needed on stage).
+- Installable on a phone: web manifest + standalone display, bottom tab bar. Share menu, Add to Home Screen.
+- Capture demo: MediaPipe Hands + three.js, runs in the browser (works on phone, no app store).
+- Labeling MVP: one serverless function, one Kimi vision call (Moonshot API, OpenAI format) on a few sampled frames. That is the whole pipeline. Needs `KIMI_API_KEY` in Vercel env; optional `KIMI_MODEL` (default `kimi-k2.5`) and `KIMI_BASE_URL`.
+- Market pricing: `/market` price board, dynamic rate per task from bids (open calls), listed supply and last sale. Sellers can set an ask or fill a bid. Details in `DETAILED_BREAKDOWN.md` section 8.
+- Evidence trail: append-only `events` table, shown first on every listing. Observed, proposed, changed, priced, accepted. Buyers must give a reason to accept. Details in section 9.
+- Mission line for the pitch: data democratization. Sellers own the data, every lab can buy it. Section 7.
+- Live quality layer: before upload, the browser samples 6 frames and scores resolution, length, lighting, sharpness, steadiness and hands-in-frame, each with a fix tip. Final score = technical checks + label completeness + vision review. Logic in `lib/score.ts`, test with `node --test lib/score.test.mjs`.
+- Upload contract as built: video goes browser to Blob via `/api/blob` (Vercel bodies cap at 4.5MB), then `POST /api/upload` takes the blob URL + labels + metrics + frames as JSON and inserts the `pending` row.
+- Setup: `vercel env pull .env.local`, then `node --env-file=.env.local scripts/init-db.mjs` (schema + seed).
 
-Why browser, not native app: MediaPipe runs in-browser at real-time speed, one codebase serves phone and desktop, and judges can open it on their own phones.
+## Skilled labour focus (how we beat Figure Index)
 
-## Roles
+Full research in `DETAILED_BREAKDOWN.md` section 6. In the build:
 
-| Person | Owns | Deliverable |
-|--------|------|-------------|
-| A: Tracking | Hand + object tracking, gripper retargeting | Live 3D hand pose stream + gripper open/close signal |
-| B: Robot + export | three.js arm that mirrors the hand, episode recorder/export | The wow demo view + episode JSON/video export |
-| C: Marketplace | Next.js app, auth, upload, seller/buyer UIs, open calls | Working two-sided marketplace |
-| D: Quality + pitch | Frame sampling, VLM label suggestion, quality score 1-5, pitch deck and demo script | Upload-to-score pipeline + the pitch |
+- Sellers register with trade, years and licence. Buyers see it on every listing.
+- Payout multiplier by experience: under 3 years 1x, 3+ years 1.25x, 10+ years 1.5x.
+- Vision review returns task steps and a skill read (novice / competent / expert), plus face and screen flags.
+- Label set, seed listings and open calls are all trades (wiring, welding, repair, tailoring, HVAC), not chores.
+- Seller keeps ownership, sells a non-exclusive licence to many buyers. Figure pays once and keeps the data.
 
-## The contract (agree in hour 1, then nobody blocks anybody)
+## Roles (no dependencies between people until integration)
 
-Everything integrates through two artifacts. Define them first, commit them to the repo, mock them immediately.
+| Person | Owns | Done when |
+|--------|------|-----------|
+| A: Capture demo | `/record`: hand tracking, three.js arm mirroring live, record + export | You wave, arm copies, episode downloads and POSTs to upload endpoint |
+| B: Seller side | `/sell`: auth, upload from phone gallery, labels, my-uploads list with score + payout estimate | Video uploaded on a phone shows up scored and listed |
+| C: Buyer side | `/buy`: browse listings, filters, 3 packages, open calls, seed data | Marketplace looks alive and filterable on stage |
+| D: Labeling MVP + pitch | Upload trigger -> sample frames -> Kimi vision -> labels + score 1-5 into DB. Pitch deck, demo script, backup video | Any upload gets labels and a score within ~30s |
 
-### Episode format (A produces, B consumes live, C/D consume as file)
+## Hour 1: the contract, then split
 
-```json
-{
-  "episode_id": "uuid",
-  "fps": 30,
-  "device": "iPhone 15",
-  "frames": [
-    {
-      "t_ms": 0,
-      "hand": { "landmarks": [[x, y, z], "... 21 total"] },
-      "gripper": { "x": 0, "y": 0, "z": 0, "roll": 0, "pitch": 0, "yaw": 0, "open": 0.8 },
-      "objects": [{ "label": "cup", "bbox": [x, y, w, h] }]
-    }
-  ],
-  "video_ref": "storage path"
-}
+All four agree on these two things, commit them, and nobody talks again until integration:
+
+1. `uploads` table:
 ```
-
-### Upload record (C's DB schema, D writes score/labels into it)
-
+id, seller_id, video_url, episode_url, status(pending|scored),
+quality_score int, labels jsonb, description text, created_at
 ```
-uploads: id, seller_id, video_url, episode_url, status(pending|scored|rejected),
-         quality_score(1-5), labels(jsonb), description, created_at
-```
+2. Upload endpoint: `POST /api/upload` (video file + optional episode JSON) -> inserts row with status `pending`.
 
-B mocks A with a replayed landmark recording. C mocks D with hardcoded scores. Integrate real pieces as they land.
+Mocks so everyone starts immediately: B and C seed the table with fake scored rows by hand. D tests the labeling function on a local video file. A posts to a dummy endpoint until B's is up.
 
 ## Workstreams
 
-### Person A: Tracking
+### A: Capture demo
+1. MediaPipe Hands in browser, landmarks rendered. Do this first, it is the only technical risk in the project.
+2. three.js arm from primitives (base, two links, two-finger gripper). No URDF, no real IK: place the gripper at the wrist position, point the links at it, map thumb-index pinch to open/close. Smooth with a moving average.
+3. Side-by-side: camera left, arm right. Record button -> video (MediaRecorder) + episode JSON (per-frame landmarks and gripper pose) -> POST to upload endpoint.
+4. Cut object tracking entirely. Hand mirror alone is the wow.
 
-1. MediaPipe Hands in the browser, camera feed, 21 landmarks rendered as dots. Get this working first, it de-risks the whole project.
-2. Retarget: wrist position -> gripper position, thumb-index pinch distance -> gripper open/close (0 to 1). Simple and robust beats clever.
-3. Smooth the signal (moving average over a few frames) so the arm does not jitter.
-4. Record a few clean landmark sequences to file so B can develop against replays.
-5. Stretch: object tracking. MediaPipe Objectron or a plain color/bbox tracker on one known object (a cup). Skip if time is short, hand tracking alone carries the demo.
+### B: Seller side
+1. Supabase auth (magic link), role picked at signup. Org = a text field, nothing more.
+2. Upload page that works from a phone gallery, plus description and a label picker (perspective, task type, industry, tools, device).
+3. My-uploads list: status, score, suggested labels from D with confirm buttons, payout estimate = base rate x score x label count. Display only.
 
-### Person B: Robot arm + export
+### C: Buyer side
+1. Listings grid with filters on labels and score.
+2. Listing detail: 3 package options (raw / processed / both) with prices, fake buy button.
+3. Open calls: post form + browse page.
+4. Seed 15-20 realistic listings across trades and 5 open calls. This is what makes the demo look like a real marketplace, do not skip it.
 
-1. three.js scene with a simple articulated arm: base, two links, two-finger gripper. Build it from primitives (cylinders, boxes), do not fight URDF loaders.
-2. Drive the arm from the gripper pose stream: inverse kinematics for a 2-link arm is a closed-form formula, or just place the gripper directly at the target and fake the links pointing at it. Nobody checks joint accuracy, they check that it mirrors instantly.
-3. Side-by-side layout: camera feed left, robot view right, mirroring live.
-4. Record button: capture episode JSON + video (MediaRecorder API), export as download and POST to C's upload endpoint.
-5. Stretch: ghost trail of the gripper path, replay mode for a finished episode.
+### D: Labeling MVP + pitch
+1. One function: on new upload, grab 4-6 frames (canvas capture client-side on upload is fine, skip server ffmpeg), one Kimi vision call returning JSON: `{labels per category, quality_score, reasons}`. Write to the row, status -> scored.
+2. That is the entire pipeline. The teacher-student loop and quality indicators are pitch slides, not code.
+3. Deck + 3-minute script: live mirror demo -> upload it on stage -> it gets scored and listed -> buyer filters to it and buys. One continuous story.
+4. Backup video of the full flow, recorded before final rehearsal.
 
-### Person C: Marketplace
+## Checkpoints
 
-1. Next.js + Supabase: auth (email magic link), roles seller/buyer picked at signup, org = just a field on the profile for the demo.
-2. Seller side: upload page (file from gallery, works on phone), description, label picker for the categories in DETAILED_BREAKDOWN, "suggested labels" section that reads D's output with confirm/reject buttons, "my uploads" list showing status, score, and payout estimate.
-3. Buyer side: browse listings with filters on labels and score, three-package picker (raw / processed / both) with prices, "post an open call" form and a browseable open-calls page for sellers.
-4. Seed realistic demo data: 15 to 20 fake listings across trades, 5 open calls. The marketplace must look alive on stage.
-5. Payout estimate = base rate x quality score x label completeness. Display only, no real money.
+| When | Must be true |
+|------|--------------|
+| +25% | A: landmarks live. B: upload inserts a row. C: listings render seed data. D: Kimi call returns labels on a test frame |
+| +50% | A: arm mirrors live. B+D integrated: real upload gets real score. C: filters + packages work |
+| +75% | A: record/export posts into the marketplace. Full flow works once end to end. D: deck + backup video done |
+| Final | Rehearse the full flow twice. Fix only what breaks. Freeze. |
 
-### Person D: Quality pipeline + pitch
+## Cut list (already decided, do not reopen)
 
-1. On upload: pull N frames spread across the video (ffmpeg or server-side), send to Claude vision with one prompt that returns JSON: suggested labels per category, quality score 1-5 with one-line reasons (lighting, stability, hands visible, task clarity), accept/reject.
-2. Write results into C's uploads table, status pending -> scored. This is the whole "initial quality pass" for the demo; describe the teacher-student loop in the pitch as the production version.
-3. Blur or flag faces if time allows, otherwise just avoid faces in demo footage.
-4. Pitch deck and 3-minute demo script: open with the live mirror demo, then upload the just-recorded episode on stage, show it getting scored and listed, show a buyer filtering to it. One continuous story.
-5. Record a backup video of the full flow in case the live demo breaks.
-
-## Timeline (adjust to the real hackathon clock)
-
-| Checkpoint | A | B | C | D |
-|------------|---|---|---|---|
-| Hour 1 | All four: agree on episode format + DB schema, repo setup | | | |
-| +25% | Landmarks live in browser | Arm renders, moves on mock data | Auth + upload working | VLM prompt returns labels + score on a test video |
-| +50% | Retargeted gripper stream, smoothed | Arm mirrors A's live stream | Seller flow complete | Pipeline wired to uploads table |
-| Integration 1 | Live mirror demo works end to end (A + B) | | Upload -> score -> listing works (C + D) | |
-| +75% | Object tracking or polish | Export + POST to marketplace | Buyer side + open calls + seed data | Deck drafted, backup video recorded |
-| Final | Full rehearsal twice: record live, upload, score, list, buy. Fix only what breaks. | | | |
-
-## Risks and pre-decided answers
-
-- Hand tracking flaky on stage lighting: test in the actual room early, bring a desk lamp, plain background cloth.
-- Retargeting looks wrong: reduce claims, say "approximate retargeting, the pipeline is the product."
-- Live demo dies: D's backup video, presenter narrates over it.
-- Scope creep: no payments, no real org management, no native app, no real robot. Say "production roadmap" and move on.
+No payments, no real orgs, no native app, no object tracking, no server-side video processing, no teacher-student loop, no real robot. All of it is "production roadmap" in the pitch.
