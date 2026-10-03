@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
-import { buildArm, buildMug, buildFloor, addLights } from '@/lib/arm'
+import { buildArm, buildMug, buildTable, addLights } from '@/lib/arm'
 import Dither from './Dither'
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * Math.min(1, Math.max(0, t))
@@ -70,7 +70,7 @@ export default function ArmScene() {
     warm.position.set(2.2, 0.9, -1.6)
     rose.position.set(-2.2, 1.3, 1.6)
     const arm = buildArm('graphite'), mug = buildMug()
-    scene.add(arm.root, buildFloor(), mug, warm, rose)
+    scene.add(arm.root, buildTable(), mug, warm, rose)
 
     let w = 1, h = 1
     const size = () => {
@@ -108,7 +108,7 @@ export default function ArmScene() {
       cam.position.set(Math.sin(o) * dist, 1.9 - 0.3 * zoom - mouse.y * 0.25, Math.cos(o) * dist)
       arm.root.updateMatrixWorld(true)
       arm.parts.wrist.getWorldPosition(v)
-      cam.lookAt(look.set(0.15, 0.5, 0).lerp(v.setY(v.y - 0.2), zoom * 0.5))
+      cam.lookAt(look.set(0.25, 0.25, 0).lerp(v.setY(v.y - 0.2), zoom * 0.5))
       cam.updateMatrixWorld()
       renderer.render(scene, cam)
 

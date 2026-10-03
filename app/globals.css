@@ -196,28 +196,28 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
   .tile-lift:nth-child(2) { transition-delay: 0.1s, 0.1s, 0s; }
   .tile-lift:nth-child(3) { transition-delay: 0.2s, 0.2s, 0s; }
   .tile-lift:nth-child(4) { transition-delay: 0.3s, 0.3s, 0s; }
-  /* a scan line passes down each poster in turn, the way a labelling pass reads a frame */
-  .tile-lift::after {
-    content: "";
+  /* the short label that rides beside the cursor while it is over one poster */
+  .tile > .cursor-tag {
     position: absolute;
-    inset: 0 0 auto;
-    height: 34%;
-    z-index: -1;
+    left: 0;
+    top: 0;
+    z-index: 2;
+    padding: 3px 7px;
+    font: 500 10px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-shadow: none;
+    color: var(--color-blush);
+    background: rgb(8 4 3 / 0.72);
+    border-left: 2px solid var(--color-flame);
+    opacity: 0;
     pointer-events: none;
-    background: linear-gradient(transparent, rgb(255 255 255 / 0.1) 80%, rgb(255 255 255 / 0.32));
-    translate: 0 -110%;
-    animation: scan 6s linear infinite;
-  }
-  .tile-lift:nth-child(2)::after { animation-delay: 1.5s; }
-  .tile-lift:nth-child(3)::after { animation-delay: 3s; }
-  .tile-lift:nth-child(4)::after { animation-delay: 4.5s; }
-  @keyframes scan {
-    0% { translate: 0 -110%; }
-    45%, 100% { translate: 0 320%; }
+    transition: opacity 0.2s;
+    will-change: transform;
   }
   @media (prefers-reduced-motion: reduce) {
     .tile-lift { opacity: 1; translate: 0 0; }
-    .tile-lift::after { content: none; }
   }
   /* light text sitting on the swirl needs a little shade to stay readable over the pale parts */
   .on-flow { text-shadow: 0 1px 14px rgb(20 10 6 / 0.6), 0 0 2px rgb(20 10 6 / 0.35); }

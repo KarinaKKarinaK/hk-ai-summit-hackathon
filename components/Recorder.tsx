@@ -318,7 +318,7 @@ export default function Recorder({ tasks }: { tasks: QuickTask[] }) {
       </div>
 
       <div className="card card-warm flex items-start gap-3 p-4 text-sm">
-        <span className="chip bg-ink/40 flex-none">Try this</span>
+        <span className="chip bg-white/[.05] flex-none">Try this</span>
         <p>{current.hint}</p>
       </div>
 

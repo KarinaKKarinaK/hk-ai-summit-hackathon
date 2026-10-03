@@ -1,6 +1,5 @@
 import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
-import { flow } from '@/components/Dither'
 
 export const L = 1 // length of each arm link
 const SHOULDER_Y = 0.5 // height of the shoulder axle above the table
@@ -182,34 +181,25 @@ export function buildArm(finish: 'graphite' | 'light' = 'light') {
   return { root, solve, parts: { shoulder, elbow, wrist } }
 }
 
-const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
-
 /**
- * The ground: a square platform of blocks, the landing page's halftone pattern in 3D.
- * Flat where the arm works, then the blocks shrink and step up in terraces toward the rim.
- * A dithered river of orange blocks runs through the charcoal ones. One instanced mesh.
+ * The workbench the arm is bolted to: a dark timber top with an orange edge strip, a steel frame and four legs.
+ * The top surface sits at y = 0, where the arm's base plate and the mug stand.
  */
-export function buildFloor(R = 1.95, N = 40, flat = 1.5) {
-  const cell = (2 * R) / N
-  const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.28, 1).translate(0, -0.14, 0), new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0.25 }), N * N)
-  const o = new THREE.Object3D(), col = new THREE.Color()
-  let n = 0
-  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-    const x = (i + 0.5) * cell - R, z = (j + 0.5) * cell - R, r = Math.max(Math.abs(x), Math.abs(z)) // square platform
-    const v = flow(x * 0.5 + 2, z * 0.5 + 2, 3.3), edge = clamp((r - flat) / (R - flat), 0, 1)
-    const size = cell * (0.9 - 0.6 * edge)
-    o.position.set(x, (Math.round(v * 5) / 5) * 0.16 * edge, z)
-    o.scale.set(size, 1, size)
-    o.updateMatrix()
-    mesh.setMatrixAt(n, o.matrix)
-    const lit = (BAYER[(j & 3) * 4 + (i & 3)] + 0.5) / 16 < (v - 0.5) / 0.5
-    if (lit) col.set(v > 0.84 ? 0xf3bcae : 0xee7340)
-    else col.set(0x242127).multiplyScalar(0.75 + ((i * 7 + j * 13) % 5) * 0.11)
-    mesh.setColorAt(n++, col)
-  }
-  mesh.count = n
-  mesh.receiveShadow = true
-  return mesh
+export function buildTable(w = 3.3, d = 2.7, h = 1.05) {
+  const grain = brushed()
+  grain.repeat.set(1, 5)
+  const top = new THREE.MeshStandardMaterial({ color: 0x33271f, roughness: 0.9, metalness: 0.05, roughnessMap: grain, bumpMap: grain, bumpScale: 1.2 })
+  const frame = new THREE.MeshStandardMaterial({ color: 0x1b191d, roughness: 0.5, metalness: 0.7 })
+  const edge = new THREE.MeshStandardMaterial({ color: 0xee7340, roughness: 0.6, metalness: 0.3 })
+  const box = (x: number, y: number, z: number, m: THREE.Material) => new THREE.Mesh(new THREE.BoxGeometry(x, y, z), m)
+  const at = <T extends THREE.Object3D>(o: T, x: number, y: number, z: number) => (o.position.set(x, y, z), o)
+  const g = new THREE.Group()
+  g.add(at(box(w, 0.07, d, top), 0, -0.035, 0), at(box(w + 0.02, 0.02, d + 0.02, edge), 0, -0.08, 0), at(box(w - 0.24, 0.1, d - 0.24, frame), 0, -0.14, 0))
+  for (const x of [-1, 1]) for (const z of [-1, 1]) g.add(at(box(0.09, h, 0.09, frame), x * (w / 2 - 0.14), -0.19 - h / 2, z * (d / 2 - 0.14)), at(box(0.13, 0.03, 0.13, edge), x * (w / 2 - 0.14), -0.19 - h, z * (d / 2 - 0.14)))
+  for (const z of [-1, 1]) g.add(at(box(w - 0.3, 0.05, 0.05, frame), 0, -0.19 - h * 0.7, z * (d / 2 - 0.14)))
+  g.position.x = 0.25 // the arm reaches to its right, so the top is centred on its working area
+  g.traverse((o) => ((o.castShadow = true), (o.receiveShadow = true)))
+  return g
 }
 
 /** A glass mug with a little amber in it. The handle is what makes its rotation visible. */

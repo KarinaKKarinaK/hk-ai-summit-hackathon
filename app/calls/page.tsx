@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { sql, getUser } from '@/lib/server'
-import { LABELS, matchesCall } from '@/lib/score'
+import { LABELS, matchesCall, cents, money } from '@/lib/score'
 import Glyph, { taskGlyph } from '@/components/Glyph'
 import { postCall, fillBid } from '../actions'
 
@@ -88,7 +88,7 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
                       <form action={fillBid}>
                         <input type="hidden" name="id" value={clip.id} />
                         <input type="hidden" name="call" value={c.id} />
-                        <button className="btn !min-h-10 text-sm">Submit &ldquo;{clip.title}&rdquo; for ${Math.max(1, Math.round((c.rate * clip.minutes) / 60))}</button>
+                        <button className="btn !min-h-10 text-sm">Submit &ldquo;{clip.title}&rdquo; for ${money(cents((c.rate * clip.minutes) / 60))}</button>
                       </form>
                     )}
                     {user?.id === c.buyer_id && <a href={`/api/dataset/${c.id}`} className="btn btn-ghost !min-h-10 text-sm">Download dataset</a>}

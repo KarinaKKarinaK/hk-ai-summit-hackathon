@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto'
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless'
-import { LABELS, BASE_RATE, marketRate, listPrice, nearDuplicate, reputation, GOLDEN_MULT, type LabelSet, type LabelSets, type Market } from './score'
+import { LABELS, BASE_RATE, marketRate, listPrice, nearDuplicate, reputation, GOLDEN_MULT, type LabelSet, type LabelSets, type Market, cents } from './score'
 
 // Lazy so the build does not need DATABASE_URL.
 export const sql = ((s: TemplateStringsArray, ...v: unknown[]) => neon(process.env.DATABASE_URL!)(s, ...v)) as NeonQueryFunction<false, false>
@@ -100,7 +100,7 @@ export const getMarket = cache(async (): Promise<Record<string, TaskMarket>> => 
 
 /** What a buyer pays for the raw package: the seller's ask if they set one, else the live market price. */
 export function priceOf(r: Record<string, any>, market: Record<string, TaskMarket>): number {
-  return r.ask ?? Math.round(listPrice(market[r.labels?.task ?? '']?.rate ?? BASE_RATE, r.minutes, r.quality_score, r.years ?? 0) * (r.golden ? GOLDEN_MULT : 1))
+  return r.ask ?? cents(listPrice(market[r.labels?.task ?? '']?.rate ?? BASE_RATE, r.minutes, r.quality_score, r.years ?? 0) * (r.golden ? GOLDEN_MULT : 1))
 }
 
 /** Trust boundary for the duplicate check inputs. */

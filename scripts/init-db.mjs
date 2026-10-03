@@ -63,6 +63,12 @@ const schema = [
   // quick = a request anyone can do at a desk, offered on the recorder. capture = how a clip came in: in-app, screen or gallery.
   `alter table calls add column if not exists quick boolean default false`,
   `alter table uploads add column if not exists capture text`,
+  // money in dollars and cents: a one-minute clip is worth cents, so whole dollars are too coarse
+  `alter table uploads alter column price type double precision`,
+  `alter table uploads alter column ask type double precision`,
+  `alter table purchases alter column price type double precision`,
+  `alter table purchases alter column bonus type double precision`,
+  `alter table purchases alter column fee type double precision`,
   `update uploads set capture = case when episode_url is not null then 'in-app' else 'gallery' end where capture is null and video_url is not null`,
 ]
 for (const s of schema) await sql.query(s)

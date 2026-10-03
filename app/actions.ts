@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { cents } from '@/lib/score'
 import { sql, hash, verify, createSession, requireUser, getMarket, priceOf, log } from '@/lib/server'
 import { LABELS, ACCEPT_REASONS, PASS_REASONS, packages, technical, completeness, finalScore, tier, matchesCall, unavailable, RESULT_BONUS, type Labels } from '@/lib/score'
 
@@ -76,8 +77,9 @@ export async function setAsk(f: FormData) {
   const [r] = await sql`select u.id, u.labels, u.minutes, u.quality_score, s.years from uploads u join users s on s.id = u.seller_id
     where u.id = ${uuid(f, 'id')} and u.seller_id = ${user.id} and u.status = 'scored'`
   if (!r) redirect('/sell')
-  const ask = int(f, 'ask', 1_000_000) || null
-  if (ask && ask < 5) redirect('/sell')
+  const raw = Number(f.get('ask'))
+  const ask = Number.isFinite(raw) && raw > 0 ? Math.round(raw * 100) / 100 : null // dollars and cents, empty clears it
+  if (ask && (ask < 0.05 || ask > 1_000_000)) redirect('/sell')
   await sql`update uploads set ask = ${ask} where id = ${r.id}`
   await log(r.id, 'seller', 'ask', { ask, market: priceOf(r, await getMarket()) }, user.id)
   revalidatePath('/sell')
@@ -103,7 +105,7 @@ export async function reportResult(f: FormData) {
   const id = uuid(f, 'id'), outcome = pick(['improved', 'no change', 'worse'], str(f, 'outcome'))
   const [p] = await sql`select id, price, bonus from purchases where upload_id = ${id} and buyer_id = ${user.id} order by created_at limit 1`
   if (!p || !outcome) redirect(`/buy/${id}`)
-  const bonus = outcome === 'improved' && !p.bonus ? Math.max(1, Math.round(p.price * RESULT_BONUS)) : 0
+  const bonus = outcome === 'improved' && !p.bonus ? cents(p.price * RESULT_BONUS) : 0
   if (bonus) await sql`update purchases set bonus = ${bonus} where id = ${p.id}`
   await log(id, 'buyer', 'result', { outcome, bonus, metric: str(f, 'metric', 120) }, user.id, str(f, 'note', 500))
   revalidatePath(`/buy/${id}`)
@@ -158,7 +160,7 @@ export async function fillBid(f: FormData) {
   if (!r || !c || c.buyer_id === user.id || !matchesCall(c, l, r.minutes)) redirect('/sell')
   const done = await sql`select 1 from purchases where upload_id = ${r.id} and buyer_id = ${c.buyer_id}`
   if (done.length) redirect('/sell')
-  const hours = r.minutes / 60, price = Math.max(1, Math.round(c.rate * hours))
+  const hours = r.minutes / 60, price = cents(c.rate * hours)
   await sql`insert into purchases (buyer_id, upload_id, package, price, rate, call_id) values (${c.buyer_id}, ${r.id}, 'both', ${price}, ${c.rate}, ${c.id})`
   await sql`update calls set hours = greatest(hours - ${hours}, 0) where id = ${c.id}`
   await log(r.id, 'buyer', 'accepted', { package: 'Raw + processed', price, rate: c.rate, via: 'bid', reasons: [`Standing bid: ${c.title}`], score: r.quality_score, labels: l }, c.buyer_id, c.description ?? '')

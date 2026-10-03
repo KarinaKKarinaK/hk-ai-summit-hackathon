@@ -27,7 +27,7 @@ export default async function MarketPage() {
                 <span className="font-medium">{task}</span>
                 <span className="text-2xl font-light tabular-nums">${m.rate.toFixed(0)}<span className="muted text-xs">/h</span></span>
               </div>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full rounded-full bg-linear-to-r from-flame via-flame to-blush" style={{ width: `${(m.rate / top) * 100}%` }} /></div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[.05]"><div className="h-full rounded-full bg-linear-to-r from-flame via-flame to-blush" style={{ width: `${(m.rate / top) * 100}%` }} /></div>
             </Link>
           </li>
         ))}
@@ -49,7 +49,7 @@ export default async function MarketPage() {
               <tr key={task} className={`border-t border-white/[.06] transition-colors hover:bg-white/[.03] ${m.demand || m.supply ? '' : 'opacity-45'}`}>
                 <td className="px-6 py-4">
                   <Link href={`/buy?task=${task}`} className="font-medium">{task}</Link>
-                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full rounded-full bg-linear-to-r from-flame via-flame to-blush" style={{ width: `${(m.rate / top) * 100}%` }} /></div>
+                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[.05]"><div className="h-full rounded-full bg-linear-to-r from-flame via-flame to-blush" style={{ width: `${(m.rate / top) * 100}%` }} /></div>
                 </td>
                 <td className="px-4 py-4 text-right text-xl font-light">${m.rate.toFixed(2)}</td>
                 <td className="px-4 py-4 text-right">{m.topBid ? `$${m.topBid.toFixed(0)}` : <span className="muted">-</span>}</td>

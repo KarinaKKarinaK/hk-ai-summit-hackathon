@@ -172,7 +172,7 @@ How we would start, given the cold-start problem: not as an open marketplace. Si
 
 | Page | Tab | What it does |
 |---|---|---|
-| `/` | | The pitch: hero video, how it works in four steps, cost chart, benefits for sellers and buyers, a 3D arm and glass mug scroll scene, mission |
+| `/` | | The pitch: a full-screen video hero, how it works in four posters (halftone style, a short label follows the cursor), an interactive cost chart, benefits for sellers and buyers, a scroll-driven 3D arm that picks up a glass mug on a workbench with data labels drawn over it, and the mission |
 | `/record` | Add data | Pick a task (cup practice, two in-demand requests, or your own), then film. Both hands, face mesh and body skeleton drawn live in green, a virtual cup to pick up, quality warnings and a finger challenge |
 | `/sell` | Earn | Three ways in: film your hands, record your screen, upload a video. Then earnings, listings, asks and withdrawals |
 | `/sell/[id]` | Earn | Processing report for one clip: result, checks, both labelling systems, and the form to confirm labels and make it golden |
@@ -180,7 +180,7 @@ How we would start, given the cold-start problem: not as an open marketplace. Si
 | `/buy` | Buy data | Marketplace grid with filters and tags |
 | `/buy/[id]` | Buy data | Evidence trail, price breakdown, licence, labelling options, accept or pass with a reason |
 | `/market` | Buy data | Guild Index and the price board per task |
-| `/profile` | Profile | Seller: earnings breakdown. Buyer: data acquired |
+| `/profile` | Profile | Seller: earnings this month and all time, a 30-day chart, earnings by task and recent sales. Buyer: the same for what they spent |
 | `/login` | Profile | Email and password, seller or buyer |
 
 API: `/api/upload` (the pipeline), `/api/blob` (video upload), `/api/check` (originality), `/api/index` (open price index), `/api/provenance/[id]` (certificate), `/api/dataset/[id]` (request owner's dataset manifest).
@@ -240,11 +240,24 @@ Licences are non-exclusive. Exclusive licences at a premium are not built.
 Each task is its own market, in USD per hour of footage.
 
 - **Rate** = average bid ($5/h if none) x 0.6 to 1.4 by hours wanted against hours listed, then pulled 30% toward the last sale. The last sale is clamped so one odd trade cannot move a market more than 30%.
-- **Clip price** = rate x length x score / 4 x experience tier (1x, 1.25x at 3 years, 1.5x at 10 years).
+- **Clip price** = rate x length x score / 4 x experience tier (1x, 1.25x at 3 years, 1.5x at 10 years), in dollars and cents. There is no per-clip minimum: a one-minute clip is worth cents, the same per hour as a long one.
 - **Golden clips** list 30% higher.
 - **Split**: 80% to the seller, 20% to the platform. Licences are non-exclusive, so one clip can sell many times.
 
 Common footage gets cheaper, rare footage gets dearer, and sellers see what pays most right now. All of it is in `lib/score.ts` and covered by tests.
+
+### What the market pays today
+
+Reported figures from a web search on 2026-10-04, not verified at source by us. They are why the demo's rates sit between 5 and 16 USD per hour of footage, and why clips are priced in cents.
+
+| What | Reported range | Where to check |
+|---|---|---|
+| Raw egocentric video, cost to the buyer | 15 to 22 USD per hour | [Dexset pricing guide](https://dexset.ai/blogs/robot-training-data-costs-pricing-complete-2026/) |
+| Annotated egocentric video | 30 to 40 USD per hour | [Dexset pricing guide](https://dexset.ai/blogs/robot-training-data-costs-pricing-complete-2026/) |
+| Teleoperated robot data | 28 to 60 USD per hour, 80 to 150 for complex humanoid programs | [Dexset](https://dexset.ai/blogs/robot-training-data-costs-pricing-complete-2026/), [DataXPower](https://www.dataxpower.com/blog/humanoid-robot-data-collection-cost) |
+| What contributors are paid | Mostly 3 to 9 USD per hour of accepted footage, as low as 1, up to 15 to 30 for some US roles | [TechCrunch](https://techcrunch.com/2026/05/26/human-archive-taps-into-indias-services-startups-to-collect-data-for-physical-ai/), [Remowork roundup](https://remowork.life/blog/get-paid-to-record-household-chores-egocentric-ai-data-platforms-2026) |
+
+Our rates are at the low end of what buyers pay elsewhere, and a seller's 80% share lands inside the range contributors earn today. The difference is that a Guild clip can sell more than once.
 
 ## Labelling options
 
@@ -335,18 +348,19 @@ Keep secrets in Vercel (`vercel env add`). `vercel env pull` overwrites `.env.lo
 
 - Tests: `pnpm test` (scoring, pricing, duplicate check, request matching, reputation)
 - Mark a seller's licence as checked: `node --env-file=.env.local scripts/verify-seller.mjs seller@example.com`
+- Demo seller with a month of sales (Mr. Wong, electrician, `wong@guild.demo`): `node --env-file=.env.local scripts/seed-wong.mjs <password>`. Sample data, safe to rerun
 - Deploy: `vercel --prod`
 
 **Stack:** Next.js 16, React 19, Tailwind 4, Vercel, Neon Postgres, Vercel Blob, MediaPipe (hands, face, pose, objects) in the browser, three.js, GSAP and Lenis for the landing page, Kimi (Moonshot) vision API.
 
 ```
 app/            pages, server actions (actions.ts), API routes (api/)
-components/     Recorder, SellStart, UploadForm, ClipStats, ArmScene, Benefits, Tabs, Glyph
+components/     Recorder, SellStart, UploadForm, ClipStats, ArmScene, CostChart, Dither, Benefits, Tabs, Glyph
 lib/score.ts    scoring, pricing, hashing, matching, reputation. Pure, shared by browser and server
 lib/quality.ts  in-browser frame analysis and the MediaPipe models
-lib/arm.ts      the 3D arm and mug
+lib/arm.ts      the 3D arm, mug and workbench
 lib/server.ts   database, sessions, market query, evidence log
-scripts/        init-db.mjs, verify-seller.mjs
+scripts/        init-db.mjs, verify-seller.mjs, seed-wong.mjs
 docs/           README screenshots
 ```
 
@@ -368,6 +382,8 @@ docs/           README screenshots
 - Video files sit on unguessable but public URLs.
 - No payments, no password reset, no login rate limit.
 - The hero image and video are third-party and should be replaced before any public use.
+- The labels drawn over the 3D arm on the landing page (joint angles, "mug 0.97") are an illustration of labelling, not model output.
+- Short clips are worth cents at these rates. Whether sellers will record for that, without a request paying a guaranteed rate, is untested.
 
 ## Photo credits
 

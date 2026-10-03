@@ -2,7 +2,7 @@ import Link from 'next/link'
 import SellStart from '@/components/SellStart'
 import Calculator from '@/components/Calculator'
 import { sql, getUser, getMarket, priceOf } from '@/lib/server'
-import { payout, signal, tier, matchesCall, SELLER_SHARE, HOLD_DAYS, type Labels } from '@/lib/score'
+import { money, cents, payout, signal, tier, matchesCall, SELLER_SHARE, HOLD_DAYS, type Labels } from '@/lib/score'
 import { reviewLabels, setAsk, fillBid, toggleListed } from '../actions'
 
 /** What the vision model saw that the seller did not enter. */
@@ -16,8 +16,8 @@ export default async function Sell() {
   const user = await getUser()
   const [rows, calls, market] = await Promise.all([
     user ? sql`select u.*, ${user.years ?? 0}::int as years,
-        (select coalesce(sum(price - coalesce(fee, 0)), 0)::int from purchases p where p.upload_id = u.id) as revenue,
-        (select coalesce(sum(bonus), 0)::int from purchases p where p.upload_id = u.id) as bonus,
+        (select coalesce(sum(price - coalesce(fee, 0)), 0)::float from purchases p where p.upload_id = u.id) as revenue,
+        (select coalesce(sum(bonus), 0)::float from purchases p where p.upload_id = u.id) as bonus,
         array(select buyer_id::text from purchases p where p.upload_id = u.id) as buyers,
         exists(select 1 from events e where e.upload_id = u.id and e.kind in ('changed', 'kept')) as reviewed
       from uploads u where seller_id = ${user.id} order by created_at desc` : [],
@@ -46,9 +46,12 @@ export default async function Sell() {
       </div>
 
       {user && (
-        <dl className="card grid grid-cols-3 gap-4 p-5">
-          {[[`$${earned.toFixed(2)}`, 'earned: royalties and result bonuses'], [sales, 'licences sold'], [rows.filter((r) => r.status === 'scored' && r.quality_score >= 2 && !r.withdrawn_at).length, 'clips on the market']].map(([n, l]) => (
-            <div key={l}><dt className="text-2xl font-light tracking-tight md:text-4xl">{n}</dt><dd className="label mt-1">{l}</dd></div>
+        <dl className="grid grid-cols-3 gap-3">
+          {[[`$${earned.toFixed(2)}`, 'Earned'], [sales, 'Licences sold'], [rows.filter((r) => r.status === 'scored' && r.quality_score >= 2 && !r.withdrawn_at).length, 'Clips on the market']].map(([n, l], i) => (
+            <div key={l} className={`card p-4 md:p-5 ${i === 0 ? 'card-warm' : ''}`}>
+              <dd className="text-2xl font-semibold tracking-tight tabular-nums md:text-4xl">{n}</dd>
+              <dt className="muted mt-1 text-xs md:text-sm">{l}</dt>
+            </div>
           ))}
         </dl>
       )}
@@ -70,7 +73,7 @@ export default async function Sell() {
                   <span className="font-medium">{task}</span>
                   <span className="text-2xl font-light tabular-nums">${m.rate.toFixed(0)}<span className="muted text-sm">/h</span></span>
                 </div>
-                <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/[.06]">
+                <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/[.05]">
                   <div className="h-full rounded-full bg-linear-to-r from-flame via-flame to-blush" style={{ width: `${(m.rate / hot[0][1].rate) * 100}%`, opacity: 1 - i * 0.22 }} />
                 </div>
               </li>
@@ -85,7 +88,7 @@ export default async function Sell() {
           <ul className="space-y-2">
             {calls.slice(0, 3).map((c) => (
               <li key={c.id}>
-                <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="flex items-center justify-between gap-3 rounded-box bg-ink/40 p-3 pl-4 transition-colors hover:bg-ink/60">
+                <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="flex items-center justify-between gap-3 rounded-box bg-white/[.05] p-3 pl-4 transition-colors hover:bg-white/[.09]">
                   <span className="min-w-0 truncate font-medium">{c.title}</span>
                   <span className="flex-none text-lg font-light tabular-nums">${c.rate}<span className="text-xs text-paper/60">/h</span></span>
                 </Link>
@@ -113,11 +116,11 @@ export default async function Sell() {
               const marketPrice = scored ? priceOf({ ...r, ask: null }, market) : 0
               const bid = listed && r.quality_score >= 3 && calls.find((c) => matchesCall(c, l, r.minutes) && !r.buyers.includes(c.buyer_id))
               return (
-                <li key={r.id} className="card flex gap-4 p-4">
-                  {r.thumb ? <img src={r.thumb} alt="" className="h-16 w-20 flex-none rounded-box object-cover md:h-20 md:w-28" /> : <div className="streaks h-16 w-20 flex-none rounded-box md:h-20 md:w-28" />}
+                <li key={r.id} className="card flex flex-col gap-4 p-4 sm:flex-row md:gap-6 md:p-5">
+                  {r.thumb ? <img src={r.thumb} alt="" className="h-44 w-full flex-none rounded-box object-cover sm:h-32 sm:w-48 md:h-40 md:w-64" /> : <div className="streaks h-44 w-full flex-none rounded-box sm:h-32 sm:w-48 md:h-40 md:w-64" />}
                   <div className="min-w-0 flex-1 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <Link href={`/buy/${r.id}`} className="truncate font-medium underline-offset-4 hover:underline">{r.title || 'Untitled clip'}</Link>
+                      <Link href={`/buy/${r.id}`} className="truncate text-lg font-medium underline-offset-4 hover:underline">{r.title || 'Untitled clip'}</Link>
                       {scored ? (
                         <span className="flex items-center gap-2 text-sm"><span className="score" style={{ '--s': r.quality_score } as React.CSSProperties} /> {r.quality_score}/5</span>
                       ) : (
@@ -125,17 +128,17 @@ export default async function Sell() {
                       )}
                     </div>
                     {scored && (
-                      <p className="muted text-xs">
-                        {r.withdrawn_at ? 'Withdrawn from the market. ' : listed ? `Listed at $${r.ask ?? marketPrice}${r.ask ? ` (your ask, market says $${marketPrice})` : ' (market price, moves with demand)'}. You get $${payout(r.ask ?? marketPrice).toFixed(2)} per sale, released after ${HOLD_DAYS} days. ` : r.duplicate_of ? 'Not listed: this matches a clip that was already uploaded. ' : 'Not listed: score below 2. '}
+                      <p className="muted text-sm">
+                        {r.withdrawn_at ? 'Withdrawn from the market. ' : listed ? `Listed at $${money(r.ask ?? marketPrice)}${r.ask ? ` (your ask, market says $${money(marketPrice)})` : ' (market price, moves with demand)'}. You get $${payout(r.ask ?? marketPrice).toFixed(2)} per sale, released after ${HOLD_DAYS} days. ` : r.duplicate_of ? 'Not listed: this matches a clip that was already uploaded. ' : 'Not listed: score below 2. '}
                         Sold {r.buyers.length} times. <Link href={`/sell/${r.id}`} className="underline underline-offset-4">Processing report{r.golden ? '' : ', check labels to make it golden'}</Link>
                       </p>
                     )}
-                    {r.ai?.reasons?.length > 0 && <p className="muted text-xs">{r.ai.reasons.join(' ')}</p>}
-                    {scored && !r.ai && <p className="muted text-xs">Vision review did not run. Scored on technical checks and labels only.</p>}
+                    {r.ai?.reasons?.length > 0 && <p className="muted text-sm">{r.ai.reasons.join(' ')}</p>}
+                    {scored && !r.ai && <p className="muted text-sm">Vision review did not run. Scored on technical checks and labels only.</p>}
                     {r.ai?.flags?.includes('faces') && <p className="text-xs text-amber-200">A face is visible in this clip.</p>}
 
                     {sug.length > 0 && (
-                      <form action={reviewLabels} className="space-y-2 rounded-box bg-white/5 p-3">
+                      <form action={reviewLabels} className="space-y-2 rounded-box bg-white/[.05] p-3">
                         <input type="hidden" name="id" value={r.id} />
                         <p className="flex flex-wrap items-center gap-2"><span className="label !mb-0">Model proposed</span>{sug.map((s) => <span key={s} className="chip chip-slate">{s}</span>)}</p>
                         <input name="note" className="input" maxLength={500} placeholder="Why you agree or disagree (goes on the evidence trail)" aria-label="Review note" />
@@ -152,7 +155,7 @@ export default async function Sell() {
                           <input type="hidden" name="id" value={r.id} />
                           <div>
                             <label className="label" htmlFor={`ask-${r.id}`}>Your ask, USD</label>
-                            <input id={`ask-${r.id}`} name="ask" type="number" min={5} inputMode="numeric" defaultValue={r.ask ?? ''} placeholder={`Market ${marketPrice}`} className="input !w-32" />
+                            <input id={`ask-${r.id}`} name="ask" type="number" min={0.05} step={0.01} inputMode="decimal" defaultValue={r.ask ?? ''} placeholder={`Market ${money(marketPrice)}`} className="input !w-36" />
                           </div>
                           <button className="btn btn-ghost">{r.ask ? 'Update' : 'Set ask'}</button>
                         </form>
@@ -160,7 +163,7 @@ export default async function Sell() {
                           <form action={fillBid}>
                             <input type="hidden" name="id" value={r.id} />
                             <input type="hidden" name="call" value={bid.id} />
-                            <button className="btn">Sell now ${Math.max(1, Math.round((bid.rate * r.minutes) / 60))} to {bid.buyer} (bid ${bid.rate}/h)</button>
+                            <button className="btn">Sell now ${money(cents((bid.rate * r.minutes) / 60))} to {bid.buyer} (bid ${bid.rate}/h)</button>
                           </form>
                         )}
                       </div>
@@ -168,7 +171,7 @@ export default async function Sell() {
                     {scored && r.quality_score >= 2 && (
                       <form action={toggleListed}>
                         <input type="hidden" name="id" value={r.id} />
-                        <button className="muted text-xs underline underline-offset-4">{r.withdrawn_at ? 'Put back on the market' : 'Withdraw from the market'}</button>
+                        <button className="btn btn-ghost !min-h-9 text-xs">{r.withdrawn_at ? 'Put back on the market' : 'Withdraw from the market'}</button>
                       </form>
                     )}
                   </div>

@@ -9,10 +9,10 @@ export const dynamic = 'force-dynamic'
 
 // The whole product in four steps. Each is a poster: its own tone, and its own height on the page.
 const STEPS = [
-  ['Request', 'A company asks for examples of the task it needs.', 'flow', 'md:mt-10'],
-  ['Record', 'A person films their hands, or records their screen, doing it.', 'coal', 'md:mt-24'],
-  ['Label', 'Kimi turns the recording into steps and labels.', 'flame', ''],
-  ['Buy', 'The company downloads a checked, labelled dataset.', 'flow', 'md:mt-16'],
+  ['Request', 'A company asks for examples of the task it needs.', 'flow', 'md:mt-10', 'task spec'],
+  ['Record', 'A person films their hands, or records their screen, doing it.', 'coal', 'md:mt-24', 'hands tracked'],
+  ['Label', 'Kimi turns the recording into steps and labels.', 'flame', '', 'steps labelled'],
+  ['Buy', 'The company downloads a checked, labelled dataset.', 'flow', 'md:mt-16', 'dataset ready'],
 ] as const
 
 const usd = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
@@ -34,7 +34,7 @@ export default async function Home() {
         <div className="absolute inset-0 -z-10 bg-linear-to-t from-ink from-42% via-ink/80 via-58% to-transparent md:bg-linear-to-r md:from-ink md:from-8% md:via-ink/55 md:via-38% md:to-transparent" />
         <div className="absolute inset-x-0 top-0 -z-10 h-28 bg-linear-to-b from-ink/85 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 -z-10 h-48 bg-linear-to-t from-ink via-ink/80 to-transparent" />
-        <div className="rise mx-auto grid min-h-[76dvh] max-w-6xl content-end gap-7 px-4 pb-6 pt-56 md:min-h-[80dvh] md:pb-14 md:pt-28">
+        <div className="rise mx-auto grid min-h-[calc(100dvh-3.5rem)] max-w-6xl content-end gap-7 px-4 pb-28 pt-56 md:pb-16 md:pt-28">
           <div className="max-w-xl">
             <h1 className="text-5xl md:text-7xl">The open market for task data.</h1>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -57,9 +57,9 @@ export default async function Home() {
 
       <section className={section}>
         <ol className="grid grid-cols-2 items-start gap-3 md:grid-cols-4 md:gap-5">
-          {STEPS.map(([t, d, tone, drop], i) => (
+          {STEPS.map(([t, d, tone, drop, label], i) => (
             <li key={t} className={`tile tile-lift flex min-h-44 flex-col justify-end p-4 md:min-h-72 md:p-6 ${drop} ${i % 2 ? 'max-md:mt-8' : ''} ${tone === 'flame' ? 'tile-flame text-ink' : tone === 'flow' ? 'on-flow' : 'tile-coal'}`}>
-              <Dither tone={tone} seed={i * 2.3 + 1} />
+              <Dither tone={tone} seed={i * 2.3 + 1} label={label} />
               <p className="mb-auto text-xs tabular-nums opacity-80">0{i + 1}</p>
               <h2 className="text-2xl font-semibold md:text-4xl">{t}</h2>
               <p className="mt-1.5 text-xs opacity-90 md:text-sm">{d}</p>

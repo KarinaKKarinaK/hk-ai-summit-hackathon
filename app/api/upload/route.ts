@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { sql, getUser, getMarket, log, findDuplicate, cleanHashes, cleanLabelsets } from '@/lib/server'
-import { LABELS, BASE_RATE, technical, completeness, finalScore, listPrice, authenticity, matchesCall, type Labels, type Metrics } from '@/lib/score'
+import { LABELS, BASE_RATE, technical, completeness, finalScore, listPrice, authenticity, matchesCall, type Labels, type Metrics, cents } from '@/lib/score'
 
 export const maxDuration = 60
 
@@ -190,7 +190,7 @@ export async function POST(request: Request) {
     else if (score < 3) bounty = { paid: 0, title: call.title, reason: 'The quality score is below 3' }
     else if (!matchesCall(call, labels, minutes)) bounty = { paid: 0, title: call.title, reason: 'The clip does not match what the request asks for' }
     else {
-      const paid = Math.max(1, Math.round((call.rate * minutes) / 60))
+      const paid = cents((call.rate * minutes) / 60)
       await sql`insert into purchases (buyer_id, upload_id, package, price, rate, call_id) values (${call.buyer_id}, ${row.id}, 'both', ${paid}, ${call.rate}, ${call.id})`
       await sql`update calls set hours = greatest(hours - ${minutes / 60}, 0) where id = ${call.id}`
       await log(row.id, 'buyer', 'accepted', { package: 'Raw + processed', price: paid, rate: call.rate, via: 'bid', reasons: [`Recorded for the request: ${call.title}`], score, labels }, call.buyer_id)

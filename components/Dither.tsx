@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 
 type RGB = [number, number, number]
-const COAL: RGB = [38, 36, 42], PLUM: RGB = [42, 23, 16], ROSE: RGB = [98, 50, 26], FLAME: RGB = [238, 115, 64], BLUSH: RGB = [243, 188, 174], PINK: RGB = [250, 222, 208]
+const COAL: RGB = [38, 36, 42], PLUM: RGB = [42, 23, 16], ROSE: RGB = [66, 36, 22], FLAME: RGB = [238, 115, 64], BLUSH: RGB = [243, 188, 174], PINK: RGB = [250, 222, 208]
 // dark to burnt orange to orange to blush to a paler blush: one family, no second hue
 const FLOW: RGB[] = [[20, 17, 22], [150, 62, 22], FLAME, BLUSH, PINK]
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
@@ -21,8 +21,9 @@ export function flow(x: number, y: number, seed: number): number {
  * flow is the full swirl. coal, flame and plum are flat colours with dots drifting in, plum's kept dim to sit under text.
  * Drawn on a canvas that fills its parent, which must be positioned. A ripple runs through the dots, and the swirl shifts under the pointer.
  */
-export default function Dither({ tone = 'flow', seed = 1, className = '' }: { tone?: 'flow' | 'coal' | 'flame' | 'plum'; seed?: number; className?: string }) {
+export default function Dither({ tone = 'flow', seed = 1, className = '', label }: { tone?: 'flow' | 'coal' | 'flame' | 'plum'; seed?: number; className?: string; label?: string }) {
   const ref = useRef<HTMLCanvasElement>(null)
+  const tag = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
     const c = ref.current!, host = c.parentElement!
@@ -78,11 +79,20 @@ export default function Dither({ tone = 'flow', seed = 1, className = '' }: { to
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) loop = requestAnimationFrame(tick)
     // the swirl shifts as the pointer moves across the card, and a poster leans toward it
     const tilts = host.classList.contains('tile-lift')
-    const leave = () => (host.style.transform = '')
+    const leave = () => {
+      host.style.transform = ''
+      if (tag.current) tag.current.style.opacity = '0'
+    }
     const move = (e: PointerEvent) => {
       drift = seed + (e.clientX + e.clientY) * 0.0016
-      if (tilts && e.pointerType === 'mouse') {
-        const r = host.getBoundingClientRect()
+      if (e.pointerType !== 'mouse') return
+      const r = host.getBoundingClientRect()
+      // the label rides beside the cursor, only while it is over this card
+      if (tag.current) {
+        tag.current.style.opacity = '0.78'
+        tag.current.style.transform = `translate(${e.clientX - r.left + 16}px, ${e.clientY - r.top + 18}px)`
+      }
+      if (tilts) {
         host.style.transform = `perspective(700px) rotateY(${((e.clientX - r.left) / r.width - 0.5) * 9}deg) rotateX(${(0.5 - (e.clientY - r.top) / r.height) * 9}deg)`
       }
       raf ||= requestAnimationFrame(() => { raf = 0; paint() })
@@ -92,5 +102,10 @@ export default function Dither({ tone = 'flow', seed = 1, className = '' }: { to
     return () => { ro.disconnect(); io.disconnect(); cancelAnimationFrame(loop); host.removeEventListener('pointermove', move); host.removeEventListener('pointerleave', leave); cancelAnimationFrame(raf) }
   }, [tone, seed])
 
-  return <canvas ref={ref} aria-hidden className={`absolute inset-0 -z-10 h-full w-full ${className}`} />
+  return (
+    <>
+      <canvas ref={ref} aria-hidden className={`absolute inset-0 -z-10 h-full w-full ${className}`} />
+      {label && <span ref={tag} aria-hidden className="cursor-tag">{label}</span>}
+    </>
+  )
 }

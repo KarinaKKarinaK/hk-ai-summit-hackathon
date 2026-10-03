@@ -61,7 +61,7 @@ export default function SellStart({ years = 0 }: { years?: number }) {
       </section>
     )
   }
-  const card = 'card block overflow-hidden text-left'
+  const card = 'card block overflow-hidden text-left transition-transform duration-200 hover:-translate-y-1'
   return (
     <section>
       {requestId && <p className="card-warm mb-3 rounded-box p-4 text-sm">You are submitting into a buyer&apos;s request. Record your screen doing the task, and it is paid when it passes the checks.</p>}
@@ -71,6 +71,7 @@ export default function SellStart({ years = 0 }: { years?: number }) {
           <div className="p-5 pt-3">
             <h2 className="text-xl font-semibold md:text-2xl">Film your hands</h2>
             <p className="mt-1 text-sm text-paper/80">Physical tasks, tracked live and verified. Can fill paid requests.</p>
+            <span className="btn btn-warm mt-4 !min-h-10 text-sm">Start filming</span>
           </div>
         </Link>
         <button onClick={screen} disabled={!canScreen} className={`${card} ${recording ? '!bg-red-900/60' : ''} disabled:opacity-50`}>
@@ -78,6 +79,7 @@ export default function SellStart({ years = 0 }: { years?: number }) {
           <div className="p-5 pt-3">
             <h2 className="text-xl font-semibold md:text-2xl">{recording ? 'Recording. Click to stop' : 'Record your screen'}</h2>
             <p className="muted mt-1 text-sm">{canScreen ? 'Software tasks: a spreadsheet, a form, a workflow. Do the task, then stop.' : 'Software tasks. Available in a desktop browser.'}</p>
+            <span className="btn mt-4 !min-h-10 text-sm">{recording ? 'Stop recording' : 'Start recording'}</span>
           </div>
         </button>
         <label className={`${card} cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-slate`}>
@@ -85,6 +87,7 @@ export default function SellStart({ years = 0 }: { years?: number }) {
           <div className="p-5 pt-3">
             <h2 className="text-xl font-semibold md:text-2xl">Upload a video</h2>
             <p className="muted mt-1 text-sm">One you already have. Listed as not verified live.</p>
+            <span className="btn mt-4 !min-h-10 text-sm">Choose a video</span>
           </div>
           {/* accept=video/* opens the phone gallery */}
           <input type="file" accept="video/*" className="sr-only" onChange={(e) => e.target.files?.[0] && setPick({ file: e.target.files[0] })} />

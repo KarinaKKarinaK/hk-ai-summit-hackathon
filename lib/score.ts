@@ -176,9 +176,17 @@ export function marketRate(m?: Partial<Market>): number {
   return Math.round((0.7 * rate + 0.3 * last) * 100) / 100
 }
 
-/** Buyer price for one clip: market rate x hours x quality x seller experience. Floor of 5. */
+/** A price in dollars and cents, never below one cent. */
+export const cents = (x: number) => Math.max(0.01, Math.round(x * 100) / 100)
+/** Money for display: cents under 100 dollars, whole dollars above. */
+export const money = (n: number) => (n >= 100 ? Math.round(n).toLocaleString('en-US') : n.toFixed(2))
+
+/**
+ * Buyer price for one clip: market rate x hours x quality x seller experience.
+ * No per-clip floor: published collection costs are 15 to 40 USD per hour of footage, so a one-minute clip is worth cents.
+ */
 export function listPrice(rate: number, minutes: number, score: number, years = 0): number {
-  return Math.max(5, Math.round(rate * (minutes / 60) * (score / 4) * tier(years).mult))
+  return cents(rate * (minutes / 60) * (score / 4) * tier(years).mult)
 }
 
 export function payout(price: number): number {
@@ -261,5 +269,5 @@ export function unavailable(key: string, clip: { ai?: unknown; golden?: boolean 
 
 /** Each option priced for one clip: the raw data price plus the labelling fee. */
 export function packages(price: number) {
-  return LABELLING.map((o) => ({ ...o, labelling: Math.round(price * o.fee), price: price + Math.round(price * o.fee) }))
+  return LABELLING.map((o) => ({ ...o, labelling: Math.round(price * o.fee * 100) / 100, price: Math.round(price * (1 + o.fee) * 100) / 100 }))
 }

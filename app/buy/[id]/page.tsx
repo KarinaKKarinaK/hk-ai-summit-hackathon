@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { sql, getUser, getMarket, priceOf, getReputation } from '@/lib/server'
-import { checks, packages, unavailable, tier, signal, ACCEPT_REASONS, PASS_REASONS, BASE_RATE, LICENCE, taskPhoto, type Labels } from '@/lib/score'
+import { money, checks, packages, unavailable, tier, signal, ACCEPT_REASONS, PASS_REASONS, BASE_RATE, LICENCE, taskPhoto, type Labels } from '@/lib/score'
 import { buy, pass, reportResult } from '../../actions'
 
 const HEAD: Record<string, string> = {
@@ -177,9 +177,9 @@ export default async function Listing({ params, searchParams }: { params: Promis
         <div className="card space-y-1 p-5 text-sm">
           <p className="label">How this price is set</p>
           {r.ask ? (
-            <p>The seller asks ${r.ask}. The market price would be ${priceOf({ ...r, ask: null }, market)}.</p>
+            <p>The seller asks ${r.ask}. The market price would be ${money(priceOf({ ...r, ask: null }, market))}.</p>
           ) : (
-            <p>${(m?.rate ?? BASE_RATE).toFixed(2)}/h market rate x {hours < 1 ? `${Math.round(r.minutes)} min` : `${hours.toFixed(1)} h`} x score {r.quality_score}/4 x {tier(r.years).mult} ({tier(r.years).name}){r.golden ? ' x 1.3 golden' : ''} = ${price}{price === 5 ? ' (minimum)' : ''}</p>
+            <p>${(m?.rate ?? BASE_RATE).toFixed(2)}/h market rate x {hours < 1 ? `${Math.round(r.minutes)} min` : `${hours.toFixed(1)} h`} x score {r.quality_score}/4 x {tier(r.years).mult} ({tier(r.years).name}){r.golden ? ' x 1.3 golden' : ''} = ${money(price)}{price === 5 ? ' (minimum)' : ''}</p>
           )}
           {m && <p className="muted">{l.task}: {signal(m).toLowerCase()}. {Math.round(m.demand)} h wanted, {m.supply.toFixed(1)} h listed{m.last ? `, last sale $${m.last.toFixed(0)}/h` : ''}. <Link href="/market" className="underline underline-offset-4">Prices</Link></p>}
           <p className="muted">80% goes to the seller.</p>
@@ -191,7 +191,7 @@ export default async function Listing({ params, searchParams }: { params: Promis
             {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
             <div className="flex items-baseline justify-between">
               <span className="label !mb-0">Raw data</span>
-              <span className="text-2xl font-light tabular-nums">${price.toLocaleString('en-US')}</span>
+              <span className="text-2xl font-light tabular-nums">${money(price)}</span>
             </div>
             <p className="muted text-xs">Video, hand-pose episode and motion data. 80% to the seller, 20% platform fee.</p>
             {/* labelling is a separate line: bring your own, two free open-source models, the LLM, or human-verified */}
@@ -200,12 +200,12 @@ export default async function Listing({ params, searchParams }: { params: Promis
               {packages(price).map((p, i) => {
                 const why = unavailable(p.key, r)
                 return (
-                  <label key={p.key} className={`flex items-start gap-3 rounded-box bg-white/5 p-3 has-[:checked]:bg-tan/60 ${why ? 'opacity-50' : 'cursor-pointer'}`}>
+                  <label key={p.key} className={`flex items-start gap-3 rounded-box bg-white/[.05] p-3 has-[:checked]:bg-tan/60 ${why ? 'opacity-50' : 'cursor-pointer'}`}>
                     <input type="radio" name="package" value={p.key} defaultChecked={i === 0} disabled={!!why} className="mt-1" />
                     <span className="flex-1">
                       <span className="flex justify-between gap-3">
                         <span className="font-medium">{p.name}{owned.includes(p.key) ? ' (owned)' : ''}</span>
-                        <span className="whitespace-nowrap tabular-nums">{p.labelling ? `+ $${p.labelling.toLocaleString('en-US')}` : 'Free'}</span>
+                        <span className="whitespace-nowrap tabular-nums">{p.labelling ? `+ $${money(p.labelling)}` : 'Free'}</span>
                       </span>
                       <span className="muted block text-xs">{why ? `${why}.` : p.what}</span>
                     </span>

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { sql, requireUser, getMarket, priceOf } from '@/lib/server'
-import { LABELS, GOLDEN_MULT, HOLD_DAYS, checks, payout, type Labels, type LabelSet, type LabelSets } from '@/lib/score'
+import { money, LABELS, GOLDEN_MULT, HOLD_DAYS, checks, payout, type Labels, type LabelSet, type LabelSets } from '@/lib/score'
 import { verifyLabels } from '../../actions'
 import ClipStats from '@/components/ClipStats'
 
@@ -84,13 +84,13 @@ export default async function Report({ params, searchParams }: { params: Promise
           <p className="text-sm font-semibold">{done} of 6 stages complete</p>
           <div className="bar mt-2 !h-2"><i style={{ width: pct(done / 6) }} /></div>
           <p className="mt-3 text-sm text-paper/80">
-            {dup ? 'Not listed: this matches a clip that was already submitted.' : unverified ? `Not listed: ${unverified.reason}.` : listed ? `Listed at $${price}. You get $${payout(price).toFixed(2)} per sale, released after ${HOLD_DAYS} days.` : r.withdrawn_at ? 'Withdrawn from the market.' : 'Not listed: the quality score is below 2.'}
-            {bounty && ` Request accepted: $${bounty.price} guaranteed for "${bounty.title}".`}
+            {dup ? 'Not listed: this matches a clip that was already submitted.' : unverified ? `Not listed: ${unverified.reason}.` : listed ? `Listed at $${money(price)}. You get $${payout(price).toFixed(2)} per sale, released after ${HOLD_DAYS} days.` : r.withdrawn_at ? 'Withdrawn from the market.' : 'Not listed: the quality score is below 2.'}
+            {bounty && ` Request accepted: $${money(bounty.price)} guaranteed for "${bounty.title}".`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <span className="stat bg-ink/40 text-base">Score {r.quality_score ?? '-'}/5</span>
-          {r.golden && <span className="stat bg-ink/40 text-base">Golden</span>}
+          <span className="stat bg-white/[.05] text-base">Score {r.quality_score ?? '-'}/5</span>
+          {r.golden && <span className="stat bg-white/[.05] text-base">Golden</span>}
           {listed && <Link href={`/buy/${r.id}`} className="btn !min-h-9 text-sm">View listing</Link>}
         </div>
       </section>
