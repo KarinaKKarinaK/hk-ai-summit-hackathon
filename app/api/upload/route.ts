@@ -19,6 +19,7 @@ const cleanLabels = (l: any): Labels => ({
   task: pick(LABELS.task, l?.task),
   industry: pick(LABELS.industry, l?.industry),
   device: pick(LABELS.device, l?.device),
+  outcome: pick(LABELS.outcome, l?.outcome),
   tools: Array.isArray(l?.tools) ? l.tools.map((t: unknown) => clip(t, 40)).filter(Boolean).slice(0, 8) : [],
 })
 
@@ -86,6 +87,7 @@ export async function POST(request: Request) {
   const b = await request.json().catch(() => null)
   const video_url = blobUrl(b?.video_url)
   if (!video_url) return NextResponse.json({ error: 'video_url must be a file uploaded through /api/blob' }, { status: 400 })
+  if (b.consent !== true) return NextResponse.json({ error: 'Confirm that you filmed this and have the right to license it' }, { status: 400 })
   const episode_url = b.episode_url ? blobUrl(b.episode_url) : null
   const frames: string[] = (Array.isArray(b.frames) ? b.frames : [])
     .filter((f: unknown) => typeof f === 'string' && f.startsWith('data:image/jpeg;base64,') && f.length < 400_000)
@@ -112,7 +114,7 @@ export async function POST(request: Request) {
     values (${user.id}, ${clip(b.title, 120) || null}, ${video_url}, ${episode_url}, ${JSON.stringify(labels)}::jsonb, ${description}, ${steps}, ${thumb}, ${JSON.stringify(metrics)}::jsonb, ${minutes},
       ${fingerprint}, ${JSON.stringify(hashes)}::jsonb, ${dup?.id ?? null})
     returning id`
-  await log(row.id, 'device', 'observed', { metrics, labels, description, steps, frames: frames.length, episode: !!episode_url, originality: dup ? `${dup.kind} match` : 'no match' }, user.id)
+  await log(row.id, 'device', 'observed', { metrics, labels, description, steps, frames: frames.length, episode: !!episode_url, capture: b.capture === 'in-app' ? 'in-app' : 'gallery', consent: true, originality: dup ? `${dup.kind} match` : 'no match' }, user.id)
   if (dup) {
     // A copy is stored for the record but never reviewed, priced or listed.
     await sql`update uploads set status = 'scored', quality_score = 1, price = 0, title = coalesce(title, 'Duplicate clip') where id = ${row.id}`

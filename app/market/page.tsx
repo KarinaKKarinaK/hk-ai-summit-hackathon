@@ -1,15 +1,18 @@
 import Link from 'next/link'
-import { getMarket } from '@/lib/server'
+import { getMarket, guildIndex } from '@/lib/server'
 import { signal, BASE_RATE, SELLER_SHARE } from '@/lib/score'
 
 export default async function MarketPage() {
-  const rows = Object.entries(await getMarket()).sort((a, b) => b[1].rate - a[1].rate)
+  const market = await getMarket()
+  const index = guildIndex(market)
+  const rows = Object.entries(market).sort((a, b) => b[1].rate - a[1].rate)
 
   return (
     <main className="mx-auto max-w-6xl space-y-6 px-4 py-6">
       <div>
-        <h1 className="text-3xl md:text-5xl">Prices</h1>
-        <p className="muted mt-2 max-w-2xl text-sm">A live market for robot training data. Buyers bid in open calls, sellers list or set an ask, and the rate for each trade moves with real demand. Nobody sets it behind closed doors.</p>
+        <p className="label">Guild Index, the reference price for robot training data</p>
+        <h1 className="text-4xl md:text-6xl">${index.toFixed(2)}<span className="muted text-xl"> per hour</span></h1>
+        <p className="muted mt-2 max-w-2xl text-sm">A live market for robot training data. Buyers bid in open calls, sellers list or set an ask, and the rate for each trade moves with real demand. Nobody sets it behind closed doors. The index is the demand-weighted average across trades with live bids, published as <a className="underline underline-offset-4" href="/api/index">open JSON</a>.</p>
       </div>
 
       {/* phones get one card per task, no sideways scrolling */}

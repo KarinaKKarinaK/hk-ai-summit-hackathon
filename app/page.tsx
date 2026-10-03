@@ -37,7 +37,7 @@ export default async function Home() {
           <div>
             <p className="label">The exchange for physical AI data</p>
             <h1 className="text-5xl md:text-7xl">The open market for robot training data.</h1>
-            <p className="muted mt-5 max-w-md">Skilled tradespeople list footage of real work. Robotics labs bid for it. Prices clear in the open, and the worker earns a royalty on every licence.</p>
+            <p className="muted mt-5 max-w-md">AI can scrape the internet for information, but robots need structured experience of the physical world. Labs post bounties for exactly what their models are missing, skilled tradespeople film it, and the worker earns a royalty on every licence.</p>
             <div className="mt-7 grid grid-cols-2 gap-3 sm:flex">
               <Link href="/market" className="btn">See live prices</Link>
               <Link href="/sell" className="btn btn-ghost">Start earning</Link>

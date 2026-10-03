@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto'
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless'
-import { LABELS, BASE_RATE, marketRate, listPrice, nearDuplicate, type Market } from './score'
+import { LABELS, BASE_RATE, marketRate, listPrice, nearDuplicate, reputation, type Market } from './score'
 
 // Lazy so the build does not need DATABASE_URL.
 export const sql = ((s: TemplateStringsArray, ...v: unknown[]) => neon(process.env.DATABASE_URL!)(s, ...v)) as NeonQueryFunction<false, false>
@@ -44,7 +44,32 @@ export async function requireUser() {
  * kinds: observed (device) | proposed (model) | changed, kept (reviewer) | priced (market) | ask (seller) | accepted, passed (buyer)
  */
 export async function log(uploadId: string, actor: 'device' | 'model' | 'seller' | 'buyer' | 'market', kind: string, data: object, actorId: string | null = null, note = '') {
-  await sql`insert into events (upload_id, actor, actor_id, kind, data, note) values (${uploadId}, ${actor}, ${actorId}, ${kind}, ${JSON.stringify(data)}::jsonb, ${note.slice(0, 500) || null})`
+  const n = note.slice(0, 500) || null
+  // Each event's hash covers the one before it, so an edited or deleted event breaks the chain.
+  // Hashed in SQL over the stored jsonb text so /api/provenance can recompute it exactly.
+  // ponytail: two events written in the same instant could share a parent. Lock per upload if that ever matters.
+  await sql`insert into events (upload_id, actor, actor_id, kind, data, note, hash)
+    select ${uploadId}::uuid, ${actor}::text, ${actorId}::uuid, ${kind}::text, x.d, ${n}::text,
+      encode(sha256(convert_to(coalesce((select hash from events where upload_id = ${uploadId}::uuid order by id desc limit 1), '')
+        || ${actor}::text || ${kind}::text || x.d::text || coalesce(${n}::text, ''), 'UTF8')), 'hex')
+    from (select ${JSON.stringify(data)}::jsonb as d) x`
+}
+
+/** Demand-weighted average rate across trades with live bids: the headline number of the Guild Index. */
+export function guildIndex(market: Record<string, TaskMarket>): number {
+  const live = Object.values(market).filter((m) => m.demand > 0)
+  const w = live.reduce((a, m) => a + m.demand, 0)
+  return w ? Math.round((live.reduce((a, m) => a + m.rate * m.demand, 0) / w) * 100) / 100 : BASE_RATE
+}
+
+export async function getReputation(sellerId: string) {
+  const [r] = await sql`select
+    (select count(*)::int from uploads where seller_id = ${sellerId} and status = 'scored' and duplicate_of is null and quality_score >= 2) as clips,
+    (select count(*)::int from uploads where seller_id = ${sellerId} and duplicate_of is not null) as duplicates,
+    (select count(*)::int from events e join uploads u on u.id = e.upload_id where u.seller_id = ${sellerId} and e.kind = 'accepted') as accepted,
+    (select count(*)::int from events e join uploads u on u.id = e.upload_id where u.seller_id = ${sellerId} and e.kind = 'passed') as passed`
+  const counts = r as { clips: number; duplicates: number; accepted: number; passed: number }
+  return { ...counts, score: reputation(counts) }
 }
 
 export type TaskMarket = Market & { rate: number; listings: number }

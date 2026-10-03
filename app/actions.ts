@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { sql, hash, verify, createSession, requireUser, getMarket, priceOf, log } from '@/lib/server'
-import { LABELS, ACCEPT_REASONS, PASS_REASONS, packages, technical, completeness, finalScore, tier, type Labels } from '@/lib/score'
+import { LABELS, ACCEPT_REASONS, PASS_REASONS, packages, technical, completeness, finalScore, tier, matchesCall, RESULT_BONUS, type Labels } from '@/lib/score'
 
 const str = (f: FormData, k: string, max = 200) => String(f.get(k) ?? '').trim().slice(0, max)
 const int = (f: FormData, k: string, max: number) => Math.min(max, Math.max(0, parseInt(str(f, k)) || 0))
@@ -88,10 +88,26 @@ export async function postCall(f: FormData) {
   const title = str(f, 'title', 120)
   const hours = int(f, 'hours', 100000), rate = int(f, 'rate', 10000)
   if (!title || !hours || !rate) redirect('/calls?error=' + encodeURIComponent('A call needs a title, hours and a rate'))
-  await sql`insert into calls (buyer_id, title, description, task, industry, hours, rate)
-    values (${user.id}, ${title}, ${str(f, 'description', 1000)}, ${pick(LABELS.task, str(f, 'task'))}, ${pick(LABELS.industry, str(f, 'industry'))}, ${hours}, ${rate})`
+  // A bounty is a bid plus a spec: what to film, how, and how much of it.
+  await sql`insert into calls (buyer_id, title, description, task, industry, hours, hours_total, rate, perspective, environment, objects, min_seconds, wants_failures, weakness, forward, due)
+    values (${user.id}, ${title}, ${str(f, 'description', 1000)}, ${pick(LABELS.task, str(f, 'task'))}, ${pick(LABELS.industry, str(f, 'industry'))}, ${hours}, ${hours}, ${rate},
+      ${pick(LABELS.perspective, str(f, 'perspective'))}, ${str(f, 'environment', 120) || null}, ${str(f, 'objects', 200) || null}, ${int(f, 'min_seconds', 3600) || null},
+      ${f.get('wants_failures') === 'on'}, ${str(f, 'weakness', 200) || null}, ${f.get('forward') === 'on'}, ${/^\d{4}-\d{2}-\d{2}$/.test(str(f, 'due')) ? str(f, 'due') : null})`
   revalidatePath('/calls')
   redirect('/calls')
+}
+
+/** Pay on results: the buyer reports what the clip did for their model. An improvement pays the seller a bonus, once. */
+export async function reportResult(f: FormData) {
+  const user = await requireUser()
+  const id = uuid(f, 'id'), outcome = pick(['improved', 'no change', 'worse'], str(f, 'outcome'))
+  const [p] = await sql`select id, price, bonus from purchases where upload_id = ${id} and buyer_id = ${user.id} order by created_at limit 1`
+  if (!p || !outcome) redirect(`/buy/${id}`)
+  const bonus = outcome === 'improved' && !p.bonus ? Math.max(1, Math.round(p.price * RESULT_BONUS)) : 0
+  if (bonus) await sql`update purchases set bonus = ${bonus} where id = ${p.id}`
+  await log(id, 'buyer', 'result', { outcome, bonus, metric: str(f, 'metric', 120) }, user.id, str(f, 'note', 500))
+  revalidatePath(`/buy/${id}`)
+  redirect(`/buy/${id}`)
 }
 
 /** USD/h at par quality that this sale implies. Feeds the market's last-sale price. */
@@ -139,11 +155,11 @@ export async function fillBid(f: FormData) {
     where u.id = ${uuid(f, 'id')} and u.seller_id = ${user.id} and u.status = 'scored' and u.quality_score >= 3 and u.withdrawn_at is null`
   const [c] = await sql`select * from calls where id = ${uuid(f, 'call')} and hours > 0`
   const l = r?.labels ?? {}
-  if (!r || !c || c.buyer_id === user.id || (c.task && c.task !== l.task) || (c.industry && c.industry !== l.industry)) redirect('/sell')
+  if (!r || !c || c.buyer_id === user.id || !matchesCall(c, l, r.minutes)) redirect('/sell')
   const done = await sql`select 1 from purchases where upload_id = ${r.id} and buyer_id = ${c.buyer_id}`
   if (done.length) redirect('/sell')
   const hours = r.minutes / 60, price = Math.max(1, Math.round(c.rate * hours))
-  await sql`insert into purchases (buyer_id, upload_id, package, price, rate) values (${c.buyer_id}, ${r.id}, 'both', ${price}, ${c.rate})`
+  await sql`insert into purchases (buyer_id, upload_id, package, price, rate, call_id) values (${c.buyer_id}, ${r.id}, 'both', ${price}, ${c.rate}, ${c.id})`
   await sql`update calls set hours = greatest(hours - ${hours}, 0) where id = ${c.id}`
   await log(r.id, 'buyer', 'accepted', { package: 'Raw + processed', price, rate: c.rate, via: 'bid', reasons: [`Standing bid: ${c.title}`], score: r.quality_score, labels: l }, c.buyer_id, c.description ?? '')
   revalidatePath('/sell')

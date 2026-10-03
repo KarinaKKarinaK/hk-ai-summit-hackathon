@@ -14,7 +14,7 @@ export default function Record() {
   const overlay = useRef<HTMLCanvasElement>(null)
   const stage = useRef<HTMLDivElement>(null)
   const stream = useRef<MediaStream | null>(null)
-  const rec = useRef<{ mr: MediaRecorder; chunks: Blob[]; frames: object[]; t0: number } | null>(null)
+  const rec = useRef<{ mr: MediaRecorder; chunks: Blob[]; frames: object[]; imu: object[]; t0: number } | null>(null)
   const [status, setStatus] = useState('Starting camera')
   const [recording, setRecording] = useState(false)
   const [take, setTake] = useState<Take | null>(null)
@@ -134,14 +134,26 @@ export default function Record() {
     if (!stream.current) return
     const mimeType = ['video/mp4', 'video/webm'].find((t) => MediaRecorder.isTypeSupported(t))
     const mr = new MediaRecorder(stream.current, mimeType ? { mimeType } : undefined)
-    const r = (rec.current = { mr, chunks: [] as Blob[], frames: [] as object[], t0: performance.now() })
+    const r = (rec.current = { mr, chunks: [] as Blob[], frames: [] as object[], imu: [] as object[], t0: performance.now() })
+    // Phone motion sensors, when the device has them and the user allows it. iOS asks on this tap.
+    ;(window as any).DeviceMotionEvent?.requestPermission?.()?.catch(() => {})
+    const r3 = (v?: number | null) => +(v ?? 0).toFixed(3)
+    const onMotion = (e: DeviceMotionEvent) => r.imu.push({ t: Math.round(performance.now() - r.t0), accel: [r3(e.accelerationIncludingGravity?.x), r3(e.accelerationIncludingGravity?.y), r3(e.accelerationIncludingGravity?.z)], gyro: [r3(e.rotationRate?.alpha), r3(e.rotationRate?.beta), r3(e.rotationRate?.gamma)] })
+    window.addEventListener('devicemotion', onMotion)
     mr.ondataavailable = (e) => r.chunks.push(e.data)
     mr.onstop = () => {
       rec.current = null
+      window.removeEventListener('devicemotion', onMotion)
       setRecording(false)
       const type = mr.mimeType.split(';')[0] || 'video/webm'
       const file = new File(r.chunks, `episode-${Date.now()}.${type.includes('mp4') ? 'mp4' : 'webm'}`, { type })
-      const episode = { format: 'guild-episode-v1', gripper: 'two-finger', units: 'landmarks normalised 0..1, gripper in metres', camera: facing, frames: r.frames }
+      // Robot-neutral: each frame is a state (hand landmarks, gripper pose) plus the action that leads to the next frame.
+      // No joint angles of any one robot, so any gripper can replay it. before -> action -> after.
+      const frames = r.frames.map((f: any, i) => {
+        const n: any = r.frames[i + 1] ?? f
+        return { ...f, action: { dx: +(n.gripper.x - f.gripper.x).toFixed(3), dy: +(n.gripper.y - f.gripper.y).toFixed(3), dz: +(n.gripper.z - f.gripper.z).toFixed(3), open: n.gripper.open } }
+      })
+      const episode = { format: 'guild-episode-v1', gripper: 'two-finger', units: 'landmarks normalised 0..1, gripper in metres', camera: facing, frames, imu: r.imu }
       setTake({ file, episode, videoHref: URL.createObjectURL(file), episodeHref: URL.createObjectURL(new Blob([JSON.stringify(episode)], { type: 'application/json' })) })
     }
     mr.start()

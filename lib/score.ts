@@ -6,9 +6,37 @@ export const LABELS = {
   task: ['Assembly', 'Repair', 'Welding', 'Wiring', 'Plumbing', 'Carpentry', 'Machining', 'Sewing', 'Painting', 'Cooking', 'Cleaning', 'Folding'],
   industry: ['Automotive', 'Construction', 'Electrical', 'Manufacturing', 'HVAC', 'Textile', 'Food', 'Domestic', 'Landscaping'],
   device: ['Phone', 'Head-mounted camera', 'Smart glasses', 'Action camera'],
+  // Failure and recovery footage is rare and robots need it, so it is a first-class label.
+  outcome: ['Completed', 'Failed then recovered', 'Failed'],
 } as const
 
-export type Labels = { perspective?: string; task?: string; industry?: string; device?: string; tools?: string[] }
+export type Labels = { perspective?: string; task?: string; industry?: string; device?: string; tools?: string[]; outcome?: string }
+
+/** Does a clip meet a buyer's bounty spec? Used when a seller fills a bid, on the page and again on the server. */
+export function matchesCall(c: Record<string, any>, l: Labels, minutes: number): boolean {
+  return (!c.task || c.task === l.task) && (!c.industry || c.industry === l.industry) && (!c.perspective || c.perspective === l.perspective) &&
+    (!c.min_seconds || minutes * 60 >= c.min_seconds) && (!c.wants_failures || /^Failed/.test(l.outcome ?? ''))
+}
+
+/** Contributor reputation 0..100: buyer acceptance, originality, track record. A new seller starts at 55. */
+export function reputation(r: { clips: number; duplicates: number; accepted: number; passed: number }): number {
+  const decisions = r.accepted + r.passed, total = r.clips + r.duplicates
+  return Math.round(100 * (0.5 * (decisions ? r.accepted / decisions : 0.5) + 0.3 * (total ? r.clips / total : 1) + 0.2 * Math.min(1, r.clips / 10)))
+}
+
+export const RESULT_BONUS = 0.2 // pay on results: share of the price paid again to the seller when the clip improved the buyer's model
+
+export const LICENCE = {
+  name: 'Guild training licence v1',
+  terms: [
+    'The contributor keeps ownership of the footage.',
+    'Non-exclusive: the same clip can be licensed to other buyers.',
+    'The buyer may train and evaluate commercial robotics and embodied AI models on it.',
+    'The buyer may not resell, sublicense or publish the footage itself.',
+    'Not licensed for surveillance, biometric identification, or generating likenesses of the people shown.',
+    'Perpetual for models already trained. If the contributor withdraws the clip, no new licences are sold.',
+  ],
+}
 
 export type Metrics = {
   width?: number

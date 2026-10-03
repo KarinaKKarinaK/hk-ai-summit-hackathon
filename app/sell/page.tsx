@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import UploadForm from '@/components/UploadForm'
 import { sql, getUser, getMarket, priceOf } from '@/lib/server'
-import { payout, signal, tier, SELLER_SHARE, type Labels } from '@/lib/score'
+import { payout, signal, tier, matchesCall, SELLER_SHARE, type Labels } from '@/lib/score'
 import { reviewLabels, setAsk, fillBid, toggleListed } from '../actions'
 
 /** What the vision model saw that the seller did not enter. */
@@ -16,6 +16,7 @@ export default async function Sell() {
   const [rows, calls, market] = await Promise.all([
     user ? sql`select u.*, ${user.years ?? 0}::int as years,
         (select coalesce(sum(price), 0)::int from purchases p where p.upload_id = u.id) as revenue,
+        (select coalesce(sum(bonus), 0)::int from purchases p where p.upload_id = u.id) as bonus,
         array(select buyer_id::text from purchases p where p.upload_id = u.id) as buyers,
         exists(select 1 from events e where e.upload_id = u.id and e.kind in ('changed', 'kept')) as reviewed
       from uploads u where seller_id = ${user.id} order by created_at desc` : [],
@@ -25,7 +26,7 @@ export default async function Sell() {
   const t = tier(user?.years)
   const hot = Object.entries(market).sort((a, b) => b[1].rate - a[1].rate).slice(0, 4)
   const rates = Object.fromEntries(Object.entries(market).map(([k, m]) => [k, { rate: m.rate, signal: signal(m) }]))
-  const earned = payout(rows.reduce((a, r) => a + r.revenue, 0))
+  const earned = payout(rows.reduce((a, r) => a + r.revenue, 0)) + rows.reduce((a, r) => a + r.bonus, 0)
   const sales = rows.reduce((a, r) => a + r.buyers.length, 0)
 
   return (
@@ -47,7 +48,7 @@ export default async function Sell() {
 
       {user && (
         <dl className="card grid grid-cols-3 gap-4 p-5">
-          {[[`$${earned.toFixed(2)}`, 'earned in royalties'], [sales, 'licences sold'], [rows.filter((r) => r.status === 'scored' && r.quality_score >= 2 && !r.withdrawn_at).length, 'clips on the market']].map(([n, l]) => (
+          {[[`$${earned.toFixed(2)}`, 'earned: royalties and result bonuses'], [sales, 'licences sold'], [rows.filter((r) => r.status === 'scored' && r.quality_score >= 2 && !r.withdrawn_at).length, 'clips on the market']].map(([n, l]) => (
             <div key={l}><dt className="text-2xl font-light tracking-tight md:text-4xl">{n}</dt><dd className="label mt-1">{l}</dd></div>
           ))}
         </dl>
@@ -100,7 +101,7 @@ export default async function Sell() {
               const scored = r.status === 'scored'
               const listed = scored && r.quality_score >= 2 && !r.withdrawn_at
               const marketPrice = scored ? priceOf({ ...r, ask: null }, market) : 0
-              const bid = listed && r.quality_score >= 3 && calls.find((c) => (!c.task || c.task === l.task) && (!c.industry || c.industry === l.industry) && !r.buyers.includes(c.buyer_id))
+              const bid = listed && r.quality_score >= 3 && calls.find((c) => matchesCall(c, l, r.minutes) && !r.buyers.includes(c.buyer_id))
               return (
                 <li key={r.id} className="card flex gap-4 p-4">
                   {r.thumb ? <img src={r.thumb} alt="" className="h-16 w-20 flex-none rounded-lg object-cover md:h-20 md:w-28" /> : <div className="streaks h-16 w-20 flex-none rounded-lg md:h-20 md:w-28" />}

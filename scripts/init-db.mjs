@@ -37,6 +37,22 @@ const schema = [
   `alter table uploads add column if not exists fingerprint text`,
   `alter table uploads add column if not exists phash jsonb`,
   `alter table uploads add column if not exists duplicate_of uuid`,
+  // Bounty spec, forward contracts, collection progress.
+  `alter table calls add column if not exists perspective text`,
+  `alter table calls add column if not exists environment text`,
+  `alter table calls add column if not exists objects text`,
+  `alter table calls add column if not exists min_seconds int`,
+  `alter table calls add column if not exists wants_failures boolean default false`,
+  `alter table calls add column if not exists weakness text`,
+  `alter table calls add column if not exists forward boolean default false`,
+  `alter table calls add column if not exists due date`,
+  `alter table calls add column if not exists hours_total real`,
+  `update calls set hours_total = hours where hours_total is null`,
+  // Dataset manifests, pay on results, licence verification, tamper-evident trail.
+  `alter table purchases add column if not exists call_id uuid`,
+  `alter table purchases add column if not exists bonus int default 0`,
+  `alter table users add column if not exists verified boolean default false`,
+  `alter table events add column if not exists hash text`,
 ]
 for (const s of schema) await sql.query(s)
 

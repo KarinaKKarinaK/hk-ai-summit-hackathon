@@ -18,7 +18,8 @@ export default function UploadForm({ initialFile, episode, years = 0, rates }: {
   const [stage, setStage] = useState('')
   const [shots, setShots] = useState<Awaited<ReturnType<typeof analyze>> | null>(null)
   const [dup, setDup] = useState<Dup | 'clear' | null>(null) // null = not checked yet
-  const [f, setF] = useState({ title: '', description: '', steps: '', perspective: '', task: '', industry: '', device: '', tools: '' })
+  const [f, setF] = useState({ title: '', description: '', steps: '', perspective: '', task: '', industry: '', device: '', outcome: '', tools: '' })
+  const [consent, setConsent] = useState(false)
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
   const [result, setResult] = useState<Result | null>(null)
@@ -40,7 +41,7 @@ export default function UploadForm({ initialFile, episode, years = 0, rates }: {
   }, [file])
 
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value })
-  const labels: Labels = { perspective: f.perspective, task: f.task, industry: f.industry, device: f.device, tools: f.tools.split(',').map((t) => t.trim()).filter(Boolean) }
+  const labels: Labels = { perspective: f.perspective, task: f.task, industry: f.industry, device: f.device, outcome: f.outcome, tools: f.tools.split(',').map((t) => t.trim()).filter(Boolean) }
   const cs = checks(metrics)
   const comp = completeness(labels, f.description, f.steps)
   const live = finalScore(technical(metrics), comp)
@@ -63,7 +64,8 @@ export default function UploadForm({ initialFile, episode, years = 0, rates }: {
       const res = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ video_url: video.url, episode_url: ep?.url, title: f.title, description: f.description, steps: f.steps, labels, metrics, frames: shots?.frames ?? [], thumb: shots?.thumb, hashes: shots?.hashes, fingerprint: shots?.fingerprint }),
+        // a clip recorded on /record carries its hand-motion trace, which a gallery upload cannot fake as easily
+        body: JSON.stringify({ video_url: video.url, episode_url: ep?.url, capture: episode ? 'in-app' : 'gallery', consent, title: f.title, description: f.description, steps: f.steps, labels, metrics, frames: shots?.frames ?? [], thumb: shots?.thumb, hashes: shots?.hashes, fingerprint: shots?.fingerprint }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
@@ -76,7 +78,7 @@ export default function UploadForm({ initialFile, episode, years = 0, rates }: {
     }
   }
 
-  const select = (k: 'perspective' | 'task' | 'industry' | 'device', name: string) => (
+  const select = (k: 'perspective' | 'task' | 'industry' | 'device' | 'outcome', name: string) => (
     <div>
       <label className="label" htmlFor={k}>{name}</label>
       <select id={k} className="input" value={f[k]} onChange={set(k)}>
@@ -135,6 +137,10 @@ export default function UploadForm({ initialFile, episode, years = 0, rates }: {
           {select('device', 'Device')}
         </div>
         <div>
+          {select('outcome', 'How did it go')}
+          <p className="mt-1 text-xs muted">Mistakes and recoveries are wanted. Robots learn a lot from a dropped part or a second attempt.</p>
+        </div>
+        <div>
           <label className="label" htmlFor="tools">Tools used, comma separated</label>
           <input id="tools" className="input" placeholder="Torque wrench, caliper tool" value={f.tools} onChange={set('tools')} />
         </div>
@@ -185,6 +191,10 @@ export default function UploadForm({ initialFile, episode, years = 0, rates }: {
             </li>
           )}
         </ul>
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" className="mt-1" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />
+          <span>I filmed this myself, I have the right to license it, and anyone identifiable in it agreed. <span className="muted">You keep ownership and can withdraw it later.</span></span>
+        </label>
         {error === 'signin' ? (
           <p className="text-sm">You need an account to upload. <Link className="underline" href="/login?mode=register">Create one</Link> or <Link className="underline" href="/login">sign in</Link>.</p>
         ) : error && <p role="alert" className="text-sm text-red-300">{error}</p>}

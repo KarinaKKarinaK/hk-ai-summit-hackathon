@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { sql, getUser, getMarket, priceOf } from '@/lib/server'
 import { LABELS, tier } from '@/lib/score'
 
-type Search = { q?: string; task?: string; industry?: string; perspective?: string; min?: string }
+type Search = { q?: string; task?: string; industry?: string; perspective?: string; min?: string; verified?: string; failures?: string }
 
 const top = (xs: string[], n = 3) => Object.entries(xs.reduce<Record<string, number>>((a, x) => ((a[x] = (a[x] ?? 0) + 1), a), {})).sort((a, b) => b[1] - a[1]).slice(0, n).map(([k]) => k)
 
@@ -13,7 +13,7 @@ export default async function Buy({ searchParams }: { searchParams: Promise<Sear
   // ponytail: filter in JS. Move to SQL where-clauses past a few thousand listings.
   const [all, market, history] = await Promise.all([
     sql`select u.id, u.title, u.thumb, u.labels, u.quality_score, u.minutes, u.ask, u.description, u.video_url,
-        s.trade, s.years from uploads u join users s on s.id = u.seller_id
+        s.trade, s.years, s.verified from uploads u join users s on s.id = u.seller_id
       where u.status = 'scored' and u.quality_score >= ${min} and u.withdrawn_at is null order by u.video_url is null, u.created_at desc`,
     getMarket(),
     user ? sql`select kind, data from events where actor_id = ${user.id} and kind in ('accepted', 'passed')` : [],
@@ -21,7 +21,7 @@ export default async function Buy({ searchParams }: { searchParams: Promise<Sear
   const q = f.q?.toLowerCase().trim()
   const rows = all.filter((r) => {
     const l = r.labels ?? {}
-    return (!f.task || l.task === f.task) && (!f.industry || l.industry === f.industry) && (!f.perspective || l.perspective === f.perspective) &&
+    return (!f.task || l.task === f.task) && (!f.industry || l.industry === f.industry) && (!f.perspective || l.perspective === f.perspective) && (!f.verified || r.verified) && (!f.failures || /^Failed/.test(l.outcome ?? '')) &&
       (!q || `${r.title} ${r.description} ${r.trade} ${(l.tools ?? []).join(' ')}`.toLowerCase().includes(q))
   })
 
@@ -65,6 +65,8 @@ export default async function Buy({ searchParams }: { searchParams: Promise<Sear
           <option value="">Score: any</option>
           {[3, 4, 5].map((n) => <option key={n} value={n}>Score {n}+</option>)}
         </select>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="verified" defaultChecked={!!f.verified} /> Verified sellers</label>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="failures" defaultChecked={!!f.failures} /> Failure cases</label>
         <button className="btn col-span-2 md:col-span-1">Filter</button>
         <p className="muted col-span-2 flex items-center justify-between text-sm md:col-span-1 md:justify-start md:gap-4">
           <Link href="/buy" className="underline underline-offset-4">Clear</Link>
@@ -95,6 +97,8 @@ export default async function Buy({ searchParams }: { searchParams: Promise<Sear
                 <p className="flex flex-wrap gap-1.5">
                   {fits(r) && <span className="chip chip-slate">Fits your past accepts</span>}
                   {[r.labels?.industry, r.labels?.perspective].filter(Boolean).map((c) => <span key={c} className="chip">{c}</span>)}
+                  {r.verified && <span className="chip chip-slate">Verified</span>}
+                  {/^Failed/.test(r.labels?.outcome ?? '') && <span className="chip">Failure case</span>}
                   {r.trade && <span className="chip chip-slate">{tier(r.years).name} {r.trade.toLowerCase()}</span>}
                 </p>
               </div>
