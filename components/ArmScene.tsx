@@ -65,8 +65,8 @@ export default function ArmScene() {
     const scene = new THREE.Scene()
     const cam = new THREE.PerspectiveCamera(34, 1, 0.1, 50)
     addLights(scene, renderer)
-    // coloured light from the sides so the metal picks up the page's orange and pink
-    const warm = new THREE.PointLight(0xee7340, 14, 7), rose = new THREE.PointLight(0xff5fa8, 12, 7)
+    // warm light from the sides so the metal picks up the page's orange
+    const warm = new THREE.PointLight(0xee7340, 14, 7), rose = new THREE.PointLight(0xf3bcae, 9, 7)
     warm.position.set(2.2, 0.9, -1.6)
     rose.position.set(-2.2, 1.3, 1.6)
     const arm = buildArm('graphite'), mug = buildMug()

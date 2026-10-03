@@ -3,8 +3,8 @@
 import { useEffect, useRef } from 'react'
 
 type RGB = [number, number, number]
-const COAL: RGB = [38, 36, 42], PLUM: RGB = [46, 18, 32], ROSE: RGB = [88, 34, 60], FLAME: RGB = [238, 115, 64], BLUSH: RGB = [243, 188, 174], PINK: RGB = [226, 110, 170]
-// dark to burnt orange to orange to pale pink to pink
+const COAL: RGB = [38, 36, 42], PLUM: RGB = [42, 23, 16], ROSE: RGB = [98, 50, 26], FLAME: RGB = [238, 115, 64], BLUSH: RGB = [243, 188, 174], PINK: RGB = [250, 222, 208]
+// dark to burnt orange to orange to blush to a paler blush: one family, no second hue
 const FLOW: RGB[] = [[20, 17, 22], [150, 62, 22], FLAME, BLUSH, PINK]
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
 const CELL = 7 // px per halftone cell
@@ -17,9 +17,9 @@ export function flow(x: number, y: number, seed: number): number {
 }
 
 /**
- * Poster background: a flowing orange and pink gradient broken into square halftone dots (ordered dithering).
+ * Poster background: a flowing orange gradient broken into square halftone dots (ordered dithering).
  * flow is the full swirl. coal, flame and plum are flat colours with dots drifting in, plum's kept dim to sit under text.
- * Drawn on a canvas that fills its parent, which must be positioned. It flows slowly, and shifts under the pointer.
+ * Drawn on a canvas that fills its parent, which must be positioned. A ripple runs through the dots, and the swirl shifts under the pointer.
  */
 export default function Dither({ tone = 'flow', seed = 1, className = '' }: { tone?: 'flow' | 'coal' | 'flame' | 'plum'; seed?: number; className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -44,12 +44,12 @@ export default function Dither({ tone = 'flow', seed = 1, className = '' }: { to
       const sg = small.getContext('2d')!, img = sg.createImageData(cols, rows)
       const dots: [number, number, string][] = []
       for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
-        const v = flow((i * CELL) / 420, (j * CELL) / 420, drift + wave), o = (j * cols + i) * 4
+        const v = flow((i * CELL) / 420, (j * CELL) / 420, drift), o = (j * cols + i) * 4
         const p = v * (FLOW.length - 1), k = Math.min(FLOW.length - 2, Math.floor(p)), t = p - k
         const base = flat ?? (FLOW[k].map((a, n) => a + (FLOW[k + 1][n] - a) * t) as RGB)
         img.data.set([...base, 255], o)
         // how many dots: on the swirl they thicken toward the next colour, on a flat tone they drift in where the swirl peaks
-        const density = flat ? (v - 0.55) / 0.45 : k === 0 ? t * 0.45 : t
+        const density = (flat ? (v - 0.55) / 0.45 : k === 0 ? t * 0.45 : t) + 0.2 * Math.sin(i * 0.2 + j * 0.15 - wave) // a ripple runs through the dots
         if ((BAYER[(j & 3) * 4 + (i & 3)] + 0.5) / 16 < density) dots.push([i, j, css(tone === 'plum' ? ROSE : !flat && k === 3 ? PINK : BLUSH)])
       }
       sg.putImageData(img, 0, 0)
@@ -64,25 +64,32 @@ export default function Dither({ tone = 'flow', seed = 1, className = '' }: { to
     paint()
     const ro = new ResizeObserver(paint)
     ro.observe(c)
-    // the swirl flows slowly on its own while the card is on screen, about eleven frames a second
+    // a ripple of dots crosses the card while it is on screen, about eleven frames a second. The card fades up the first time it is seen.
     let seen = false, then = 0, loop = 0
-    const io = new IntersectionObserver(([e]) => (seen = e.isIntersecting))
+    const io = new IntersectionObserver(([e]) => (seen = e.isIntersecting) && host.classList.add('in'))
     io.observe(c)
     const tick = (t: number) => {
       loop = requestAnimationFrame(tick)
       if (!seen || t - then < 90) return
       then = t
-      wave = t * 0.00014
+      wave = t * 0.0022
       paint()
     }
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) loop = requestAnimationFrame(tick)
-    // and shifts as the pointer moves across the card
+    // the swirl shifts as the pointer moves across the card, and a poster leans toward it
+    const tilts = host.classList.contains('tile-lift')
+    const leave = () => (host.style.transform = '')
     const move = (e: PointerEvent) => {
       drift = seed + (e.clientX + e.clientY) * 0.0016
+      if (tilts && e.pointerType === 'mouse') {
+        const r = host.getBoundingClientRect()
+        host.style.transform = `perspective(700px) rotateY(${((e.clientX - r.left) / r.width - 0.5) * 9}deg) rotateX(${(0.5 - (e.clientY - r.top) / r.height) * 9}deg)`
+      }
       raf ||= requestAnimationFrame(() => { raf = 0; paint() })
     }
     host.addEventListener('pointermove', move)
-    return () => { ro.disconnect(); io.disconnect(); cancelAnimationFrame(loop); host.removeEventListener('pointermove', move); cancelAnimationFrame(raf) }
+    host.addEventListener('pointerleave', leave)
+    return () => { ro.disconnect(); io.disconnect(); cancelAnimationFrame(loop); host.removeEventListener('pointermove', move); host.removeEventListener('pointerleave', leave); cancelAnimationFrame(raf) }
   }, [tone, seed])
 
   return <canvas ref={ref} aria-hidden className={`absolute inset-0 -z-10 h-full w-full ${className}`} />

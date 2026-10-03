@@ -17,8 +17,8 @@
   --color-flame: #ee7340;
   --color-blush: #f3bcae;
   --color-pink: #e26eaa;
-  --color-plum: #2e1220;
-  --radius-box: 20px; /* every card, panel and poster on every page */
+  --color-plum: #2a1710;
+  --radius-box: 3px 14px 3px 3px; /* every card, panel and poster on every page: barely rounded, one corner eased */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -97,7 +97,7 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
     gap: 0.5rem;
     min-height: 44px;
     padding: 0 1.25rem;
-    border-radius: 999px;
+    border-radius: 5px;
     background: var(--color-paper);
     color: var(--color-ink);
     font-weight: 500;
@@ -114,7 +114,7 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
     width: 100%;
     min-height: 44px;
     padding: 0.6rem 0.85rem;
-    border-radius: 12px;
+    border-radius: 5px;
     background: rgb(255 255 255 / 0.055);
     color: var(--color-paper);
     font-size: 16px; /* stops iOS zoom on focus */
@@ -133,7 +133,7 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
   .chip {
     display: inline-block;
     padding: 0.2rem 0.65rem;
-    border-radius: 999px;
+    border-radius: 5px;
     font-size: 0.75rem;
     background: rgb(255 255 255 / 0.07);
     white-space: nowrap;
@@ -187,9 +187,37 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
   .tile-row { --shade-inset: 0; --shade-dir: 270deg; }
   .tile-bare::before { content: none; }
   /* posters lift a little under the pointer */
-  .tile-lift { transition: translate 0.35s cubic-bezier(0.2, 0.7, 0.2, 1); }
-  @media (hover: hover) {
-    .tile-lift:hover { translate: 0 -8px; }
+  .tile-lift {
+    opacity: 0;
+    translate: 0 32px;
+    transition: opacity 0.8s ease-out, translate 0.8s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.25s ease-out;
+  }
+  .tile-lift.in { opacity: 1; translate: 0 0; }
+  .tile-lift:nth-child(2) { transition-delay: 0.1s, 0.1s, 0s; }
+  .tile-lift:nth-child(3) { transition-delay: 0.2s, 0.2s, 0s; }
+  .tile-lift:nth-child(4) { transition-delay: 0.3s, 0.3s, 0s; }
+  /* a scan line passes down each poster in turn, the way a labelling pass reads a frame */
+  .tile-lift::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 34%;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(transparent, rgb(255 255 255 / 0.1) 80%, rgb(255 255 255 / 0.32));
+    translate: 0 -110%;
+    animation: scan 6s linear infinite;
+  }
+  .tile-lift:nth-child(2)::after { animation-delay: 1.5s; }
+  .tile-lift:nth-child(3)::after { animation-delay: 3s; }
+  .tile-lift:nth-child(4)::after { animation-delay: 4.5s; }
+  @keyframes scan {
+    0% { translate: 0 -110%; }
+    45%, 100% { translate: 0 320%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tile-lift { opacity: 1; translate: 0 0; }
+    .tile-lift::after { content: none; }
   }
   /* light text sitting on the swirl needs a little shade to stay readable over the pale parts */
   .on-flow { text-shadow: 0 1px 14px rgb(20 10 6 / 0.6), 0 0 2px rgb(20 10 6 / 0.35); }
@@ -197,7 +225,7 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
   .text-dither {
     background:
       radial-gradient(circle, var(--color-blush) 34%, transparent 38%) 0 0 / 7px 7px,
-      linear-gradient(160deg, var(--color-flame), #b4501f 45%, var(--color-pink));
+      linear-gradient(160deg, var(--color-flame), #b4501f 55%, var(--color-flame));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -226,14 +254,14 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
     top: -6px;
     width: 6px;
     height: 6px;
-    background: var(--color-pink);
+    background: var(--color-blush);
   }
   .bbox {
     position: absolute;
     left: 0;
     top: 0;
-    border: 1px solid var(--color-pink);
-    background: rgb(226 110 170 / 0.08);
+    border: 1px solid var(--color-flame);
+    background: rgb(238 115 64 / 0.1);
     transition: opacity 0.4s;
   }
   .bbox > span {
@@ -245,21 +273,21 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
     text-transform: uppercase;
     white-space: nowrap;
     color: var(--color-ink);
-    background: var(--color-pink);
+    background: var(--color-flame);
   }
   /* on a phone the frame is small: keep the gripper and the mug, drop the two joint readouts */
   @media (max-width: 767px) {
     .tag:nth-child(2), .tag:nth-child(3) { display: none; }
   }
   /* section colour shifts: a charcoal band, then a warm one that fades back to ink */
-  .band-ember { background: radial-gradient(90% 70% at 50% 40%, rgb(226 110 170 / 0.09), rgb(238 115 64 / 0.06) 45%, transparent 75%); }
+  .band-ember { background: radial-gradient(90% 70% at 50% 40%, rgb(238 115 64 / 0.09), transparent 75%); }
   /* small boxed fact: score, length, sample */
   .stat {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
     padding: 0.25rem 0.55rem;
-    border-radius: 8px;
+    border-radius: 4px;
     background: rgb(255 255 255 / 0.06);
     font-size: 0.75rem;
     font-variant-numeric: tabular-nums;

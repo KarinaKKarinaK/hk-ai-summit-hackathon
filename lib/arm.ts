@@ -53,12 +53,12 @@ export function buildArm(finish: 'graphite' | 'light' = 'light') {
   const dark = finish === 'graphite'
   const grain = brushed()
   const metal = { roughnessMap: grain, bumpMap: grain, bumpScale: 1.4 }
-  const body = new THREE.MeshStandardMaterial({ color: dark ? 0x5a606b : 0xd9d4cc, roughness: 0.75, metalness: dark ? 0.8 : 0.35, ...metal })
-  const servo = new THREE.MeshStandardMaterial({ color: dark ? 0x25272e : 0x8e9a9b, roughness: 0.85, metalness: 0.5, ...metal })
+  const body = new THREE.MeshStandardMaterial({ color: dark ? 0x4a464e : 0xd9d4cc, roughness: 0.75, metalness: dark ? 0.8 : 0.35, ...metal })
+  const servo = new THREE.MeshStandardMaterial({ color: dark ? 0x211f24 : 0x8e9a9b, roughness: 0.85, metalness: 0.5, ...metal })
   const steel = new THREE.MeshStandardMaterial({ color: 0xb9c0c2, roughness: 0.25, metalness: 0.95 })
   const accent = new THREE.MeshStandardMaterial({ color: 0xe8703a, roughness: 0.7, metalness: 0.55, ...metal })
   const rubber = new THREE.MeshStandardMaterial({ color: 0x0e0e10, roughness: 0.9, metalness: 0 })
-  const led = new THREE.MeshStandardMaterial({ color: 0xff7fb8, emissive: 0xff4fa0, emissiveIntensity: 3 })
+  const led = new THREE.MeshStandardMaterial({ color: 0xffb08a, emissive: 0xee7340, emissiveIntensity: 3 })
   const lens = new THREE.MeshPhysicalMaterial({ color: 0x05070a, roughness: 0.05, metalness: 0.2, clearcoat: 1 })
   const box = (w: number, h: number, d: number, m: THREE.Material = body) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m)
   const cyl = (r: number, h: number, m: THREE.Material = steel, seg = 28) => new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), m)
@@ -187,7 +187,7 @@ const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
 /**
  * The ground: a square platform of blocks, the landing page's halftone pattern in 3D.
  * Flat where the arm works, then the blocks shrink and step up in terraces toward the rim.
- * A dithered river of orange and pink blocks runs through the charcoal ones. One instanced mesh.
+ * A dithered river of orange blocks runs through the charcoal ones. One instanced mesh.
  */
 export function buildFloor(R = 1.95, N = 40, flat = 1.5) {
   const cell = (2 * R) / N
@@ -203,7 +203,7 @@ export function buildFloor(R = 1.95, N = 40, flat = 1.5) {
     o.updateMatrix()
     mesh.setMatrixAt(n, o.matrix)
     const lit = (BAYER[(j & 3) * 4 + (i & 3)] + 0.5) / 16 < (v - 0.5) / 0.5
-    if (lit) col.set(v > 0.9 ? 0xe26eaa : v > 0.76 ? 0xf3bcae : 0xee7340)
+    if (lit) col.set(v > 0.84 ? 0xf3bcae : 0xee7340)
     else col.set(0x242127).multiplyScalar(0.75 + ((i * 7 + j * 13) % 5) * 0.11)
     mesh.setColorAt(n++, col)
   }
