@@ -11,7 +11,7 @@
   --color-tan: #6b492e;
   --color-rust: #552f0f;
   --color-amber: #6c4724;
-  --color-slate: #8e9a9b;
+  --color-slate: #a89f98; /* a warm grey: secondary text and quiet accents sit in the same family as the orange */
   --color-paper: #f1ece6;
   --color-coal: #26242a;
   --color-flame: #ee7340;
@@ -83,7 +83,7 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
 /* Minimal surfaces: no outlines. Depth comes from a faint translucent fill that layers on anything. */
 @layer components {
   .card {
-    background: rgb(255 255 255 / 0.035);
+    background: #1b181a; /* the landing page's charcoal, a shade under the posters */
     border-radius: var(--radius-box);
   }
   .emboss {
@@ -119,9 +119,9 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
     color: var(--color-paper);
     font-size: 16px; /* stops iOS zoom on focus */
   }
-  .input::placeholder { color: rgb(142 154 155 / 0.55); }
-  .input:focus { outline: none; box-shadow: 0 0 0 2px rgb(142 154 155 / 0.45); }
-  select.input { appearance: none; padding-right: 2rem; background-image: linear-gradient(45deg, transparent 50%, #8e9a9b 50%), linear-gradient(135deg, #8e9a9b 50%, transparent 50%); background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
+  .input::placeholder { color: rgb(168 159 152 / 0.55); }
+  .input:focus { outline: none; box-shadow: 0 0 0 2px rgb(168 159 152 / 0.45); }
+  select.input { appearance: none; padding-right: 2rem; background-image: linear-gradient(45deg, transparent 50%, #a89f98 50%), linear-gradient(135deg, #a89f98 50%, transparent 50%); background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
   .label {
     display: block;
     margin-bottom: 0.3rem;
@@ -139,8 +139,8 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
     white-space: nowrap;
   }
   .chip-slate {
-    background: rgb(142 154 155 / 0.16);
-    color: #b9c2c3;
+    background: rgb(168 159 152 / 0.16);
+    color: #d2c9c1;
   }
   .muted { color: var(--color-slate); }
   /* Palette accents. The browns are too dark for text on ink, so they are used as fills under light text. */
@@ -148,7 +148,7 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
   .card-warm {
     position: relative;
     isolation: isolate;
-    background: radial-gradient(120% 140% at 100% 0, rgb(238 115 64 / 0.42), rgb(150 62 22 / 0.16) 45%, transparent 70%), #211e22;
+    background: radial-gradient(120% 140% at 100% 0, rgb(238 115 64 / 0.42), rgb(150 62 22 / 0.16) 45%, transparent 70%), #26242a;
   }
   .card-warm::after {
     content: "";
@@ -161,7 +161,7 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
     mask-image: radial-gradient(90% 110% at 100% 0, #000, transparent 62%);
     opacity: 0.55;
   }
-  .card-slate { background: rgb(142 154 155 / 0.12); }
+  .card-slate { background: rgb(168 159 152 / 0.12); }
   .btn-warm { background: var(--color-flame); color: var(--color-ink); }
   .chip-warm { background: var(--color-flame); color: var(--color-ink); font-weight: 500; }
   /* Poster surfaces for the landing page. A <Dither> canvas paints the halftone swirl behind the content. */

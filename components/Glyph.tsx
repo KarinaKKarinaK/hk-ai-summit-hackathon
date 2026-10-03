@@ -26,7 +26,7 @@ export default function Glyph({ name, className = '' }: { name: GlyphName; class
     <svg viewBox="0 0 320 150" className={className} role="img" aria-hidden preserveAspectRatio="xMidYMid slice">
       {/* the field: long faint lines, with a row of short heavy ticks along the bottom */}
       {Array.from({ length: 32 }, (_, i) => (
-        <g key={i} stroke="#6b492e">
+        <g key={i} stroke="#9a4c2b">
           <line x1={5 + i * 10} x2={5 + i * 10} y1={4} y2={134} strokeWidth={1} opacity={0.28} />
           <line x1={5 + i * 10} x2={5 + i * 10} y1={138} y2={148} strokeWidth={2.5} opacity={0.55} />
         </g>

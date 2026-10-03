@@ -50,7 +50,7 @@ export default async function Profile() {
   const initials = user.name.split(/\s+/).map((w: string) => w.replace(/\W/g, '')[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 px-4 py-6">
+    <main className="mx-auto max-w-6xl space-y-4 px-4 pb-6 pt-10 md:pt-16">
       {/* who this is */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="grid h-16 w-16 flex-none place-items-center rounded-box bg-flame text-2xl font-semibold text-ink md:h-20 md:w-20 md:text-3xl">{initials}</div>

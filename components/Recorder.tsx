@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { FaceLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision'
 import { getHands, getFace, getPose } from '@/lib/quality'
 import { countFingers } from '@/lib/score'
-import { buildArm, buildMug, addLights, GRIP } from '@/lib/arm'
+import { buildArm, buildMug, buildTable, addLights, GRIP } from '@/lib/arm'
 import UploadForm from '@/components/UploadForm'
 
 const clamp = (x: number, a: number, b: number) => Math.min(b, Math.max(a, x))
@@ -83,7 +83,9 @@ export default function Recorder({ tasks }: { tasks: QuickTask[] }) {
         cam.position.set(0, 1.5, 4.4)
         cam.lookAt(0, 1, 0)
         addLights(scene, renderer)
-        scene.add(arm.root, mug, new THREE.GridHelper(6, 12, 0x6b492e, 0x412c1a))
+        const table = buildTable(3.8, 2.8) // the bench the arm is bolted to and the cup stands on
+        table.position.x = 0
+        scene.add(arm.root, mug, table)
       } catch {
         renderer = null // no WebGL: keep recording, just without the arm
       }
@@ -335,7 +337,7 @@ export default function Recorder({ tasks }: { tasks: QuickTask[] }) {
           </ul>
         </div>
         {mode === 'arm' && (
-          <div className="card streaks relative aspect-video overflow-hidden">
+          <div className="card relative aspect-video overflow-hidden">
             <div ref={stage} className="absolute inset-0" />
             <p role="status" className={`chip absolute left-3 top-3 ${cup === 'lifted' ? 'bg-emerald-500 text-ink' : cup === 'held' ? 'bg-emerald-500/30 text-emerald-200' : 'bg-ink/70'}`}>
               {cup === 'lifted' ? 'Picked up. Open your hand to put it down' : cup === 'held' ? 'Got it. Now lift' : cup === 'near' ? 'Lower the claw and pinch to grab' : 'Move the claw over the cup'}
