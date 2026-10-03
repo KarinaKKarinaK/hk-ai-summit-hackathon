@@ -122,7 +122,7 @@ export default function UploadForm({ initialFile: file, episode, requestId, kind
           {steps.map(([name, tool, at]) => {
             const state = at < phase ? 'done' : at === phase ? 'now' : 'wait'
             return (
-              <li key={name} className={`rounded-xl p-2.5 md:flex-1 transition-colors duration-500 ${state === 'done' ? (good ? 'bg-emerald-400/15' : 'bg-white/[.07]') : state === 'now' ? 'card-warm' : 'bg-white/[.025] opacity-50'}`}>
+              <li key={name} className={`rounded-box p-2.5 md:flex-1 transition-colors duration-500 ${state === 'done' ? (good ? 'bg-emerald-400/15' : 'bg-white/[.07]') : state === 'now' ? 'card-warm' : 'bg-white/[.025] opacity-50'}`}>
                 <span className={`block h-1.5 w-1.5 rounded-full ${state === 'done' ? 'bg-emerald-400' : state === 'now' ? 'pulse bg-amber-300' : 'bg-white/30'}`} aria-hidden />
                 <p className="mt-2 text-xs font-medium leading-tight">{name}</p>
                 <p className="muted mt-0.5 text-[10px] leading-tight">{tool}</p>

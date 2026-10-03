@@ -29,9 +29,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Tabs />
             {user ? (
               <form action={logout} className="flex items-center gap-3 text-sm">
-                <Link href="/profile" aria-label="Your profile" title={user.name} className="grid h-8 w-8 place-items-center rounded-full bg-flame text-ink">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 12a4 4 0 100-8 4 4 0 000 8zm-7 9a7 7 0 0114 0" /></svg>
-                </Link>
+                <Link href="/profile" className="muted max-w-28 truncate underline-offset-4 hover:underline">{user.name}</Link>
                 <button className="underline underline-offset-4">Sign out</button>
               </form>
             ) : (

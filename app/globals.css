@@ -18,6 +18,7 @@
   --color-blush: #f3bcae;
   --color-pink: #e26eaa;
   --color-plum: #2e1220;
+  --radius-box: 20px; /* every card, panel and poster on every page */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -83,7 +84,7 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
 @layer components {
   .card {
     background: rgb(255 255 255 / 0.035);
-    border-radius: 20px;
+    border-radius: var(--radius-box);
   }
   .emboss {
     color: #1d130c;
@@ -168,6 +169,7 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
     position: relative;
     isolation: isolate;
     overflow: hidden;
+    border-radius: var(--radius-box);
     background: var(--color-coal);
   }
   .tile > :not(canvas) { position: relative; }

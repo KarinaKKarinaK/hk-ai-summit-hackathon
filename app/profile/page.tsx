@@ -20,7 +20,7 @@ function Bars({ values }: { values: number[] }) {
 /** The report card: chart on top, two headline numbers, then a breakdown list, on a warm fade. */
 function Report({ title, days, heads, rows, empty }: { title: string; days: number[]; heads: [string, string, string][]; rows: [string, string][]; empty: string }) {
   return (
-    <section className="overflow-hidden rounded-[28px] bg-linear-to-b from-[#0b0705] from-50% via-oxblood to-rust p-6 md:p-8">
+    <section className="overflow-hidden rounded-box bg-linear-to-b from-[#0b0705] from-50% via-oxblood to-rust p-6 md:p-8">
       <h2 className="text-2xl font-semibold">{title}</h2>
       <p className="muted mb-5 mt-1 text-xs">Last 30 days, one bar per day</p>
       <Bars values={days} />

@@ -64,7 +64,7 @@ export default function SellStart({ years = 0 }: { years?: number }) {
   const card = 'card block overflow-hidden text-left'
   return (
     <section>
-      {requestId && <p className="card-warm mb-3 rounded-2xl p-4 text-sm">You are submitting into a buyer&apos;s request. Record your screen doing the task, and it is paid when it passes the checks.</p>}
+      {requestId && <p className="card-warm mb-3 rounded-box p-4 text-sm">You are submitting into a buyer&apos;s request. Record your screen doing the task, and it is paid when it passes the checks.</p>}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <Link href="/record" className={`${card} card-warm`}>
           <Glyph name="record" className="h-24 w-full md:h-40" />

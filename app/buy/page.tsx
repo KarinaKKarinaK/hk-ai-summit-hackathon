@@ -92,7 +92,7 @@ export default async function Buy({ searchParams }: { searchParams: Promise<Sear
           const shape = big ? 'col-span-2 row-span-2' : i % 6 === 3 || i % 6 === 4 ? 'col-span-2' : ''
           return (
             <li key={r.id} className={shape}>
-              <Link href={`/buy/${r.id}`} className="group relative block h-full overflow-hidden rounded-xl bg-white/[.04]">
+              <Link href={`/buy/${r.id}`} className="group relative block h-full overflow-hidden rounded-box bg-white/[.04]">
                 {photo ? <img src={photo} alt="" loading="lazy" className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${r.thumb ? '' : 'photo'}`} /> : <div className="streaks h-full" />}
                 <div className="absolute inset-0 bg-linear-to-t from-ink/90 via-ink/15 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-4">

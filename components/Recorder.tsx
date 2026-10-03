@@ -310,7 +310,7 @@ export default function Recorder({ tasks }: { tasks: QuickTask[] }) {
       {/* pick what to record */}
       <div role="group" aria-label="What to record" className="grid grid-cols-2 gap-2 md:grid-cols-4">
         {choices.map((c) => (
-          <button key={c.key} disabled={recording} aria-pressed={choice === c.key} onClick={() => pickTask(c)} className={`rounded-2xl p-3 text-left transition-colors ${choice === c.key ? 'card-warm' : 'bg-white/[.05]'}`}>
+          <button key={c.key} disabled={recording} aria-pressed={choice === c.key} onClick={() => pickTask(c)} className={`rounded-box p-3 text-left transition-colors ${choice === c.key ? 'card-warm' : 'bg-white/[.05]'}`}>
             <span className="block text-sm font-semibold leading-snug">{c.name}</span>
             <span className={`mt-0.5 block text-xs ${c.request ? 'text-emerald-300' : 'muted'}`}>{c.tag}</span>
           </button>
@@ -329,9 +329,9 @@ export default function Recorder({ tasks }: { tasks: QuickTask[] }) {
           <p className={`chip absolute left-3 top-3 ${recording ? 'bg-red-700 text-paper' : 'bg-ink/70'}`}>{recording ? 'Recording' : status}</p>
           {live !== null && <p className="chip chip-warm absolute right-3 top-3">Live quality {live}/5</p>}
           <p className="absolute left-3 top-11 flex gap-1.5">{seen.map((s) => <span key={s} className="chip bg-emerald-500/25 text-emerald-200">{s}</span>)}</p>
-          {prompt && <p role="status" className="absolute inset-x-3 top-1/2 -translate-y-1/2 rounded-2xl bg-ink/80 p-4 text-center text-2xl font-semibold">{prompt}</p>}
+          {prompt && <p role="status" className="absolute inset-x-3 top-1/2 -translate-y-1/2 rounded-box bg-ink/80 p-4 text-center text-2xl font-semibold">{prompt}</p>}
           <ul aria-live="polite" className="absolute inset-x-3 bottom-3 space-y-1">
-            {warn.map((w) => <li key={w} className="rounded-lg bg-ink/80 px-3 py-1.5 text-sm text-amber-200">{w}</li>)}
+            {warn.map((w) => <li key={w} className="rounded-box bg-ink/80 px-3 py-1.5 text-sm text-amber-200">{w}</li>)}
           </ul>
         </div>
         {mode === 'arm' && (
@@ -350,7 +350,7 @@ export default function Recorder({ tasks }: { tasks: QuickTask[] }) {
         {take && <a className="btn btn-ghost" download={take.file.name} href={take.videoHref}>Download video</a>}
         {take && <a className="btn btn-ghost" download="episode.json" href={take.episodeHref}>Download episode JSON</a>}
       </div>
-      {!signedIn && <p className="card-warm rounded-2xl p-3 text-sm">You can try the recorder now. To submit a take and get paid, <a className="underline" href="/login?mode=register">create an account</a> or <a className="underline" href="/login">sign in</a> first.</p>}
+      {!signedIn && <p className="card-warm rounded-box p-3 text-sm">You can try the recorder now. To submit a take and get paid, <a className="underline" href="/login?mode=register">create an account</a> or <a className="underline" href="/login">sign in</a> first.</p>}
       {!take && <p className="muted text-xs">A few seconds in, you will be asked to hold up some fingers. It proves the clip is being filmed live. Keep recording until it says verified. When you stop, the take is processed and submitted automatically. By recording you confirm that you filmed it yourself, anyone identifiable agreed, you had permission to film there, and you grant a non-exclusive training licence. You keep ownership and can withdraw it later.</p>}
       {take && !take.verified && (
         <section className="card p-5">

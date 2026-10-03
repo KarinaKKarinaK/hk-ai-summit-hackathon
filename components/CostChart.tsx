@@ -29,7 +29,7 @@ export default function CostChart() {
 
   const times = BUDGET[pick][0] / BUDGET[0][0]
   return (
-    <div ref={ref} className="tile tile-bare rounded-[28px] !bg-plum p-5 md:rounded-[40px] md:p-12">
+    <div ref={ref} className="tile tile-bare rounded-box !bg-plum p-5 md:rounded-box md:p-12">
       <Dither tone="plum" seed={5.1} />
       <div className="grid grid-cols-1 gap-8 md:grid-cols-[1fr_2fr] md:gap-12">
         <div className="flex flex-col">
@@ -42,7 +42,7 @@ export default function CostChart() {
           {BUDGET.map(([h, name, cost], i) => (
             <button key={name} type="button" aria-pressed={pick === i} onClick={() => setPick(i)} onMouseEnter={() => setPick(i)} onFocus={() => setPick(i)} className="flex flex-col text-left">
               <span className="flex h-56 w-full items-end md:h-[26rem]">
-                <span className={`flex w-full flex-col justify-between overflow-hidden rounded-lg p-2 transition-[height,background-color,color] duration-700 ease-out md:rounded-2xl md:p-4 ${pick === i ? 'bg-flame text-ink' : 'bg-white/[.1]'}`} style={{ height: shown ? `${(h / 67) * 100}%` : '0%', transitionDelay: shown ? '0ms' : `${i * 90}ms` }}>
+                <span className={`flex w-full flex-col justify-between overflow-hidden rounded-box p-2 transition-[height,background-color,color] duration-700 ease-out md:rounded-box md:p-4 ${pick === i ? 'bg-flame text-ink' : 'bg-white/[.1]'}`} style={{ height: shown ? `${(h / 67) * 100}%` : '0%', transitionDelay: shown ? '0ms' : `${i * 90}ms` }}>
                   <span className="text-xl font-medium leading-none tabular-nums md:text-5xl">{h} h</span>
                   <span className={`text-[11px] tabular-nums md:text-sm ${pick === i ? 'font-medium' : 'text-paper/70'}`}>{cost}</span>
                 </span>

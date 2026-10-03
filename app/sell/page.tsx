@@ -85,7 +85,7 @@ export default async function Sell() {
           <ul className="space-y-2">
             {calls.slice(0, 3).map((c) => (
               <li key={c.id}>
-                <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="flex items-center justify-between gap-3 rounded-xl bg-ink/40 p-3 pl-4 transition-colors hover:bg-ink/60">
+                <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="flex items-center justify-between gap-3 rounded-box bg-ink/40 p-3 pl-4 transition-colors hover:bg-ink/60">
                   <span className="min-w-0 truncate font-medium">{c.title}</span>
                   <span className="flex-none text-lg font-light tabular-nums">${c.rate}<span className="text-xs text-paper/60">/h</span></span>
                 </Link>
@@ -114,7 +114,7 @@ export default async function Sell() {
               const bid = listed && r.quality_score >= 3 && calls.find((c) => matchesCall(c, l, r.minutes) && !r.buyers.includes(c.buyer_id))
               return (
                 <li key={r.id} className="card flex gap-4 p-4">
-                  {r.thumb ? <img src={r.thumb} alt="" className="h-16 w-20 flex-none rounded-lg object-cover md:h-20 md:w-28" /> : <div className="streaks h-16 w-20 flex-none rounded-lg md:h-20 md:w-28" />}
+                  {r.thumb ? <img src={r.thumb} alt="" className="h-16 w-20 flex-none rounded-box object-cover md:h-20 md:w-28" /> : <div className="streaks h-16 w-20 flex-none rounded-box md:h-20 md:w-28" />}
                   <div className="min-w-0 flex-1 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <Link href={`/buy/${r.id}`} className="truncate font-medium underline-offset-4 hover:underline">{r.title || 'Untitled clip'}</Link>
@@ -135,7 +135,7 @@ export default async function Sell() {
                     {r.ai?.flags?.includes('faces') && <p className="text-xs text-amber-200">A face is visible in this clip.</p>}
 
                     {sug.length > 0 && (
-                      <form action={reviewLabels} className="space-y-2 rounded-xl bg-white/5 p-3">
+                      <form action={reviewLabels} className="space-y-2 rounded-box bg-white/5 p-3">
                         <input type="hidden" name="id" value={r.id} />
                         <p className="flex flex-wrap items-center gap-2"><span className="label !mb-0">Model proposed</span>{sug.map((s) => <span key={s} className="chip chip-slate">{s}</span>)}</p>
                         <input name="note" className="input" maxLength={500} placeholder="Why you agree or disagree (goes on the evidence trail)" aria-label="Review note" />

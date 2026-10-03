@@ -48,14 +48,14 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
                 {/* who and what on the left, the rate in its own box on the right */}
                 {/* a cover icon for the kind of work, then the title and who is asking */}
                 <div className="flex items-center gap-4 p-4">
-                  <div className="card-warm h-20 w-20 flex-none overflow-hidden rounded-2xl md:h-24 md:w-24"><Glyph name={taskGlyph(c.task)} className="h-full w-full" /></div>
+                  <div className="card-warm h-20 w-20 flex-none overflow-hidden rounded-box md:h-24 md:w-24"><Glyph name={taskGlyph(c.task)} className="h-full w-full" /></div>
                   <div className="min-w-0">
                     <p className="flex flex-wrap gap-1.5">{[c.task, c.industry].filter(Boolean).map((x: string) => <span key={x} className="chip chip-warm">{x}</span>)}</p>
                     <h2 className="mt-1.5 text-base font-semibold leading-snug md:text-xl">{c.title}</h2>
                     <p className="muted mt-1 text-xs">{c.buyer}</p>
                   </div>
                 </div>
-                {c.weakness && <p className="mx-4 mb-3 rounded-xl bg-white/[.05] px-3 py-2 text-sm"><span className="muted">Model gap: </span>{c.weakness}</p>}
+                {c.weakness && <p className="mx-4 mb-3 rounded-box bg-white/[.05] px-3 py-2 text-sm"><span className="muted">Model gap: </span>{c.weakness}</p>}
                 {/* three numbers, one per box: the pay is the warm one */}
                 <dl className="mx-4 grid grid-cols-3 gap-2">
                   {[
@@ -63,7 +63,7 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
                     [`${done.toFixed(done ? 1 : 0)} / ${Math.round(total)} h`, 'collected', 'bg-white/[.05]'],
                     [`$${Math.round(total * c.rate).toLocaleString('en-US')}`, 'budget', 'bg-white/[.05]'],
                   ].map(([v, k, tone]) => (
-                    <div key={k} className={`rounded-xl px-3 py-2.5 ${tone}`}>
+                    <div key={k} className={`rounded-box px-3 py-2.5 ${tone}`}>
                       <dt className="text-base font-medium tabular-nums md:text-lg">{v}</dt>
                       <dd className="muted text-[11px] uppercase tracking-wider">{k}</dd>
                     </div>

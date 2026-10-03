@@ -24,7 +24,7 @@ export default function Tabs({ bar = false }: { bar?: boolean }) {
     return (
       <nav aria-label="Main" className="hidden items-center gap-1 text-sm md:flex">
         {tabs.map((t) => (
-          <Link key={t.href} href={t.href} aria-current={on(t) ? 'page' : undefined} className={`rounded-full px-4 py-1.5 transition-colors ${on(t) ? 'bg-flame text-ink' : 'muted hover:text-paper'}`}>{t.name}</Link>
+          <Link key={t.href} href={t.href} aria-current={on(t) ? 'page' : undefined} className={`relative px-4 py-1.5 transition-colors after:absolute after:inset-x-4 after:-bottom-0.5 after:h-0.5 after:origin-left after:rounded-full after:bg-flame after:transition-transform after:duration-300 ${on(t) ? 'text-paper after:scale-x-100' : 'muted after:scale-x-0 hover:text-paper'}`}>{t.name}</Link>
         ))}
       </nav>
     )
@@ -34,12 +34,11 @@ export default function Tabs({ bar = false }: { bar?: boolean }) {
       {tabs.map((t) => {
         const active = on(t)
         return (
-          <Link key={t.href} href={t.href} aria-current={active ? 'page' : undefined} className={`flex h-16 flex-col items-center justify-end gap-1 pb-2 text-[11px] ${active ? 'font-semibold text-paper' : 'muted'}`}>
-            {/* the selected tab lifts out of the bar on a warm disc, like a pressed seal */}
-            <span className={`grid place-items-center rounded-full transition-all duration-300 ${active ? 'h-11 w-11 -translate-y-3 bg-flame text-ink ring-4 ring-ink' : 'h-7 w-7'}`}>
+          <Link key={t.href} href={t.href} aria-current={active ? 'page' : undefined} className={`relative flex h-16 flex-col items-center justify-end gap-1 pb-2 text-[11px] before:absolute before:top-0 before:h-0.5 before:w-9 before:rounded-full before:bg-flame before:transition-opacity before:duration-300 ${active ? 'font-medium text-paper before:opacity-100' : 'muted before:opacity-0'}`}>
+            <span className={`grid h-7 w-7 place-items-center transition-colors duration-300 ${active ? 'text-flame' : ''}`}>
               <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={t.icon} /></svg>
             </span>
-            <span className={active ? '-mt-3' : ''}>{t.name}</span>
+            <span>{t.name}</span>
           </Link>
         )
       })}

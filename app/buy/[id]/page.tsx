@@ -200,7 +200,7 @@ export default async function Listing({ params, searchParams }: { params: Promis
               {packages(price).map((p, i) => {
                 const why = unavailable(p.key, r)
                 return (
-                  <label key={p.key} className={`flex items-start gap-3 rounded-xl bg-white/5 p-3 has-[:checked]:bg-tan/60 ${why ? 'opacity-50' : 'cursor-pointer'}`}>
+                  <label key={p.key} className={`flex items-start gap-3 rounded-box bg-white/5 p-3 has-[:checked]:bg-tan/60 ${why ? 'opacity-50' : 'cursor-pointer'}`}>
                     <input type="radio" name="package" value={p.key} defaultChecked={i === 0} disabled={!!why} className="mt-1" />
                     <span className="flex-1">
                       <span className="flex justify-between gap-3">

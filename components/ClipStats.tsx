@@ -69,7 +69,7 @@ export default function ClipStats({ score, metrics, sets, earn, ai, aiError, req
       <div className={row}>
         <h3 className="text-lg font-semibold">Labelling</h3>
         <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl bg-white/[.05] p-5">
+          <div className="rounded-box bg-white/[.05] p-5">
             <p className="font-semibold">Open source</p>
             <p className="muted text-xs">MediaPipe object detector and hand tracker, run on your device</p>
             {objects.length ? (
@@ -87,13 +87,13 @@ export default function ClipStats({ score, metrics, sets, earn, ai, aiError, req
             {metrics.hands != null && <p className="mt-4 flex flex-wrap gap-1.5"><span className="stat">Hands in {pct(sets.hands?.coverage)} of frames</span><span className="stat">Hand confidence {pct(sets.hands?.confidence)}</span></p>}
           </div>
 
-          <div className="rounded-2xl bg-white/[.05] p-5">
+          <div className="rounded-box bg-white/[.05] p-5">
             <p className="font-semibold">Kimi</p>
             <p className="muted text-xs">Vision language model, run on the server</p>
             {ai ? (
               <div className="mt-4 space-y-3 text-sm">
                 {requested && ai.check && (
-                  <p className={`flex items-start gap-2 rounded-xl p-3 ${ai.check.matches && done !== 'no' ? 'bg-emerald-400/15 text-emerald-200' : 'bg-amber-300/15 text-amber-100'}`}>
+                  <p className={`flex items-start gap-2 rounded-box p-3 ${ai.check.matches && done !== 'no' ? 'bg-emerald-400/15 text-emerald-200' : 'bg-amber-300/15 text-amber-100'}`}>
                     <span className="mt-0.5"><Tick ok={!!ai.check.matches && done !== 'no'} /></span>
                     <span>{ai.check.matches ? 'This is the requested task' : 'This is not the requested task'}, {done === 'yes' ? 'and it was completed' : done === 'no' ? 'and it was not completed' : 'completion unclear'}. {ai.check.evidence}</span>
                   </p>
@@ -107,7 +107,7 @@ export default function ClipStats({ score, metrics, sets, earn, ai, aiError, req
                 {ai.steps && ai.steps.length > 0 && <ol className="muted list-decimal space-y-0.5 pl-5">{ai.steps.slice(0, 6).map((s) => <li key={s}>{s}</li>)}</ol>}
               </div>
             ) : (
-              <p className="mt-4 rounded-xl bg-amber-300/15 p-3 text-sm text-amber-100">Did not run, so the task and whether it was completed have not been checked by a model. {aiError ? `Reason: ${aiError}` : ''}</p>
+              <p className="mt-4 rounded-box bg-amber-300/15 p-3 text-sm text-amber-100">Did not run, so the task and whether it was completed have not been checked by a model. {aiError ? `Reason: ${aiError}` : ''}</p>
             )}
           </div>
         </div>
