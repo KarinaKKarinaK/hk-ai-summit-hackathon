@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 
 type RGB = [number, number, number]
-const COAL: RGB = [38, 36, 42], FLAME: RGB = [238, 115, 64], BLUSH: RGB = [243, 188, 174], PINK: RGB = [226, 110, 170]
+const COAL: RGB = [38, 36, 42], PLUM: RGB = [46, 18, 32], ROSE: RGB = [88, 34, 60], FLAME: RGB = [238, 115, 64], BLUSH: RGB = [243, 188, 174], PINK: RGB = [226, 110, 170]
 // dark to burnt orange to orange to pale pink to pink
 const FLOW: RGB[] = [[20, 17, 22], [150, 62, 22], FLAME, BLUSH, PINK]
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
@@ -18,10 +18,10 @@ export function flow(x: number, y: number, seed: number): number {
 
 /**
  * Poster background: a flowing orange and pink gradient broken into square halftone dots (ordered dithering).
- * flow is the full swirl, coal is flat charcoal with dots drifting in, flame is flat orange with dots drifting in.
+ * flow is the full swirl. coal, flame and plum are flat colours with dots drifting in, plum's kept dim to sit under text.
  * Drawn on a canvas that fills its parent, which must be positioned. It flows slowly, and shifts under the pointer.
  */
-export default function Dither({ tone = 'flow', seed = 1, className = '' }: { tone?: 'flow' | 'coal' | 'flame'; seed?: number; className?: string }) {
+export default function Dither({ tone = 'flow', seed = 1, className = '' }: { tone?: 'flow' | 'coal' | 'flame' | 'plum'; seed?: number; className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function Dither({ tone = 'flow', seed = 1, className = '' }: { to
         c.height = (ch = h) * dpr
       }
       const g = c.getContext('2d')!
-      const flat = tone === 'coal' ? COAL : tone === 'flame' ? FLAME : null
+      const flat = tone === 'coal' ? COAL : tone === 'flame' ? FLAME : tone === 'plum' ? PLUM : null
       // the smooth layer is painted one pixel per cell, then stretched
       small.width = cols
       small.height = rows
@@ -50,7 +50,7 @@ export default function Dither({ tone = 'flow', seed = 1, className = '' }: { to
         img.data.set([...base, 255], o)
         // how many dots: on the swirl they thicken toward the next colour, on a flat tone they drift in where the swirl peaks
         const density = flat ? (v - 0.55) / 0.45 : k === 0 ? t * 0.45 : t
-        if ((BAYER[(j & 3) * 4 + (i & 3)] + 0.5) / 16 < density) dots.push([i, j, css(!flat && k === 3 ? PINK : BLUSH)])
+        if ((BAYER[(j & 3) * 4 + (i & 3)] + 0.5) / 16 < density) dots.push([i, j, css(tone === 'plum' ? ROSE : !flat && k === 3 ? PINK : BLUSH)])
       }
       sg.putImageData(img, 0, 0)
       g.imageSmoothingEnabled = true
