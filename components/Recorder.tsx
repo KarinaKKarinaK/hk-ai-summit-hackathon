@@ -51,10 +51,12 @@ export default function Recorder({ tasks }: { tasks: QuickTask[] }) {
   const [seen, setSeen] = useState<string[]>([]) // what is being tracked right now: hands, face, body
   const [cup, setCup] = useState('reach') // where the cup task is: reach, near, held, lifted
   const [request, setRequest] = useState<{ id: string; title: string } | null>(null)
+  const [signedIn, setSignedIn] = useState(true) // assumed until the check below says otherwise
   const [choice, setChoice] = useState('cup') // which task is picked: the cup practice, a quick request, or anything else
 
   // A seller arrives here from a buyer's request: /record?request=<id>&title=<text>
   useEffect(() => {
+    fetch('/api/upload').then((r) => setSignedIn(r.ok)).catch(() => {})
     const q = new URLSearchParams(location.search), id = q.get('request') ?? ''
     if (/^[0-9a-f-]{36}$/.test(id)) (setRequest({ id, title: (q.get('title') ?? 'a buyer request').slice(0, 120) }), setMode('other'), setChoice(id))
   }, [])
@@ -348,7 +350,8 @@ export default function Recorder({ tasks }: { tasks: QuickTask[] }) {
         {take && <a className="btn btn-ghost" download={take.file.name} href={take.videoHref}>Download video</a>}
         {take && <a className="btn btn-ghost" download="episode.json" href={take.episodeHref}>Download episode JSON</a>}
       </div>
-      {!take && <p className="muted text-xs">A few seconds in, you will be asked to hold up some fingers. It proves the clip is being filmed live. Keep recording until it says verified.</p>}
+      {!signedIn && <p className="card-warm rounded-2xl p-3 text-sm">You can try the recorder now. To submit a take and get paid, <a className="underline" href="/login?mode=register">create an account</a> or <a className="underline" href="/login">sign in</a> first.</p>}
+      {!take && <p className="muted text-xs">A few seconds in, you will be asked to hold up some fingers. It proves the clip is being filmed live. Keep recording until it says verified. When you stop, the take is processed and submitted automatically. By recording you confirm that you filmed it yourself, anyone identifiable agreed, you had permission to film there, and you grant a non-exclusive training licence. You keep ownership and can withdraw it later.</p>}
       {take && !take.verified && (
         <section className="card p-5">
           <h2 className="text-xl">This take cannot be submitted</h2>

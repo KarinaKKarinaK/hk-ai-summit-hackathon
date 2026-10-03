@@ -17,11 +17,13 @@ export default function SellStart({ years = 0 }: { years?: number }) {
   const rec = useRef<MediaRecorder | null>(null)
 
   const [requestId, setRequestId] = useState<string>()
+  const [signedIn, setSignedIn] = useState(true) // assumed until the check below says otherwise
 
   // screen capture exists on desktop browsers only. Checked after mount so server and client render the same.
   // A buyer's screen-task request links here as /sell?request=<id>, so the recording is submitted into it.
   useEffect(() => {
     setCanScreen(!!navigator.mediaDevices?.getDisplayMedia)
+    fetch('/api/upload').then((r) => setSignedIn(r.ok)).catch(() => {})
     const id = new URLSearchParams(location.search).get('request') ?? ''
     if (/^[0-9a-f-]{36}$/.test(id)) setRequestId(id)
   }, [])
@@ -89,6 +91,8 @@ export default function SellStart({ years = 0 }: { years?: number }) {
         </label>
       </div>
       {error && <p role="alert" className="mt-2 text-sm text-red-300">{error}</p>}
+      {!signedIn && <p className="mt-3 text-sm">To submit a recording and get paid, <Link className="underline" href="/login?mode=register">create an account</Link> or <Link className="underline" href="/login">sign in</Link> first.</p>}
+      <p className="muted mt-3 text-xs">A recording or upload is processed and submitted automatically. By adding one you confirm that you filmed it yourself, anyone identifiable agreed, you had permission to film there, and you grant a non-exclusive training licence. You keep ownership and can withdraw it later.</p>
     </section>
   )
 }
