@@ -95,7 +95,7 @@ export default async function Report({ params, searchParams }: { params: Promise
         </div>
       </section>
 
-      {listed && <ClipStats score={r.quality_score} metrics={r.metrics ?? {}} sets={sets} earn={payout(price)} />}
+      {listed && <ClipStats score={r.quality_score} metrics={r.metrics ?? {}} sets={sets} earn={payout(price)} ai={r.ai} aiError={ev('proposed')?.error} requested={bounty?.title ?? ev('task_check')?.requested} />}
 
       <ol className="space-y-3">
         <Stage n={1} title="Capture and authenticity" by="on your device" state={observed.capture === 'screen' ? 'ok' : observed.capture === 'gallery' ? 'warn' : !auth ? 'skip' : auth.passed ? 'ok' : 'fail'}>

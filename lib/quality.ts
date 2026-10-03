@@ -1,6 +1,6 @@
 // Browser only. Samples frames from a video file and measures quality live,
 // before anything is uploaded.
-import { FaceLandmarker, FilesetResolver, HandLandmarker, ImageClassifier, ObjectDetector, PoseLandmarker } from '@mediapipe/tasks-vision'
+import { FaceLandmarker, FilesetResolver, HandLandmarker, ObjectDetector, PoseLandmarker } from '@mediapipe/tasks-vision'
 import { dhash, type LabelSet, type Metrics } from './score'
 
 const MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task'
@@ -21,13 +21,12 @@ const once = (el: HTMLElement, ev: string, ms = 5000) =>
 
 const OBJECT_MODEL = 'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite'
 const SCENE_MODEL = 'https://storage.googleapis.com/mediapipe-models/image_classifier/efficientnet_lite0/float32/1/efficientnet_lite0.tflite'
-let labellers: Promise<{ objects: ObjectDetector; scene: ImageClassifier }> | undefined
+let labellers: Promise<{ objects: ObjectDetector }> | undefined
 
 /** The two free labelling options: small Apache 2.0 models that run on the phone, so they cost nothing per clip. */
 export function getLabellers() {
   return (labellers ??= FilesetResolver.forVisionTasks('/mediapipe').then(async (files) => ({
     objects: await ObjectDetector.createFromOptions(files, { baseOptions: { modelAssetPath: OBJECT_MODEL }, runningMode: 'IMAGE', scoreThreshold: 0.3, maxResults: 8 }),
-    scene: await ImageClassifier.createFromOptions(files, { baseOptions: { modelAssetPath: SCENE_MODEL }, runningMode: 'IMAGE', scoreThreshold: 0.1, maxResults: 3 }),
   })))
 }
 
@@ -80,7 +79,7 @@ export async function analyze(file: File, on: (m: Metrics, stage: string) => voi
     const hands = opts?.screen ? null : await getHands('IMAGE').catch(() => null) // offline or blocked: skip the hands check
     on({ ...m }, 'Loading open-source labelling models')
     const lab = opts?.screen ? null : await getLabellers().catch(() => null)
-    const objects: Tally = {}, scene: Tally = {}, handConf: number[] = []
+    const objects: Tally = {}, handConf: number[] = []
 
     // Fingerprint for exact copies: SHA-256 of the first megabyte plus the size, so a 500MB file is not read into memory.
     const digest = await crypto.subtle.digest('SHA-256', new Uint8Array([...new Uint8Array(await file.slice(0, 1 << 20).arrayBuffer()), ...new TextEncoder().encode(String(file.size))]))
@@ -110,7 +109,6 @@ export async function analyze(file: File, on: (m: Metrics, stage: string) => voi
       if (lab) {
         const seenHere = new Set<string>() // count an object once per frame, at its best score
         for (const d of lab.objects.detect(big).detections) if (d.categories[0] && !seenHere.has(d.categories[0].categoryName)) (seenHere.add(d.categories[0].categoryName), tally(objects, d.categories[0]))
-        for (const c of lab.scene.classify(big).classifications[0]?.categories ?? []) tally(scene, c)
       }
 
       if (duration > 0.3) {
@@ -127,7 +125,8 @@ export async function analyze(file: File, on: (m: Metrics, stage: string) => voi
       on({ ...m }, `Checked frame ${i + 1} of ${SAMPLES}`)
     }
     on({ ...m }, '')
-    const labelsets = { objects: summarise(objects), scene: summarise(scene), hands: { coverage: seen / SAMPLES, confidence: +mean(handConf).toFixed(3) } }
+    // the person holding the phone is not a finding
+    const labelsets = { objects: summarise(objects).filter((o) => o.name !== 'person'), scene: [] as LabelSet, hands: { coverage: seen / SAMPLES, confidence: +mean(handConf).toFixed(3) } }
     return { metrics: m, frames, thumb, hashes, fingerprint, labelsets }
   } finally {
     URL.revokeObjectURL(v.src)

@@ -33,6 +33,7 @@ Reply with JSON only, no prose:
  "skill": {"level": "novice" | "competent" | "expert" | "unclear", "evidence": "one sentence on tool handling and technique"},
  "quality_score": integer 1 to 5 (5 = clear hands-on task, hands and tool visible, real work; 1 = no manipulation task visible),
  "reasons": ["up to 3 short reasons for the score"],
+ "task_check": {"seen": "the task the frames actually show, in a few words", "matches": true or false (is it the requested task, if one is given below), "completed": "yes" | "no" | "unclear" (did the person finish it within these frames), "evidence": "one sentence on what you saw"},
  "flags": ["faces" if an identifiable face is visible, "screen" if a screen with readable personal data is visible, "unsafe" if unsafe practice is shown]
 }
 If no task is visible, say so in reasons and score 1. Do not guess labels you cannot see.`
@@ -42,15 +43,17 @@ If no task is visible, say so in reasons and score 1. Do not guess labels you ca
 const MODEL = process.env.KIMI_MODEL || 'kimi-k2.5'
 const BASE = process.env.KIMI_BASE_URL || 'https://api.moonshot.ai/v1'
 
-async function review(frames: string[], context: string) {
+async function review(frames: string[], context: string, oidc: string | null) {
+  // Two ways to reach Kimi: a Moonshot key, or Vercel AI Gateway signed with this project's own identity (needs a card on the Vercel account).
   const key = process.env.KIMI_API_KEY || process.env.MOONSHOT_API_KEY
-  if (!key) throw new Error('KIMI_API_KEY is not set')
-  const res = await fetch(`${BASE}/chat/completions`, {
+  if (!key && !oidc) throw new Error('Kimi is not connected: set KIMI_API_KEY or enable Vercel AI Gateway')
+  const [endpoint, bearer, model] = key ? [`${BASE}/chat/completions`, key, MODEL] : ['https://ai-gateway.vercel.sh/v1/chat/completions', oidc, `moonshotai/${MODEL}`]
+  const res = await fetch(endpoint, {
     method: 'POST',
-    headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+    headers: { authorization: `Bearer ${bearer}`, 'content-type': 'application/json' },
     signal: AbortSignal.timeout(50_000),
     body: JSON.stringify({
-      model: MODEL,
+      model,
       messages: [{
         role: 'user',
         content: [
@@ -65,13 +68,14 @@ async function review(frames: string[], context: string) {
   const ai = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1))
   const q = Math.round(Number(ai.quality_score))
   return {
-    model: MODEL,
+    model,
     title: clip(ai.title, 120),
     labels: cleanLabels(ai.labels),
     steps: (Array.isArray(ai.steps) ? ai.steps : []).map((s: unknown) => clip(s, 160)).filter(Boolean).slice(0, 12),
     skill: { level: pick(['novice', 'competent', 'expert', 'unclear'], ai.skill?.level) ?? 'unclear', evidence: clip(ai.skill?.evidence, 240) },
     quality_score: q >= 1 && q <= 5 ? q : undefined,
     reasons: (Array.isArray(ai.reasons) ? ai.reasons : []).map((s: unknown) => clip(s, 160)).filter(Boolean).slice(0, 3),
+    check: { seen: clip(ai.task_check?.seen, 120), matches: ai.task_check?.matches === true, completed: pick(['yes', 'no', 'unclear'], ai.task_check?.completed) ?? 'unclear', evidence: clip(ai.task_check?.evidence, 240) },
     flags: (Array.isArray(ai.flags) ? ai.flags : []).filter((x: unknown) => ['faces', 'screen', 'unsafe'].includes(x as string)),
   }
 }
@@ -151,7 +155,7 @@ export async function POST(request: Request) {
   let aiError: string | null = null
   if (frames.length) {
     try {
-      ai = await review(frames, `${user.trade ?? 'trade not given'}. ${description} ${steps}`.slice(0, 1500))
+      ai = await review(frames, `${call ? `Requested task: ${call.title}. ${call.description ?? ''} ` : 'No task was requested. '}Seller: ${user.trade ?? 'trade not given'}. ${description} ${steps}`.slice(0, 1500), request.headers.get('x-vercel-oidc-token') ?? process.env.VERCEL_OIDC_TOKEN ?? null)
     } catch (e) {
       aiError = (e as Error).message.slice(0, 200)
       console.error('vision review failed', e)
@@ -168,10 +172,19 @@ export async function POST(request: Request) {
   await log(row.id, 'market', 'priced', { score, technical: tech, completeness: comp, model_score: ai?.quality_score ?? null, rate, price })
 
   // Path 1, bounties: a clip recorded for a request is bought by that request as soon as it passes. Guaranteed payout.
+  // objects the request says must be on camera, checked against what the open-source detector found in two or more frames
+  const required = String(call?.objects ?? '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
+  const missing = required.filter((n) => !labelsets.objects?.some((o) => o.name.toLowerCase() === n && o.frames >= 2))
+  if (call) await log(row.id, 'model', 'task_check', { requested: call.title, kimi: ai?.check ?? null, objects_required: required, objects_missing: missing })
   let bounty: { paid: number; title?: string; reason?: string } | null = null
   if (call) {
     if (capture === 'gallery') bounty = { paid: 0, title: call.title, reason: 'Requests only accept clips recorded in the app' }
     else if (!(call.hours > 0) || call.buyer_id === user.id) bounty = { paid: 0, title: call.title, reason: 'This request is closed' }
+    // Was it the requested task, and was it finished? Kimi decides when it ran. Without it, the open-source detector
+    // can only confirm that the objects the request names were on camera.
+    else if (ai?.check && !ai.check.matches) bounty = { paid: 0, title: call.title, reason: `Kimi saw a different task: ${ai.check.seen}` }
+    else if (ai?.check?.completed === 'no') bounty = { paid: 0, title: call.title, reason: `Kimi saw the task but not its completion. ${ai.check.evidence}` }
+    else if (!ai && missing.length) bounty = { paid: 0, title: call.title, reason: `The open-source detector did not see: ${missing.join(', ')}` }
     else if (score < 3) bounty = { paid: 0, title: call.title, reason: 'The quality score is below 3' }
     else if (!matchesCall(call, labels, minutes)) bounty = { paid: 0, title: call.title, reason: 'The clip does not match what the request asks for' }
     else {

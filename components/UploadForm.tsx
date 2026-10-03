@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { upload } from '@vercel/blob/client'
 import { analyze } from '@/lib/quality'
-import ClipStats from './ClipStats'
+import ClipStats, { type Kimi } from './ClipStats'
 import { HOLD_DAYS, checks, technical, completeness, finalScore, payout, type Labels, type Metrics } from '@/lib/score'
 
 type Dup = { kind: string; own: boolean }
 type Result = {
   id: string; quality_score: number; price: number; aiError: string | null; duplicate?: Dup | null; unverified?: string
   bounty?: { paid: number; title?: string; reason?: string } | null
-  ai: null | { reasons: string[]; flags: string[]; skill: { level: string; evidence: string }; labels?: Labels }
+  ai: Kimi
 }
 
 // The pipeline, in order, with the open-source piece that does each step.
@@ -21,14 +21,13 @@ const STEPS = [
   ['Read frames', 'browser video decoder', 0],
   ['Quality checks', 'light, sharpness, steadiness', 1],
   ['Hand tracking', 'MediaPipe Hands', 1],
-  ['Object detection', 'EfficientDet-Lite0', 1],
-  ['Scene classification', 'EfficientNet-Lite0', 1],
+  ['Open-source labels', 'MediaPipe objects', 1],
   ['Originality', 'perceptual hash', 2],
   ['Upload', 'direct to storage', 3],
   ['Label with Kimi', 'vision language model', 4],
   ['Score and price', 'live market rate', 4],
 ] as const
-const HANDS_ONLY = ['Hand tracking', 'Object detection', 'Scene classification'] // skipped for screen recordings
+const HANDS_ONLY = ['Hand tracking', 'Open-source labels'] // skipped for screen recordings
 const pct = (x = 0) => `${Math.round(x * 100)}%`
 
 /**
@@ -155,7 +154,7 @@ export default function UploadForm({ initialFile: file, episode, requestId, kind
               <a href={live ? '/record' : '/sell'} className="btn btn-ghost !min-h-10 text-sm">Add another</a>
             </div>
           </div>
-          {good && <ClipStats score={result.quality_score} metrics={metrics} sets={shots?.labelsets ?? {}} earn={payout(result.price)} />}
+          {good && <ClipStats score={result.quality_score} metrics={metrics} sets={shots?.labelsets ?? {}} earn={payout(result.price)} ai={result.ai} aiError={result.aiError} requested={result.bounty?.title} />}
         </section>
       ) : (
         <section className="card space-y-3 p-5">

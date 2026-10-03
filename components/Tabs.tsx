@@ -6,9 +6,9 @@ import { usePathname } from 'next/navigation'
 // Four places: record a task, earn from it, buy data, see your numbers.
 // Requests are reached from Earn (to fill them) and Marketplace (to post them). Prices sit under Marketplace.
 const tabs = [
-  { href: '/record', name: 'Record', under: ['/record'], icon: 'M12 8a4 4 0 100 8 4 4 0 000-8zm0-5a9 9 0 100 18 9 9 0 000-18z' },
+  { href: '/record', name: 'Add data', under: ['/record'], icon: 'M12 8a4 4 0 100 8 4 4 0 000-8zm0-5a9 9 0 100 18 9 9 0 000-18z' },
   { href: '/sell', name: 'Earn', under: ['/sell', '/calls'], icon: 'M12 20V6m0 0l-6 6m6-6l6 6M4 3h16' },
-  { href: '/buy', name: 'Marketplace', under: ['/buy', '/market'], icon: 'M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z' },
+  { href: '/buy', name: 'Buy data', under: ['/buy', '/market'], icon: 'M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z' },
   { href: '/profile', name: 'Profile', under: ['/profile', '/login'], icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zm-7 9a7 7 0 0114 0' },
 ]
 

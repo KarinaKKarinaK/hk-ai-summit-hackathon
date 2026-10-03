@@ -6,7 +6,7 @@ import { buy, pass, reportResult } from '../../actions'
 
 const HEAD: Record<string, string> = {
   observed: 'Observed on the device', proposed: 'Model proposed', changed: 'Reviewer changed', kept: 'Reviewer kept their labels',
-  priced: 'Scored and priced', ask: 'Seller ask', accepted: 'Buyer accepted', passed: 'Buyer passed', labelled: 'Open-source models labelled it on the device', golden: 'Seller checked every label by hand: golden clip', result: 'Buyer reported a training result',
+  priced: 'Scored and priced', ask: 'Seller ask', accepted: 'Buyer accepted', passed: 'Buyer passed', task_check: 'Task check against the request', labelled: 'Open-source models labelled it on the device', golden: 'Seller checked every label by hand: golden clip', result: 'Buyer reported a training result',
   duplicate: 'Flagged as a copy of a clip already on Guild. Not listed', unverified: 'Could not verify this was filmed live. Not listed', withdrawn: 'Seller withdrew the clip from the market', relisted: 'Seller put the clip back on the market',
 }
 const labelText = (l: Labels = {}) => [l.task, l.industry, l.perspective, l.device, ...(l.tools ?? [])].filter(Boolean).join(', ')
@@ -30,6 +30,8 @@ function lines(kind: string, d: any): string[] {
       return [d.ask ? `Set to $${d.ask}. Market price was $${d.market}` : 'Cleared. Back to the market price']
     case 'accepted':
       return [`${d.package} for $${d.price}${d.via === 'bid' ? ', filled from a standing bid' : ''}`, `Why: ${(d.reasons ?? []).join(', ') || 'see note'}`]
+    case 'task_check':
+      return [d.kimi ? `Kimi: ${d.kimi.matches ? 'it is the requested task' : `a different task (${d.kimi.seen})`}, completed: ${d.kimi.completed}. ${d.kimi.evidence ?? ''}` : 'Kimi did not run, so the task was not checked by a model', d.objects_required?.length ? `Open-source detector: ${d.objects_missing?.length ? `did not see ${d.objects_missing.join(', ')}` : `saw ${d.objects_required.join(', ')}`}` : '']
     case 'labelled':
       return [d.objects?.length ? `Objects: ${d.objects.map((o: any) => `${o.name} ${pct(o.confidence)}`).join(', ')}` : 'No objects above the confidence threshold', d.scene?.length ? `Scene: ${d.scene.map((o: any) => `${o.name} ${pct(o.confidence)}`).join(', ')}` : '']
     case 'golden':

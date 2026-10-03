@@ -136,5 +136,6 @@ const calls = [
 for (const [b, title, description, task, industry, hours, rate] of calls) {
   await sql`insert into calls (buyer_id, title, description, task, industry, hours, rate) values (${ids[b]}, ${title}, ${description}, ${task}, ${industry}, ${hours}, ${rate})`
 }
+await sql`update calls set objects = 'bottle' where title = 'Open and close a screw-top bottle'`
 await sql`update calls set quick = true where title in ('Fold a t-shirt or towel', 'Open and close a screw-top bottle')`
 console.log(`seeded ${listings.length} listings, ${calls.length} calls`)

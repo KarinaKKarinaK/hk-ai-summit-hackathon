@@ -30,7 +30,7 @@ export default function ArmScene() {
     gsap.registerPlugin(ScrollTrigger)
 
     // smooth scroll, kept in step with ScrollTrigger
-    const lenis = calm ? null : new Lenis()
+    const lenis = calm ? null : new Lenis({ lerp: 0.075, wheelMultiplier: 0.9 })
     const raf = (t: number) => lenis?.raf(t * 1000)
     if (lenis) {
       lenis.on('scroll', ScrollTrigger.update)
@@ -42,7 +42,7 @@ export default function ArmScene() {
     const ctx = gsap.context(() => {
       if (calm) return
       gsap.utils.toArray<HTMLElement>('[data-tilt]').forEach((t) =>
-        gsap.from(t, { rotateX: 16, y: 70, opacity: 0, transformPerspective: 1000, transformOrigin: '50% 0%', ease: 'none', scrollTrigger: { trigger: t, start: 'top 92%', end: 'top 55%', scrub: true } }),
+        gsap.from(t, { rotateX: 8, y: 48, opacity: 0, transformPerspective: 1200, transformOrigin: '50% 0%', ease: 'power2.out', scrollTrigger: { trigger: t, start: 'top 95%', end: 'top 60%', scrub: 0.8 } }),
       )
     })
 
@@ -52,7 +52,7 @@ export default function ArmScene() {
     } catch {
       return () => { ctx.revert(); gsap.ticker.remove(raf); lenis?.destroy() } // no WebGL: the text still tells the story
     }
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5))
     el.appendChild(renderer.domElement)
     const scene = new THREE.Scene()
     const cam = new THREE.PerspectiveCamera(34, 1, 0.1, 50)
@@ -74,6 +74,7 @@ export default function ArmScene() {
 
     // The mug sits at radius R on bearing A0. The arm carries it round to A1, to the left, and sets it down.
     const R = 1.25, A0 = -0.35, A1 = 0.75, HOLD = 0.47
+    let shown = -1
     const draw = (p: number) => {
       const yaw = lerp(lerp(A0 + 0.7, A0, p / 0.25), A1, (p - 0.62) / 0.38)
       const r = lerp(0.8, R, p / 0.25)
@@ -87,10 +88,11 @@ export default function ArmScene() {
       cam.position.set(Math.sin(o) * 5.0, 1.9, Math.cos(o) * 5.0)
       cam.lookAt(0.45, 0.7, 0)
       renderer.render(scene, cam)
-      setStep(Math.min(MISSION.length - 1, Math.floor(p * MISSION.length)))
+      const now = Math.min(MISSION.length - 1, Math.floor(p * MISSION.length))
+      if (now !== shown) setStep((shown = now)) // re-render the cards only when the lit one changes
     }
     draw(calm ? 1 : 0)
-    const st = ScrollTrigger.create({ trigger: sec, start: 'top top', end: 'bottom bottom', scrub: true, onUpdate: (s) => draw(s.progress) })
+    const st = ScrollTrigger.create({ trigger: sec, start: 'top top', end: 'bottom bottom', scrub: 0.6, onUpdate: (s) => draw(s.progress) })
 
     return () => {
       st.kill()

@@ -157,7 +157,7 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
   .stat-warm { background: rgb(108 71 36 / 0.55); }
   /* stock photos are tinted toward the palette so mixed sources sit together */
   .photo { filter: saturate(0.7) sepia(0.22) contrast(1.03) brightness(0.92); }
-  [data-tilt] { animation: none; will-change: transform; }
+  [data-tilt] { animation: none; }
   /* processing pipeline: finished glows green */
   .glow-green {
     box-shadow: 0 0 0 1px rgb(52 211 153 / 0.7), 0 0 36px 2px rgb(52 211 153 / 0.35);
