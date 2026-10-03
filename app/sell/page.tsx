@@ -71,7 +71,7 @@ export default async function Sell() {
                   <span className="text-2xl font-light tabular-nums">${m.rate.toFixed(0)}<span className="muted text-sm">/h</span></span>
                 </div>
                 <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/[.06]">
-                  <div className="h-full rounded-full bg-linear-to-r from-rust via-tan to-slate" style={{ width: `${(m.rate / hot[0][1].rate) * 100}%`, opacity: 1 - i * 0.22 }} />
+                  <div className="h-full rounded-full bg-linear-to-r from-flame via-flame to-blush" style={{ width: `${(m.rate / hot[0][1].rate) * 100}%`, opacity: 1 - i * 0.22 }} />
                 </div>
               </li>
             ))}

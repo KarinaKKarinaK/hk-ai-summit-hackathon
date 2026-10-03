@@ -19,30 +19,32 @@ export function flow(x: number, y: number, seed: number): number {
 /**
  * Poster background: a flowing orange and pink gradient broken into square halftone dots (ordered dithering).
  * flow is the full swirl, coal is flat charcoal with dots drifting in, flame is flat orange with dots drifting in.
- * Drawn on a canvas that fills its parent, which must be positioned. It shifts a little under the pointer.
+ * Drawn on a canvas that fills its parent, which must be positioned. It flows slowly, and shifts under the pointer.
  */
 export default function Dither({ tone = 'flow', seed = 1, className = '' }: { tone?: 'flow' | 'coal' | 'flame'; seed?: number; className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
     const c = ref.current!, host = c.parentElement!
-    let drift = seed, raf = 0
+    let drift = seed, raf = 0, wave = 0, cw = 0, ch = 0
+    const small = document.createElement('canvas')
     const paint = () => {
       const w = c.clientWidth, h = c.clientHeight
       if (!w || !h) return
       const dpr = Math.min(devicePixelRatio, 2), cols = Math.ceil(w / CELL), rows = Math.ceil(h / CELL)
-      c.width = w * dpr
-      c.height = h * dpr
+      if (w !== cw || h !== ch) {
+        c.width = (cw = w) * dpr
+        c.height = (ch = h) * dpr
+      }
       const g = c.getContext('2d')!
       const flat = tone === 'coal' ? COAL : tone === 'flame' ? FLAME : null
       // the smooth layer is painted one pixel per cell, then stretched
-      const small = document.createElement('canvas')
       small.width = cols
       small.height = rows
       const sg = small.getContext('2d')!, img = sg.createImageData(cols, rows)
       const dots: [number, number, string][] = []
       for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
-        const v = flow((i * CELL) / 420, (j * CELL) / 420, drift), o = (j * cols + i) * 4
+        const v = flow((i * CELL) / 420, (j * CELL) / 420, drift + wave), o = (j * cols + i) * 4
         const p = v * (FLOW.length - 1), k = Math.min(FLOW.length - 2, Math.floor(p)), t = p - k
         const base = flat ?? (FLOW[k].map((a, n) => a + (FLOW[k + 1][n] - a) * t) as RGB)
         img.data.set([...base, 255], o)
@@ -62,13 +64,25 @@ export default function Dither({ tone = 'flow', seed = 1, className = '' }: { to
     paint()
     const ro = new ResizeObserver(paint)
     ro.observe(c)
-    // the swirl drifts as the pointer moves across the card
+    // the swirl flows slowly on its own while the card is on screen, about eleven frames a second
+    let seen = false, then = 0, loop = 0
+    const io = new IntersectionObserver(([e]) => (seen = e.isIntersecting))
+    io.observe(c)
+    const tick = (t: number) => {
+      loop = requestAnimationFrame(tick)
+      if (!seen || t - then < 90) return
+      then = t
+      wave = t * 0.00014
+      paint()
+    }
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) loop = requestAnimationFrame(tick)
+    // and shifts as the pointer moves across the card
     const move = (e: PointerEvent) => {
       drift = seed + (e.clientX + e.clientY) * 0.0016
       raf ||= requestAnimationFrame(() => { raf = 0; paint() })
     }
     host.addEventListener('pointermove', move)
-    return () => { ro.disconnect(); host.removeEventListener('pointermove', move); cancelAnimationFrame(raf) }
+    return () => { ro.disconnect(); io.disconnect(); cancelAnimationFrame(loop); host.removeEventListener('pointermove', move); cancelAnimationFrame(raf) }
   }, [tone, seed])
 
   return <canvas ref={ref} aria-hidden className={`absolute inset-0 -z-10 h-full w-full ${className}`} />

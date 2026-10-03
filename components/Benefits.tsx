@@ -35,7 +35,7 @@ export default function Benefits() {
         {s.items.map(([hook, line], i) => {
           const [tone, drop] = LOOK[i]
           return (
-            <li key={hook} className={`tile flex min-h-36 flex-col justify-end p-4 md:min-h-56 md:p-6 ${drop} ${i % 2 ? 'max-lg:mt-6' : ''} ${tone === 'flame' ? 'tile-flame text-ink' : tone === 'flow' ? 'on-flow' : 'tile-coal'}`} style={{ animationDelay: `${i * 70}ms` }}>
+            <li key={hook} className={`tile tile-lift flex min-h-36 flex-col justify-end p-4 md:min-h-56 md:p-6 ${drop} ${i % 2 ? 'max-lg:mt-6' : ''} ${tone === 'flame' ? 'tile-flame text-ink' : tone === 'flow' ? 'on-flow' : 'tile-coal'}`} style={{ animationDelay: `${i * 70}ms` }}>
               <Dither tone={tone} seed={i * 1.9 + (side === 'sell' ? 3 : 6)} />
               <p className="text-2xl font-semibold tracking-tight md:text-4xl">{hook}</p>
               <p className="mt-1.5 text-xs opacity-90 md:mt-2 md:text-sm">{line}</p>

@@ -63,7 +63,7 @@ export default async function Home() {
       <section className={section}>
         <ol className="grid grid-cols-2 items-start gap-3 md:grid-cols-4 md:gap-5">
           {STEPS.map(([t, d, tone, drop], i) => (
-            <li key={t} className={`tile flex min-h-44 flex-col justify-end p-4 md:min-h-72 md:p-6 ${drop} ${i % 2 ? 'max-md:mt-8' : ''} ${tone === 'flame' ? 'tile-flame text-ink' : tone === 'flow' ? 'on-flow' : 'tile-coal'}`}>
+            <li key={t} className={`tile tile-lift flex min-h-44 flex-col justify-end p-4 md:min-h-72 md:p-6 ${drop} ${i % 2 ? 'max-md:mt-8' : ''} ${tone === 'flame' ? 'tile-flame text-ink' : tone === 'flow' ? 'on-flow' : 'tile-coal'}`}>
               <Dither tone={tone} seed={i * 2.3 + 1} />
               <p className="mb-auto text-xs tabular-nums opacity-80">0{i + 1}</p>
               <h2 className="text-2xl font-semibold md:text-4xl">{t}</h2>

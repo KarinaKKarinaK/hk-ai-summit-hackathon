@@ -24,7 +24,7 @@ export default function Tabs({ bar = false }: { bar?: boolean }) {
     return (
       <nav aria-label="Main" className="hidden items-center gap-1 text-sm md:flex">
         {tabs.map((t) => (
-          <Link key={t.href} href={t.href} aria-current={on(t) ? 'page' : undefined} className={`rounded-full px-4 py-1.5 transition-colors ${on(t) ? 'bg-tan text-paper' : 'muted hover:text-paper'}`}>{t.name}</Link>
+          <Link key={t.href} href={t.href} aria-current={on(t) ? 'page' : undefined} className={`rounded-full px-4 py-1.5 transition-colors ${on(t) ? 'bg-flame text-ink' : 'muted hover:text-paper'}`}>{t.name}</Link>
         ))}
       </nav>
     )
@@ -36,7 +36,7 @@ export default function Tabs({ bar = false }: { bar?: boolean }) {
         return (
           <Link key={t.href} href={t.href} aria-current={active ? 'page' : undefined} className={`flex h-16 flex-col items-center justify-end gap-1 pb-2 text-[11px] ${active ? 'font-semibold text-paper' : 'muted'}`}>
             {/* the selected tab lifts out of the bar on a warm disc, like a pressed seal */}
-            <span className={`grid place-items-center rounded-full transition-all duration-300 ${active ? 'h-11 w-11 -translate-y-3 bg-linear-to-br from-amber to-rust text-paper shadow-[0_8px_18px_-6px_#6c4724,inset_0_1px_0_rgb(255_255_255/0.25)] ring-4 ring-ink' : 'h-7 w-7'}`}>
+            <span className={`grid place-items-center rounded-full transition-all duration-300 ${active ? 'h-11 w-11 -translate-y-3 bg-flame text-ink ring-4 ring-ink' : 'h-7 w-7'}`}>
               <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={t.icon} /></svg>
             </span>
             <span className={active ? '-mt-3' : ''}>{t.name}</span>
