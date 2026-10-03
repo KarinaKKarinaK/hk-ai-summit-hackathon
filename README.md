@@ -303,3 +303,7 @@ docs/           README screenshots
 - Video files sit on unguessable but public URLs.
 - No payments, no password reset, no login rate limit.
 - The hero photo is a third-party image and should be replaced before any public use.
+
+## Photo credits
+
+Sample listings use stand-in photos from Wikimedia Commons (public domain and CC BY / CC BY-SA). Authors, licences and source links are in [public/tasks/CREDITS.md](public/tasks/CREDITS.md). `wiring.jpg` was supplied by the team and its source is not recorded.

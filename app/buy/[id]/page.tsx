@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { sql, getUser, getMarket, priceOf, getReputation } from '@/lib/server'
-import { checks, packages, tier, signal, ACCEPT_REASONS, PASS_REASONS, BASE_RATE, LICENCE, type Labels } from '@/lib/score'
+import { checks, packages, tier, signal, ACCEPT_REASONS, PASS_REASONS, BASE_RATE, LICENCE, taskPhoto, type Labels } from '@/lib/score'
 import { buy, pass, reportResult } from '../../actions'
 
 const HEAD: Record<string, string> = {
@@ -57,6 +57,7 @@ export default async function Listing({ params, searchParams }: { params: Promis
   const raw = mine || owned.includes('raw') || owned.includes('both')
   const processed = mine || owned.includes('processed') || owned.includes('both')
   const l: Labels = r.labels ?? {}
+  const photo: string | null = r.thumb ?? taskPhoto(l.task)
   if (!mine && r.withdrawn_at && !owned.length) notFound() // withdrawn: only the seller and past buyers still see it
   const steps: string[] = r.ai?.steps?.length ? r.ai.steps : (r.steps ?? '').split('\n').filter(Boolean)
   // Something the worker gets back: a dated record of the job for their customer or their own files.
@@ -91,8 +92,8 @@ export default async function Listing({ params, searchParams }: { params: Promis
         <Link href="/buy" className="muted text-sm underline underline-offset-4">Back to marketplace</Link>
         {raw && r.video_url ? (
           <video src={r.video_url} controls playsInline className="card aspect-video w-full" />
-        ) : r.thumb ? (
-          <img src={r.thumb} alt="" className="card aspect-video w-full object-cover" />
+        ) : photo ? (
+          <img src={photo} alt="" className={`card aspect-video w-full object-cover ${r.thumb ? '' : 'photo'}`} />
         ) : (
           <div className="card streaks grid aspect-video place-items-center"><span className="emboss text-6xl font-semibold">{l.task}</span></div>
         )}

@@ -10,6 +10,10 @@ export const LABELS = {
   outcome: ['Completed', 'Failed then recovered', 'Failed'],
 } as const
 
+// Stand-in photos for listings without their own thumbnail. Files and credits are in public/tasks.
+const TASK_PHOTOS = ['assembly', 'carpentry', 'cleaning', 'folding', 'machining', 'plumbing', 'repair', 'sewing', 'welding', 'wiring']
+export const taskPhoto = (task?: string): string | null => (task && TASK_PHOTOS.includes(task.toLowerCase()) ? `/tasks/${task.toLowerCase()}.jpg` : null)
+
 export type Labels = { perspective?: string; task?: string; industry?: string; device?: string; tools?: string[]; outcome?: string }
 
 /** Does a clip meet a buyer's bounty spec? Used when a seller fills a bid, on the page and again on the server. */

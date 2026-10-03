@@ -4,15 +4,23 @@ import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { getHands } from '@/lib/quality'
 import { countFingers } from '@/lib/score'
+import { buildArm, addLights } from '@/lib/arm'
 import UploadForm from '@/components/UploadForm'
 
-const L = 1 // length of each arm link
 const clamp = (x: number, a: number, b: number) => Math.min(b, Math.max(a, x))
 // Live warning thresholds. Tune on real phones.
 const DARK = 60 // mean luma below this is too dark
 const FAST = 0.06 // wrist travel per frame (share of frame width) above this will blur
 const CHALLENGE_MS = 10_000 // time allowed to answer the finger challenge
 
+// Hand overlay: bones between the 21 landmarks, a web across neighbouring fingers, and the outline that gets filled.
+const GREEN = '57, 255, 20'
+const BONES = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8], [5, 9], [9, 10], [10, 11], [11, 12], [9, 13], [13, 14], [14, 15], [15, 16], [13, 17], [17, 18], [18, 19], [19, 20], [0, 17]]
+const WEB = [[1, 5], [2, 5], [2, 6], [3, 6], [3, 7], [4, 7], [6, 10], [10, 14], [14, 18], [7, 11], [11, 15], [15, 19], [8, 12], [12, 16], [16, 20], [0, 9], [0, 13], [5, 10], [9, 14], [13, 18], [6, 9], [10, 13], [14, 17]]
+const HULL = [0, 1, 2, 3, 4, 8, 12, 16, 20, 19, 18, 17]
+const TIPS = [4, 8, 12, 16, 20]
+
+type Mode = 'arm' | 'other'
 type Take = { file: File; episode: object; videoHref: string; episodeHref: string; verified: boolean }
 type Challenge = { n: number; at: number; t_ms: number; streak: number; passed: boolean | null }
 type Rec = { mr: MediaRecorder; chunks: Blob[]; frames: object[]; accel: number[][]; gyro: number[][]; t0: number; challenge: Challenge }
@@ -23,6 +31,7 @@ export default function Record() {
   const stage = useRef<HTMLDivElement>(null)
   const stream = useRef<MediaStream | null>(null)
   const rec = useRef<Rec | null>(null)
+  const [mode, setMode] = useState<Mode>('arm')
   const [status, setStatus] = useState('Starting camera')
   const [recording, setRecording] = useState(false)
   const [take, setTake] = useState<Take | null>(null)
@@ -35,66 +44,37 @@ export default function Record() {
   // A seller arrives here from a buyer's request: /record?request=<id>&title=<text>
   useEffect(() => {
     const q = new URLSearchParams(location.search), id = q.get('request') ?? ''
-    if (/^[0-9a-f-]{36}$/.test(id)) setRequest({ id, title: (q.get('title') ?? 'a buyer request').slice(0, 120) })
+    if (/^[0-9a-f-]{36}$/.test(id)) (setRequest({ id, title: (q.get('title') ?? 'a buyer request').slice(0, 120) }), setMode('other'))
   }, [])
 
   useEffect(() => {
-    const v = video.current!, el = stage.current!, o = overlay.current!
+    const v = video.current!, o = overlay.current!
     let raf = 0, stop = false
 
-    // Arm from primitives: base, two links, two-finger gripper.
-    let renderer: THREE.WebGLRenderer
-    try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-    } catch {
-      // no WebGL (old phone, locked-down browser): say so instead of crashing the page
-      setStatus('3D view is not supported in this browser. Try Safari or Chrome.')
-      return
+    // The mirrored arm is one of two modes. "Other task" records the same data without it.
+    let renderer: THREE.WebGLRenderer | null = null
+    const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(40, 1, 0.1, 50)
+    const arm = buildArm()
+    if (mode === 'arm' && stage.current) {
+      const el = stage.current
+      try {
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
+        renderer.setSize(el.clientWidth, el.clientHeight)
+        el.appendChild(renderer.domElement)
+        cam.aspect = el.clientWidth / el.clientHeight
+        cam.updateProjectionMatrix()
+        cam.position.set(0, 1.5, 4.4)
+        cam.lookAt(0, 1, 0)
+        addLights(scene)
+        scene.add(arm.root, new THREE.GridHelper(6, 12, 0x6b492e, 0x412c1a))
+      } catch {
+        renderer = null // no WebGL: keep recording, just without the arm
+      }
     }
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
-    renderer.setSize(el.clientWidth, el.clientHeight)
-    el.appendChild(renderer.domElement)
-    const scene = new THREE.Scene()
-    const cam = new THREE.PerspectiveCamera(40, el.clientWidth / el.clientHeight, 0.1, 50)
-    cam.position.set(0, 1.5, 4.4)
-    cam.lookAt(0, 1, 0)
-    scene.add(new THREE.HemisphereLight(0xfff1e0, 0x080403, 1.4))
-    const sun = new THREE.DirectionalLight(0xffd9b0, 2.2)
-    sun.position.set(2, 4, 3)
-    scene.add(sun, new THREE.GridHelper(6, 12, 0x482912, 0x2a180a))
-    const brown = new THREE.MeshStandardMaterial({ color: 0x6b492e, roughness: 0.55, metalness: 0.35 })
-    const slate = new THREE.MeshStandardMaterial({ color: 0x8e9a9b, roughness: 0.4, metalness: 0.6 })
-    const box = (w: number, h: number, d: number, m = brown) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m)
-    const base = new THREE.Group()
-    const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.42, 0.2, 32), slate)
-    foot.position.y = 0.1
-    const shoulder = new THREE.Group()
-    shoulder.position.y = 0.2
-    const l1 = box(0.16, L, 0.16)
-    l1.position.y = L / 2
-    const elbow = new THREE.Group()
-    elbow.position.y = L
-    const l2 = box(0.13, L, 0.13)
-    l2.position.y = L / 2
-    const fingers = [-1, 1].map(() => box(0.04, 0.24, 0.1, slate))
-    fingers.forEach((f) => (f.position.y = L + 0.12))
-    elbow.add(l2, ...fingers)
-    shoulder.add(l1, elbow)
-    base.add(foot, shoulder)
-    scene.add(base)
-
     const target = new THREE.Vector3(0.8, 1.2, 0.6)
     let open = 1
-    // Two-link analytic IK: yaw the base at the target, then law of cosines in the arm's plane.
-    const solve = () => {
-      const r = Math.hypot(target.x, target.z), y = target.y - 0.2
-      const d = clamp(Math.hypot(r, y), 0.3, 2 * L - 0.01)
-      base.rotation.y = Math.atan2(-target.z, target.x)
-      shoulder.rotation.z = Math.atan2(y, r) + Math.acos(d / (2 * L)) - Math.PI / 2
-      elbow.rotation.z = Math.acos(1 - (d * d) / (2 * L * L)) - Math.PI
-      fingers.forEach((f, i) => (f.position.z = (i ? 1 : -1) * (0.03 + open * 0.09)))
-    }
-    solve()
+    arm.solve(target.x, target.y, target.z, open)
 
     // in-app browsers (Instagram, WeChat) often have no mediaDevices at all
     const camera = navigator.mediaDevices?.getUserMedia({ video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })
@@ -115,20 +95,45 @@ export default function Record() {
         const tick = () => {
           if (stop) return
           raf = requestAnimationFrame(tick)
-          if (v.readyState < 2) return renderer.render(scene, cam)
+          if (v.readyState < 2) return renderer?.render(scene, cam)
           if (o.width !== v.videoWidth) (o.width = v.videoWidth), (o.height = v.videoHeight)
           const lm = hands.detectForVideo(v, performance.now()).landmarks[0]
           const r = rec.current
           ctx.clearRect(0, 0, o.width, o.height)
           if (lm) {
-            ctx.fillStyle = '#8e9a9b'
-            for (const p of lm) ctx.fillRect(p.x * o.width - 4, p.y * o.height - 4, 8, 8)
+            const u = o.width / 640 // stroke sizes follow the video size
+            const P = (i: number) => [lm[i].x * o.width, lm[i].y * o.height] as const
+            const lines = (pairs: number[][], width: number, alpha: number) => {
+              ctx.beginPath()
+              for (const [a, b] of pairs) (ctx.moveTo(...P(a)), ctx.lineTo(...P(b)))
+              ctx.lineWidth = width * u
+              ctx.strokeStyle = `rgba(${GREEN}, ${alpha})`
+              ctx.stroke()
+            }
+            // a translucent skin over the whole hand, a fine web across it, then the bones and joints on top
+            ctx.beginPath()
+            HULL.forEach((i, k) => (k ? ctx.lineTo(...P(i)) : ctx.moveTo(...P(i))))
+            ctx.closePath()
+            ctx.fillStyle = `rgba(${GREEN}, 0.1)`
+            ctx.fill()
+            lines(WEB, 1, 0.35)
+            lines(BONES, 3, 0.95)
+            ctx.fillStyle = `rgb(${GREEN})`
+            ctx.shadowColor = `rgb(${GREEN})`
+            ctx.shadowBlur = 12 * u
+            for (let i = 0; i < 21; i++) {
+              ctx.beginPath()
+              ctx.arc(...P(i), (TIPS.includes(i) ? 8 : 5.5) * u, 0, Math.PI * 2)
+              ctx.fill()
+            }
+            ctx.shadowBlur = 0
+
             const size = Math.hypot(lm[0].x - lm[9].x, lm[0].y - lm[9].y) || 0.1 // bigger hand = closer
             const x = facing === 'user' ? 1 - lm[0].x : lm[0].x
             // smoothing: exponential moving average
             target.lerp(new THREE.Vector3((x - 0.5) * 2.6, 0.3 + (1 - lm[0].y) * 1.6, clamp(1 - size * 2.5, 0.2, 1)), 0.35)
             open += (clamp((Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / size - 0.2) / 0.8, 0, 1) - open) * 0.5
-            solve()
+            arm.solve(target.x, target.y, target.z, open)
             r?.frames.push({
               t: Math.round(performance.now() - r.t0),
               landmarks: lm.map((p) => [+p.x.toFixed(4), +p.y.toFixed(4), +p.z.toFixed(4)]),
@@ -169,7 +174,7 @@ export default function Record() {
             hit = 0
             move = 0
           }
-          renderer.render(scene, cam)
+          renderer?.render(scene, cam)
         }
         tick()
       })
@@ -179,10 +184,10 @@ export default function Record() {
       stop = true
       cancelAnimationFrame(raf)
       stream.current?.getTracks().forEach((t) => t.stop())
-      renderer.dispose()
-      renderer.domElement.remove()
+      renderer?.dispose()
+      renderer?.domElement.remove()
     }
-  }, [facing])
+  }, [facing, mode])
 
   function toggle() {
     if (rec.current) return rec.current.mr.stop()
@@ -234,27 +239,40 @@ export default function Record() {
   const mirror = facing === 'user' ? '-scale-x-100' : ''
   return (
     <main className="mx-auto max-w-6xl space-y-4 px-4 py-6">
-      <div>
-        <h1 className="text-3xl md:text-5xl">{request ? 'Record for a request' : 'Your hand, a robot arm.'}</h1>
-        <p className="muted mt-2 text-sm">
-          {request ? <>Filming for: <span className="text-paper">{request.title}</span>. Guaranteed payout when the clip passes the checks.</> : 'Move your hand and pinch. The arm copies you, and the recording exports as a training episode.'}
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-3xl md:text-5xl">{request ? 'Record for a request' : mode === 'arm' ? 'Your hand, a robot arm.' : 'Record any task.'}</h1>
+          <p className="muted mt-2 text-sm">{request ? <>Filming for: <span className="text-paper">{request.title}</span>. Guaranteed payout when the clip passes the checks.</> : 'Every recording captures your hand in 3D and exports as a training episode.'}</p>
+        </div>
+        {/* two ways to record: mirrored by the arm, or any other task without it */}
+        <div role="group" aria-label="Recording mode" className="grid grid-cols-2 rounded-full bg-white/[.07] p-1 text-sm">
+          {([['arm', 'Robot arm'], ['other', 'Record other']] as const).map(([m, name]) => (
+            <button key={m} disabled={recording} aria-pressed={mode === m} onClick={() => setMode(m)} className={`rounded-full px-4 py-2 transition-colors ${mode === m ? 'bg-tan font-semibold text-paper' : 'muted'}`}>{name}</button>
+          ))}
+        </div>
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="card relative aspect-video overflow-hidden">
+
+      <div className="card card-warm flex items-start gap-3 p-4 text-sm">
+        <span className="chip bg-ink/40 flex-none">Try this</span>
+        <p>{mode === 'arm' ? 'Pick up a cup. Reach for it, pinch to grip, lift it, and put it back down. Watch the arm copy each move.' : 'Film any hands-on task from start to finish: tighten a bolt, strip a wire, fold a shirt. Keep both hands in frame.'}</p>
+      </div>
+
+      <div className={`grid gap-3 ${mode === 'arm' ? 'md:grid-cols-2' : ''}`}>
+        <div className={`card relative overflow-hidden ${mode === 'arm' ? 'aspect-video' : 'aspect-[3/4] md:aspect-video'}`}>
           <video ref={video} playsInline muted className={`h-full w-full object-cover ${mirror}`} />
           <canvas ref={overlay} className={`absolute inset-0 h-full w-full object-cover ${mirror}`} />
-          <p className="chip chip-slate absolute left-3 top-3 bg-ink/70">{recording ? 'Recording' : status}</p>
-          {live !== null && <p className="chip absolute right-3 top-3 bg-ink/70">Live quality {live}/5</p>}
-          {prompt && <p role="status" className="absolute inset-x-3 top-1/2 -translate-y-1/2 rounded-2xl bg-ink/80 p-4 text-center text-2xl font-medium">{prompt}</p>}
+          <p className={`chip absolute left-3 top-3 ${recording ? 'bg-red-700 text-paper' : 'bg-ink/70'}`}>{recording ? 'Recording' : status}</p>
+          {live !== null && <p className="chip chip-warm absolute right-3 top-3">Live quality {live}/5</p>}
+          {prompt && <p role="status" className="absolute inset-x-3 top-1/2 -translate-y-1/2 rounded-2xl bg-ink/80 p-4 text-center text-2xl font-semibold">{prompt}</p>}
           <ul aria-live="polite" className="absolute inset-x-3 bottom-3 space-y-1">
             {warn.map((w) => <li key={w} className="rounded-lg bg-ink/80 px-3 py-1.5 text-sm text-amber-200">{w}</li>)}
           </ul>
         </div>
-        <div ref={stage} className="card streaks aspect-video overflow-hidden" />
+        {mode === 'arm' && <div ref={stage} className="card streaks aspect-video overflow-hidden" />}
       </div>
+
       <div className="flex flex-wrap gap-3">
-        <button className="btn" onClick={toggle}>{recording ? 'Stop' : 'Record'}</button>
+        <button className={`btn ${recording ? '!bg-red-700 !text-paper' : ''}`} onClick={toggle}>{recording ? 'Stop' : 'Record'}</button>
         <button className="btn btn-ghost" disabled={recording} onClick={() => setFacing(facing === 'user' ? 'environment' : 'user')}>Flip camera</button>
         {take && <a className="btn btn-ghost" download={take.file.name} href={take.videoHref}>Download video</a>}
         {take && <a className="btn btn-ghost" download="episode.json" href={take.episodeHref}>Download episode JSON</a>}

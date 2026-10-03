@@ -132,6 +132,27 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
     color: #b9c2c3;
   }
   .muted { color: var(--color-slate); }
+  /* Palette accents. The browns are too dark for text on ink, so they are used as fills under light text. */
+  .card-warm { background: linear-gradient(155deg, rgb(85 47 15 / 0.55), rgb(49 22 4 / 0.45) 60%, rgb(36 11 4 / 0.5)); }
+  .card-slate { background: rgb(142 154 155 / 0.12); }
+  .btn-warm { background: var(--color-tan); color: var(--color-paper); }
+  .chip-warm { background: var(--color-amber); color: var(--color-paper); }
+  /* small boxed fact: score, length, sample */
+  .stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.55rem;
+    border-radius: 8px;
+    background: rgb(255 255 255 / 0.06);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .stat-warm { background: rgb(108 71 36 / 0.55); }
+  /* stock photos are tinted toward the palette so mixed sources sit together */
+  .photo { filter: saturate(0.7) sepia(0.22) contrast(1.03) brightness(0.92); }
+  [data-tilt] { animation: none; will-change: transform; }
   /* score meter: <span class="score" style="--s:4"> */
   .score {
     display: inline-block;

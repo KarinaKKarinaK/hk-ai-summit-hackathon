@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import Calculator from '@/components/Calculator'
+import ArmScene from '@/components/ArmScene'
 import { sql, getMarket } from '@/lib/server'
 import { SELLER_SHARE } from '@/lib/score'
 
@@ -69,18 +70,20 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-10 px-4 py-20 md:grid-cols-3 md:py-28">
+      <section data-tilt className="mx-auto grid max-w-6xl gap-3 px-4 py-20 md:grid-cols-3 md:py-28">
         {steps.map(([t, d], i) => (
-          <div key={t}>
-            <p className="muted text-sm tabular-nums">0{i + 1}</p>
-            <h2 className="mt-3 text-3xl">{t}</h2>
+          <div key={t} className={`card p-6 ${i === 1 ? 'card-warm' : ''}`}>
+            <p className="grid h-9 w-9 place-items-center rounded-full bg-tan text-sm font-semibold tabular-nums">{i + 1}</p>
+            <h2 className="mt-4 text-3xl font-semibold">{t}</h2>
             <p className="muted mt-3 max-w-xs">{d}</p>
           </div>
         ))}
       </section>
 
+      <ArmScene />
+
       {rates && (
-        <section className="mx-auto max-w-6xl px-4 pb-20 md:pb-28">
+        <section data-tilt className="mx-auto max-w-6xl px-4 pb-20 md:pb-28">
           <h2 className="max-w-2xl text-3xl md:text-5xl">What an hour of skilled work is worth.</h2>
           <p className="muted mb-8 mt-4 max-w-xl">The platform takes {Math.round((1 - SELLER_SHARE) * 100)}% of each licence. Supply costs nothing to stand up, and one clip sells many times.</p>
           <Calculator rates={rates} />
@@ -94,12 +97,12 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-20 md:py-28">
+      <section data-tilt className="mx-auto max-w-6xl px-4 py-20 md:py-28">
         <h2 className="max-w-2xl text-3xl md:text-5xl">If your skill trains a robot, you get paid every time.</h2>
-        <div className="mt-12 grid gap-10 md:grid-cols-3">
-          {workers.map(([t, d]) => (
-            <div key={t}>
-              <h3 className="text-xl">{t}</h3>
+        <div className="mt-10 grid gap-3 md:grid-cols-3">
+          {workers.map(([t, d], i) => (
+            <div key={t} className={`card p-6 ${i === 0 ? 'card-warm' : ''}`}>
+              <h3 className="text-xl font-semibold">{t}</h3>
               <p className="muted mt-2 max-w-xs">{d}</p>
             </div>
           ))}
@@ -107,7 +110,7 @@ export default async function Home() {
         <Link href="/sell" className="btn mt-12">Start earning</Link>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 pb-20">
+      <section data-tilt className="mx-auto max-w-6xl px-4 pb-20">
         <h2 className="text-3xl md:text-5xl">An exchange, not a pipeline.</h2>
         <dl className="mt-10 text-sm md:text-base">
           <div className="hidden grid-cols-[9rem_1fr_1fr] gap-6 pb-3 md:grid"><span /><span className="muted text-sm">Single-buyer apps</span><span className="text-sm">Guild</span></div>

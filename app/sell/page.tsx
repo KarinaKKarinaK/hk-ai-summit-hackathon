@@ -52,55 +52,70 @@ export default async function Sell() {
         </dl>
       )}
 
-      <section className="card p-5">
-        <div className="flex items-baseline justify-between">
-          <p className="label">What pays right now</p>
+      {/* each price in its own tile; the best-paying trade gets the warm fill */}
+      <section>
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="text-xl font-semibold tracking-tight">What pays right now</h2>
           <Link href="/market" className="text-sm underline underline-offset-4">All prices</Link>
         </div>
-        <ul className="mt-2 grid grid-cols-2 gap-4 md:grid-cols-4">
-          {hot.map(([task, m]) => (
-            <li key={task}>
-              <p className="text-2xl font-light tracking-tight">${m.rate.toFixed(0)}<span className="muted text-sm">/h</span></p>
-              <p className="text-sm">{task}</p>
-              <p className="muted text-xs">{signal(m)}, {Math.round(m.demand)} h wanted</p>
+        <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {hot.map(([task, m], i) => (
+            <li key={task} className={`${i === 0 ? 'card-warm' : ''} card space-y-2 p-4`}>
+              <p className="text-sm font-semibold">{task}</p>
+              <p className="text-4xl font-light tracking-tight tabular-nums">${m.rate.toFixed(0)}<span className="muted text-base">/h</span></p>
+              <p className="flex flex-wrap gap-1.5">
+                <span className={`chip ${signal(m) === 'Undersupplied' ? 'chip-warm' : ''}`}>{signal(m)}</span>
+                <span className="chip">{Math.round(m.demand)} h wanted</span>
+              </p>
             </li>
           ))}
         </ul>
       </section>
 
-      <section className="card grid gap-5 p-5 md:grid-cols-[1fr_1.2fr] md:p-6">
-        <div className="space-y-3">
-          <h2 className="text-2xl">Record a clip</h2>
-          <p className="muted text-sm">Recording happens inside the app, so every clip can be verified as real: live hand tracking, a quick finger challenge, and your phone&apos;s motion sensors. Gallery uploads are not accepted.</p>
-          <Link href="/record" className="btn">Open the recorder</Link>
-          <p className="muted text-xs">Quality warnings show while you film, so you fix problems before you submit. Payouts are released after a {HOLD_DAYS}-day hold.</p>
+      <section className="grid gap-3 md:grid-cols-[1fr_1.3fr]">
+        <div className="card card-warm flex flex-col justify-between gap-6 p-6">
+          <div>
+            <p className="label !text-paper/70">Step one</p>
+            <h2 className="text-3xl font-semibold">Record a clip</h2>
+            <p className="mt-3 text-sm text-paper/80">Filmed inside the app so every clip is verified as real. Gallery uploads are not accepted.</p>
+          </div>
+          <ul className="flex flex-wrap gap-1.5">
+            {['Live hand tracking', 'Finger challenge', 'Motion sensors', `${HOLD_DAYS}-day payout hold`].map((x) => <li key={x} className="chip bg-ink/40">{x}</li>)}
+          </ul>
+          <Link href="/record" className="btn self-start">Open the recorder</Link>
         </div>
-        <div>
-          <p className="label">Guaranteed pay: open requests</p>
-          <ul className="divide-y divide-tan/15">
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between px-1">
+            <h2 className="text-xl font-semibold tracking-tight">Guaranteed pay</h2>
+            <Link href="/calls" className="text-sm underline underline-offset-4">All requests</Link>
+          </div>
+          <ul className="space-y-2">
             {calls.slice(0, 4).map((c) => (
-              <li key={c.id} className="flex items-center justify-between gap-3 py-2.5">
+              <li key={c.id} className="card flex items-center justify-between gap-3 p-3 pl-4">
                 <div className="min-w-0">
-                  <p className="truncate text-sm">{c.title}</p>
-                  <p className="muted text-xs">${c.rate}/h, paid when the clip passes the checks</p>
+                  <p className="truncate font-medium">{c.title}</p>
+                  <p className="muted text-xs">Paid when the clip passes the checks</p>
                 </div>
-                <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="btn btn-ghost !min-h-9 flex-none text-sm">Film this</Link>
+                <span className="stat stat-warm flex-none text-sm">${c.rate}/h</span>
+                <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="btn btn-warm !min-h-9 flex-none text-sm">Film this</Link>
               </li>
             ))}
           </ul>
-          <Link href="/calls" className="mt-2 inline-block text-sm underline underline-offset-4">All requests</Link>
         </div>
       </section>
 
       <section className="grid gap-3 md:grid-cols-3">
         {[
           ['It stays yours', 'Buyers get a licence to train on the clip. You keep the footage and the rights.'],
-          [`Paid every time, ${SELLER_SHARE * 100}% to you`, 'One clip can be licensed by many labs. Each sale pays you again, including after you are off the tools.'],
+          [`${SELLER_SHARE * 100}% to you, every time`, 'One clip can be licensed by many labs. Each sale pays you again, including after you are off the tools.'],
           ['You are in control', 'You choose what to film, you see who bought it and why, and you can withdraw a clip whenever you want.'],
-        ].map(([h, p]) => (
-          <div key={h} className="card p-5">
-            <h2 className="text-lg">{h}</h2>
-            <p className="muted mt-1 text-sm">{p}</p>
+        ].map(([h, p], i) => (
+          <div key={h} className="card flex gap-4 p-5">
+            <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-tan text-sm font-semibold tabular-nums">{i + 1}</span>
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">{h}</h2>
+              <p className="muted mt-1 text-sm">{p}</p>
+            </div>
           </div>
         ))}
       </section>

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { sql, getUser, getMarket, priceOf } from '@/lib/server'
-import { LABELS, tier } from '@/lib/score'
+import { LABELS, tier, taskPhoto } from '@/lib/score'
 
 type Search = { q?: string; task?: string; industry?: string; perspective?: string; min?: string; verified?: string; failures?: string }
 
@@ -84,20 +84,21 @@ export default async function Buy({ searchParams }: { searchParams: Promise<Sear
         {rows.map((r) => (
           <li key={r.id}>
             <Link href={`/buy/${r.id}`} className="card block h-full overflow-hidden">
-              {r.thumb ? (
-                <img src={r.thumb} alt="" className="aspect-video w-full object-cover" />
-              ) : (
-                <div className="streaks grid aspect-video place-items-center"><span className="emboss text-4xl font-semibold">{r.labels?.task}</span></div>
-              )}
-              <div className="space-y-2 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <h2 className="text-base font-medium leading-snug tracking-normal">{r.title}</h2>
-                  <span className="whitespace-nowrap text-sm">from ${priceOf(r, market).toLocaleString('en-US')}</span>
-                </div>
-                <p className="flex items-center gap-2 text-xs muted">
-                  <span className="score" style={{ '--s': r.quality_score } as React.CSSProperties} /> {r.quality_score}/5
-                  <span>{r.minutes >= 60 ? `${Math.round(r.minutes / 60)} h` : `${Math.max(1, Math.round(r.minutes))} min`}</span>
-                  {!r.video_url && <span>Sample</span>}
+              <div className="relative">
+                {r.thumb ?? taskPhoto(r.labels?.task) ? (
+                  <img src={r.thumb ?? taskPhoto(r.labels?.task)!} alt="" loading="lazy" className={`aspect-video w-full object-cover ${r.thumb ? '' : 'photo'}`} />
+                ) : (
+                  <div className="streaks grid aspect-video place-items-center"><span className="emboss text-4xl font-semibold">{r.labels?.task}</span></div>
+                )}
+                <span className="chip chip-warm absolute left-3 top-3">{r.labels?.task}</span>
+                <span className="absolute bottom-3 right-3 rounded-lg bg-ink/80 px-2.5 py-1 text-sm font-medium tabular-nums backdrop-blur">from ${priceOf(r, market).toLocaleString('en-US')}</span>
+              </div>
+              <div className="space-y-3 p-4">
+                <h2 className="text-base font-semibold leading-snug tracking-normal">{r.title}</h2>
+                <p className="flex flex-wrap items-center gap-1.5">
+                  <span className="stat"><span className="score" style={{ '--s': r.quality_score } as React.CSSProperties} />{r.quality_score}/5</span>
+                  <span className="stat">{r.minutes >= 60 ? `${Math.round(r.minutes / 60)} h` : `${Math.max(1, Math.round(r.minutes))} min`}</span>
+                  {!r.video_url && <span className="stat stat-warm">Sample</span>}
                 </p>
                 <p className="flex flex-wrap gap-1.5">
                   {fits(r) && <span className="chip chip-slate">Fits your past accepts</span>}
