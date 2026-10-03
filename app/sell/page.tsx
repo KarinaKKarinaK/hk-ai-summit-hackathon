@@ -54,61 +54,46 @@ export default async function Sell() {
         </dl>
       )}
 
-      {/* each price in its own tile; the best-paying trade gets the warm fill */}
-      <section>
-        <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-xl font-semibold tracking-tight">What pays right now</h2>
-          <Link href="/market" className="text-sm underline underline-offset-4">All prices</Link>
-        </div>
-        <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {hot.map(([task, m], i) => (
-            <li key={task} className={`${i === 0 ? 'card-warm' : ''} card space-y-2 p-4`}>
-              <p className="text-sm font-semibold">{task}</p>
-              <p className="text-4xl font-light tracking-tight tabular-nums">${m.rate.toFixed(0)}<span className="muted text-base">/h</span></p>
-              <p className="flex flex-wrap gap-1.5">
-                <span className={`chip ${signal(m) === 'Undersupplied' ? 'chip-warm' : ''}`}>{signal(m)}</span>
-                <span className="chip">{Math.round(m.demand)} h wanted</span>
-              </p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
       {/* add data: record live or upload from the gallery. Either one runs the processing pipeline. */}
       <SellStart years={user?.years ?? 0} />
 
-      <section>
-        <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-xl font-semibold tracking-tight">Guaranteed pay</h2>
-          <Link href="/calls" className="text-sm underline underline-offset-4">All requests</Link>
-        </div>
-        <ul className="grid gap-2 md:grid-cols-2">
-          {calls.slice(0, 4).map((c) => (
-            <li key={c.id} className="card flex items-center justify-between gap-3 p-3 pl-4">
-              <div className="min-w-0">
-                <p className="truncate font-medium">{c.title}</p>
-                <p className="muted text-xs">Paid when a live recording passes the checks, after a {HOLD_DAYS}-day hold</p>
-              </div>
-              <span className="stat stat-warm flex-none text-sm">${c.rate}/h</span>
-              <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="btn btn-warm !min-h-9 flex-none text-sm">Film this</Link>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* line glyphs instead of boxes: the picture carries the point */}
-      <section className="grid gap-x-6 gap-y-8 md:grid-cols-3">
-        {([
-          ['own', 'It stays yours', 'Buyers get a licence to train on the clip. You keep the footage and the rights.'],
-          ['paid', `${SELLER_SHARE * 100}% to you, every time`, 'One clip can be licensed by many labs. Each sale pays you again, including after you are off the tools.'],
-          ['control', 'You are in control', 'You choose what to film, you see who bought it and why, and you can withdraw a clip whenever you want.'],
-        ] as const).map(([g, h, p]) => (
-          <div key={h}>
-            <Glyph name={g} className="h-36 w-full" />
-            <h2 className="mt-4 text-lg font-semibold tracking-tight">{h}</h2>
-            <p className="muted mt-1 text-sm">{p}</p>
+      <section className="grid gap-3 md:grid-cols-2">
+        {/* the three best-paying trades as bars: length is the rate, nothing else to read */}
+        <div className="card p-6">
+          <div className="mb-5 flex items-baseline justify-between">
+            <h2 className="text-xl font-semibold tracking-tight">Top paying now</h2>
+            <Link href="/market" className="muted text-sm underline underline-offset-4">All prices</Link>
           </div>
-        ))}
+          <ul className="space-y-5">
+            {hot.slice(0, 3).map(([task, m], i) => (
+              <li key={task}>
+                <div className="flex items-baseline justify-between">
+                  <span className="font-medium">{task}</span>
+                  <span className="text-2xl font-light tabular-nums">${m.rate.toFixed(0)}<span className="muted text-sm">/h</span></span>
+                </div>
+                <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/[.06]">
+                  <div className="h-full rounded-full bg-linear-to-r from-rust via-tan to-slate" style={{ width: `${(m.rate / hot[0][1].rate) * 100}%`, opacity: 1 - i * 0.22 }} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="card card-warm p-6">
+          <div className="mb-4 flex items-baseline justify-between">
+            <h2 className="text-xl font-semibold tracking-tight">Guaranteed pay</h2>
+            <Link href="/calls" className="text-sm text-paper/70 underline underline-offset-4">All requests</Link>
+          </div>
+          <ul className="space-y-2">
+            {calls.slice(0, 3).map((c) => (
+              <li key={c.id}>
+                <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="flex items-center justify-between gap-3 rounded-xl bg-ink/40 p-3 pl-4 transition-colors hover:bg-ink/60">
+                  <span className="truncate font-medium">{c.title}</span>
+                  <span className="flex-none text-lg font-light tabular-nums">${c.rate}<span className="text-xs text-paper/60">/h</span></span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
       {!user ? (

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { getHands } from '@/lib/quality'
+import { FaceLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision'
+import { getHands, getFace, getPose } from '@/lib/quality'
 import { countFingers } from '@/lib/score'
 import { buildArm, addLights } from '@/lib/arm'
 import UploadForm from '@/components/UploadForm'
@@ -19,6 +20,13 @@ const BONES = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8], [
 const WEB = [[1, 5], [2, 5], [2, 6], [3, 6], [3, 7], [4, 7], [6, 10], [10, 14], [14, 18], [7, 11], [11, 15], [15, 19], [8, 12], [12, 16], [16, 20], [0, 9], [0, 13], [5, 10], [9, 14], [13, 18], [6, 9], [10, 13], [14, 17]]
 const HULL = [0, 1, 2, 3, 4, 8, 12, 16, 20, 19, 18, 17]
 const TIPS = [4, 8, 12, 16, 20]
+const HAND_JOINTS = Array.from({ length: 21 }, (_, i) => i)
+// Body: MediaPipe's 33 pose points. The first 11 are on the face, which the face mesh covers better.
+const AMBER = '255, 176, 59'
+const BODY = PoseLandmarker.POSE_CONNECTIONS.map((c) => [c.start, c.end]).filter(([a, b]) => a > 10 && b > 10)
+const BODY_JOINTS = Array.from({ length: 22 }, (_, i) => i + 11)
+const FACE = FaceLandmarker.FACE_LANDMARKS_TESSELATION.map((c) => [c.start, c.end])
+type Pt = { x: number; y: number; z: number; visibility?: number }
 
 type Mode = 'arm' | 'other'
 type Take = { file: File; episode: object; videoHref: string; episodeHref: string; verified: boolean }
@@ -39,6 +47,7 @@ export default function Record() {
   const [warn, setWarn] = useState<string[]>([])
   const [live, setLive] = useState<number | null>(null)
   const [prompt, setPrompt] = useState('')
+  const [seen, setSeen] = useState<string[]>([]) // what is being tracked right now: hands, face, body
   const [request, setRequest] = useState<{ id: string; title: string } | null>(null)
 
   // A seller arrives here from a buyer's request: /record?request=<id>&title=<text>
@@ -87,7 +96,10 @@ export default function Record() {
         await v.play()
         setStatus('Loading hand model')
         const hands = await getHands('VIDEO')
-        setStatus('Show a hand to the camera')
+        // face and body are extras: if either model fails to load, recording still works with hands only
+        const [face, pose] = await Promise.all([getFace().catch(() => null), getPose().catch(() => null)])
+        let faceLm: Pt[] | undefined, poseLm: Pt[] | undefined
+        setStatus('Tracking')
         const ctx = o.getContext('2d')!
         const px = Object.assign(document.createElement('canvas'), { width: 32, height: 18 }).getContext('2d', { willReadFrequently: true })!
         let n = 0, hit = 0, move = 0, last: { x: number; y: number } | null = null
@@ -97,36 +109,53 @@ export default function Record() {
           raf = requestAnimationFrame(tick)
           if (v.readyState < 2) return renderer?.render(scene, cam)
           if (o.width !== v.videoWidth) (o.width = v.videoWidth), (o.height = v.videoHeight)
-          const lm = hands.detectForVideo(v, performance.now()).landmarks[0]
+          const now = performance.now()
+          const all: Pt[][] = hands.detectForVideo(v, now).landmarks // up to two hands
+          const lm = all[0]
+          // face and body take turns, so three models never all run on the same frame
+          if (n % 2 === 0) { if (face) faceLm = face.detectForVideo(v, now).faceLandmarks[0] } else if (pose) poseLm = pose.detectForVideo(v, now).landmarks[0]
           const r = rec.current
           ctx.clearRect(0, 0, o.width, o.height)
-          if (lm) {
-            const u = o.width / 640 // stroke sizes follow the video size
-            const P = (i: number) => [lm[i].x * o.width, lm[i].y * o.height] as const
-            const lines = (pairs: number[][], width: number, alpha: number) => {
-              ctx.beginPath()
-              for (const [a, b] of pairs) (ctx.moveTo(...P(a)), ctx.lineTo(...P(b)))
-              ctx.lineWidth = width * u
-              ctx.strokeStyle = `rgba(${GREEN}, ${alpha})`
-              ctx.stroke()
-            }
-            // a translucent skin over the whole hand, a fine web across it, then the bones and joints on top
+          const u = o.width / 640 // stroke sizes follow the video size
+          const X = (p: Pt) => p.x * o.width, Y = (p: Pt) => p.y * o.height
+          const shown = (p?: Pt) => !!p && (p.visibility ?? 1) > 0.5
+          const stroke = (pts: Pt[], pairs: number[][], width: number, color: string) => {
             ctx.beginPath()
-            HULL.forEach((i, k) => (k ? ctx.lineTo(...P(i)) : ctx.moveTo(...P(i))))
+            for (const [a, b] of pairs) if (shown(pts[a]) && shown(pts[b])) (ctx.moveTo(X(pts[a]), Y(pts[a])), ctx.lineTo(X(pts[b]), Y(pts[b])))
+            ctx.lineWidth = width * u
+            ctx.strokeStyle = color
+            ctx.stroke()
+          }
+          const skin = (pts: Pt[], ids: number[], color: string) => {
+            if (!ids.every((i) => shown(pts[i]))) return
+            ctx.beginPath()
+            ids.forEach((i, k) => (k ? ctx.lineTo(X(pts[i]), Y(pts[i])) : ctx.moveTo(X(pts[i]), Y(pts[i]))))
             ctx.closePath()
-            ctx.fillStyle = `rgba(${GREEN}, 0.1)`
+            ctx.fillStyle = color
             ctx.fill()
-            lines(WEB, 1, 0.35)
-            lines(BONES, 3, 0.95)
-            ctx.fillStyle = `rgb(${GREEN})`
-            ctx.shadowColor = `rgb(${GREEN})`
+          }
+          const joints = (pts: Pt[], ids: number[], size: (i: number) => number, color: string) => {
+            ctx.fillStyle = ctx.shadowColor = color
             ctx.shadowBlur = 12 * u
-            for (let i = 0; i < 21; i++) {
-              ctx.beginPath()
-              ctx.arc(...P(i), (TIPS.includes(i) ? 8 : 5.5) * u, 0, Math.PI * 2)
-              ctx.fill()
-            }
+            for (const i of ids) if (shown(pts[i])) (ctx.beginPath(), ctx.arc(X(pts[i]), Y(pts[i]), size(i) * u, 0, Math.PI * 2), ctx.fill())
             ctx.shadowBlur = 0
+          }
+          // body: a filled torso, the skeleton, and a joint at each landmark
+          if (poseLm) {
+            skin(poseLm, [11, 12, 24, 23], `rgba(${AMBER}, 0.16)`)
+            stroke(poseLm, BODY, 3.5, `rgba(${AMBER}, 0.9)`)
+            joints(poseLm, BODY_JOINTS, () => 6, `rgb(${AMBER})`)
+          }
+          // face: the full tessellated mesh, drawn fine. It is shown live but never saved to the episode.
+          if (faceLm) stroke(faceLm, FACE, 0.7, 'rgba(241, 236, 230, 0.6)')
+          // each hand: a translucent skin, a fine web across it, then the bones and joints on top
+          for (const h of all) {
+            skin(h, HULL, `rgba(${GREEN}, 0.1)`)
+            stroke(h, WEB, 1, `rgba(${GREEN}, 0.35)`)
+            stroke(h, BONES, 3, `rgba(${GREEN}, 0.95)`)
+            joints(h, HAND_JOINTS, (i) => (TIPS.includes(i) ? 8 : 5.5), `rgb(${GREEN})`)
+          }
+          if (lm) {
 
             const size = Math.hypot(lm[0].x - lm[9].x, lm[0].y - lm[9].y) || 0.1 // bigger hand = closer
             const x = facing === 'user' ? 1 - lm[0].x : lm[0].x
@@ -138,6 +167,8 @@ export default function Record() {
               t: Math.round(performance.now() - r.t0),
               landmarks: lm.map((p) => [+p.x.toFixed(4), +p.y.toFixed(4), +p.z.toFixed(4)]),
               gripper: { x: +target.x.toFixed(3), y: +target.y.toFixed(3), z: +target.z.toFixed(3), open: +open.toFixed(2) },
+              second_hand: all[1]?.map((p) => [+p.x.toFixed(4), +p.y.toFixed(4), +p.z.toFixed(4)]),
+              body: poseLm?.slice(11).map((p) => [+p.x.toFixed(3), +p.y.toFixed(3), +p.z.toFixed(3)]), // 22 points from the shoulders down
             })
           }
 
@@ -146,7 +177,7 @@ export default function Record() {
             const c = r.challenge, now = performance.now() - r.t0
             if (now >= c.at) {
               if (!c.t_ms) (c.t_ms = Math.round(now)), setPrompt(`Show ${c.n} fingers`)
-              c.streak = lm && countFingers(lm) === c.n ? c.streak + 1 : 0
+              c.streak = all.some((h) => countFingers(h) === c.n) ? c.streak + 1 : 0 // either hand can answer
               if (c.streak >= 6) (c.passed = true), setPrompt('Verified. Keep going')
               else if (now > c.at + CHALLENGE_MS) (c.passed = false), setPrompt('Challenge missed. Stop and record again')
             }
@@ -170,6 +201,7 @@ export default function Record() {
             if (bright < DARK) w.push('Too dark, add light')
             if (speed > FAST) w.push('Moving too fast, the footage will blur')
             setWarn(w)
+            setSeen([all.length === 2 ? 'Both hands' : all.length ? 'One hand' : '', faceLm ? 'Face mesh' : '', poseLm ? 'Body' : ''].filter(Boolean))
             setLive(clamp(Math.round(1 + 4 * (0.5 * share + 0.3 * (bright < DARK ? 0.2 : 1) + 0.2 * (speed > FAST ? 0.2 : 1))), 1, 5))
             hit = 0
             move = 0
@@ -242,7 +274,7 @@ export default function Record() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl md:text-5xl">{request ? 'Record for a request' : mode === 'arm' ? 'Your hand, a robot arm.' : 'Record any task.'}</h1>
-          <p className="muted mt-2 text-sm">{request ? <>Filming for: <span className="text-paper">{request.title}</span>. Guaranteed payout when the clip passes the checks.</> : 'Every recording captures your hand in 3D and exports as a training episode.'}</p>
+          <p className="muted mt-2 text-sm">{request ? <>Filming for: <span className="text-paper">{request.title}</span>. Guaranteed payout when the clip passes the checks.</> : 'Tracks both hands, your face and your body live, and exports the motion as a training episode.'}</p>
         </div>
         {/* two ways to record: mirrored by the arm, or any other task without it */}
         <div role="group" aria-label="Recording mode" className="grid grid-cols-2 rounded-full bg-white/[.07] p-1 text-sm">
@@ -263,6 +295,7 @@ export default function Record() {
           <canvas ref={overlay} className={`absolute inset-0 h-full w-full object-cover ${mirror}`} />
           <p className={`chip absolute left-3 top-3 ${recording ? 'bg-red-700 text-paper' : 'bg-ink/70'}`}>{recording ? 'Recording' : status}</p>
           {live !== null && <p className="chip chip-warm absolute right-3 top-3">Live quality {live}/5</p>}
+          <p className="absolute left-3 top-11 flex gap-1.5">{seen.map((s) => <span key={s} className="chip bg-emerald-500/25 text-emerald-200">{s}</span>)}</p>
           {prompt && <p role="status" className="absolute inset-x-3 top-1/2 -translate-y-1/2 rounded-2xl bg-ink/80 p-4 text-center text-2xl font-semibold">{prompt}</p>}
           <ul aria-live="polite" className="absolute inset-x-3 bottom-3 space-y-1">
             {warn.map((w) => <li key={w} className="rounded-lg bg-ink/80 px-3 py-1.5 text-sm text-amber-200">{w}</li>)}

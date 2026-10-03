@@ -106,19 +106,23 @@ const listings = [
   [3, 'Steel gate frame assembly', 'Assembly', 'Construction', 'Exocentric', 'Phone', ['Clamps', 'Square', 'MIG welder'], 4, 890, 2100, 'Measure, clamp, tack and square a full frame.'],
   [0, 'Workshop cleanup and tool return', 'Cleaning', 'Automotive', 'Egocentric', 'Phone', ['Broom', 'Parts washer'], 3, 240, 300, 'End of day routine, tools back to shadow board.'],
   [1, 'Cable pulling through trunking', 'Wiring', 'Construction', 'Egocentric', 'Head-mounted camera', ['Fish tape', 'Cable cutter'], 4, 660, 1600, 'Deformable cable handling over long runs in commercial fit-outs.'],
+  [1, 'Kitchen sink trap replacement', 'Plumbing', 'Domestic', 'Egocentric', 'Phone', ['Pipe wrench', 'PTFE tape'], 4, 180, 60, 'Old trap out, new trap in, leak test. Tight under-sink work.'],
+  [3, 'Door frame cut and fit', 'Carpentry', 'Construction', 'Exocentric', 'Phone', ['Mitre saw', 'Chisel', 'Level'], 4, 360, 110, 'Measure, cut, chisel hinge recesses and hang.'],
 ]
-for (const [s, title, task, industry, perspective, device, tools, score, minutes, price, description] of listings) {
+// One sample listing per task, the best scored, so the marketplace shows breadth rather than five welding clips.
+const onePerTask = [...new Map([...listings].sort((a, b) => a[7] - b[7]).map((l) => [l[2], l])).values()]
+for (const [s, title, task, industry, perspective, device, tools, score, minutes, price, description] of onePerTask) {
   await sql`insert into uploads (seller_id, title, status, quality_score, labels, description, minutes, price)
     values (${ids[s]}, ${title}, 'scored', ${score}, ${JSON.stringify({ task, industry, perspective, device, tools })}::jsonb, ${description}, ${minutes}, ${price})`
 }
 
 // [buyer, title, description, task, industry, hours, rate]
 const calls = [
-  [4, '500 hours of egocentric panel wiring', 'Residential and light commercial boards. Head or chest mounted, both hands visible, terminations in focus.', 'Wiring', 'Electrical', 500, 38],
-  [4, 'Brake and suspension jobs, any make', 'Full jobs start to finish. Torque steps must be visible.', 'Repair', 'Automotive', 300, 32],
-  [5, 'Deformable material handling: fabric', 'Cutting, pinning, sewing and folding. Machine and hand work both wanted.', 'Sewing', 'Textile', 400, 26],
-  [5, 'Weld bead footage through the visor', 'MIG or TIG. Need torch angle and travel speed visible.', 'Welding', 'Manufacturing', 200, 55],
-  [5, 'Split AC installs in high-rise flats', 'Indoor and outdoor units, flare joints, vacuum and leak test.', 'Assembly', 'HVAC', 150, 40],
+  [4, '500 hours of egocentric panel wiring', 'Residential and light commercial boards. Head or chest mounted, both hands visible, terminations in focus.', 'Wiring', 'Electrical', 500, 15],
+  [4, 'Brake and suspension jobs, any make', 'Full jobs start to finish. Torque steps must be visible.', 'Repair', 'Automotive', 300, 13],
+  [5, 'Deformable material handling: fabric', 'Cutting, pinning, sewing and folding. Machine and hand work both wanted.', 'Sewing', 'Textile', 400, 10],
+  [5, 'Weld bead footage through the visor', 'MIG or TIG. Need torch angle and travel speed visible.', 'Welding', 'Manufacturing', 200, 22],
+  [5, 'Split AC installs in high-rise flats', 'Indoor and outdoor units, flare joints, vacuum and leak test.', 'Assembly', 'HVAC', 150, 16],
 ]
 for (const [b, title, description, task, industry, hours, rate] of calls) {
   await sql`insert into calls (buyer_id, title, description, task, industry, hours, rate) values (${ids[b]}, ${title}, ${description}, ${task}, ${industry}, ${hours}, ${rate})`

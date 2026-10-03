@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { sql, getUser } from '@/lib/server'
 import { LABELS } from '@/lib/score'
+import Glyph, { taskGlyph } from '@/components/Glyph'
 import { postCall } from '../actions'
 
 export default async function Calls({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
@@ -24,28 +25,25 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
             return (
               <li key={c.id} className="card overflow-hidden">
                 {/* who and what on the left, the rate in its own box on the right */}
-                <div className="flex items-start justify-between gap-4 p-5">
+                {/* a cover icon for the kind of work, then the title and who is asking */}
+                <div className="flex items-center gap-4 p-4">
+                  <div className="card-warm w-24 flex-none overflow-hidden rounded-2xl md:w-32"><Glyph name={taskGlyph(c.task)} className="w-full" /></div>
                   <div className="min-w-0">
-                    <p className="muted text-xs">{c.buyer}</p>
-                    <h2 className="mt-1 text-xl font-semibold leading-snug">{c.title}</h2>
-                    {c.description && <p className="muted mt-2 text-sm">{c.description}</p>}
-                  </div>
-                  <div className="card-warm flex-none rounded-2xl px-4 py-3 text-center">
-                    <p className="text-2xl font-light tabular-nums">${c.rate}</p>
-                    <p className="text-[11px] text-paper/70">per hour</p>
+                    <p className="flex flex-wrap gap-1.5">{[c.task, c.industry].filter(Boolean).map((x: string) => <span key={x} className="chip chip-warm">{x}</span>)}</p>
+                    <h2 className="mt-2 text-lg font-semibold leading-snug md:text-xl">{c.title}</h2>
+                    <p className="muted mt-1 text-xs">{c.buyer}</p>
                   </div>
                 </div>
-                {c.weakness && <p className="mx-5 mb-4 rounded-xl bg-white/[.05] px-3 py-2 text-sm"><span className="muted">Model gap: </span>{c.weakness}</p>}
-                {/* the numbers, one per cell */}
-                <dl className="mx-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {c.weakness && <p className="mx-4 mb-3 rounded-xl bg-white/[.05] px-3 py-2 text-sm"><span className="muted">Model gap: </span>{c.weakness}</p>}
+                {/* three numbers, one per box: the pay is the warm one */}
+                <dl className="mx-4 grid grid-cols-3 gap-2">
                   {[
-                    [`${c.clips}${c.demos ? ` / ${c.demos}` : ''}`, 'demos'],
-                    [`${c.people}${c.min_people ? ` / ${c.min_people}` : ''}`, 'people'],
-                    [`${done.toFixed(done ? 1 : 0)} / ${Math.round(total)} h`, 'collected'],
-                    [`$${Math.round(total * c.rate).toLocaleString('en-US')}`, 'budget'],
-                  ].map(([v, k]) => (
-                    <div key={k} className="rounded-xl bg-white/[.05] px-3 py-2.5">
-                      <dt className="text-base font-medium tabular-nums">{v}</dt>
+                    [`$${c.rate}/h`, 'pays', 'card-warm'],
+                    [`${done.toFixed(done ? 1 : 0)} / ${Math.round(total)} h`, 'collected', 'bg-white/[.05]'],
+                    [`$${Math.round(total * c.rate).toLocaleString('en-US')}`, 'budget', 'bg-white/[.05]'],
+                  ].map(([v, k, tone]) => (
+                    <div key={k} className={`rounded-xl px-3 py-2.5 ${tone}`}>
+                      <dt className="text-base font-medium tabular-nums md:text-lg">{v}</dt>
                       <dd className="muted text-[11px] uppercase tracking-wider">{k}</dd>
                     </div>
                   ))}
@@ -53,7 +51,8 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
                 <div className="space-y-4 p-5">
                   <div className="bar"><i style={{ width: `${total ? (done / total) * 100 : 0}%` }} /></div>
                   <p className="flex flex-wrap items-center gap-1.5">
-                    {[c.task, c.industry].filter(Boolean).map((x: string) => <span key={x} className="chip chip-warm">{x}</span>)}
+                    {c.demos && <span className="chip">{c.clips} / {c.demos} demos</span>}
+                    {c.min_people && <span className="chip">{c.people} / {c.min_people} people</span>}
                     {spec.map((s) => <span key={s as string} className="chip">{s}</span>)}
                     {c.wants_failures && <span className="chip">Failure and recovery wanted</span>}
                     {c.forward && <span className="chip chip-slate">Forward contract{c.due ? `, due ${new Date(c.due).toISOString().slice(0, 10)}` : ''}</span>}

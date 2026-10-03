@@ -10,9 +10,9 @@ const TIERS = [['New', 0], ['3+ years', 3], ['10+ years', 10]] as const
 export default function Calculator({ rates }: { rates: Record<string, number> }) {
   const tasks = Object.keys(rates)
   const [task, setTask] = useState(tasks[0])
-  const [hours, setHours] = useState(3)
-  const [sales, setSales] = useState(3)
-  const [years, setYears] = useState(10)
+  const [hours, setHours] = useState(2)
+  const [sales, setSales] = useState(2)
+  const [years, setYears] = useState(3)
   const perHour = listPrice(rates[task], 60, 4, years) // one hour at par quality
   const yearly = perHour * hours * sales * 52 * SELLER_SHARE
 

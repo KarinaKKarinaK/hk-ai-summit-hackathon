@@ -144,7 +144,7 @@ export function tier(years = 0): { name: string; mult: number } {
 
 // ---- Market pricing. One market per task, priced in USD per hour of par (score 4) footage. ----
 
-export const BASE_RATE = 20 // USD/h used until a task has bids
+export const BASE_RATE = 8 // USD/h used until a task has bids
 export const SELLER_SHARE = 0.8 // seller keeps 80% of every sale
 
 /** demand = hours buyers have open calls for, supply = hours listed, bid = volume-weighted bid USD/h, last = last sale USD/h */

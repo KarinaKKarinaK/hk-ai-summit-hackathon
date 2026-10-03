@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import Calculator from '@/components/Calculator'
 import ArmScene from '@/components/ArmScene'
 import { sql, getMarket } from '@/lib/server'
@@ -41,11 +40,12 @@ export default async function Home() {
 
   return (
     <main>
-      {/* Hero photo: clear on the right (top on phones), tinted warm and faded into the page. */}
+      {/* Hero video: a welder at work, looping silently, faded into the page on the left and bottom. */}
       <section className="relative isolate overflow-hidden">
-        <Image src="/robot.jpg" alt="A humanoid robot working at a kitchen sink" fill priority sizes="100vw" className="-z-10 object-cover object-[68%_25%] saturate-[.85] max-md:h-[62%]! md:object-right" />
-        <div className="absolute inset-0 -z-10 bg-rust/20 mix-blend-color" />
-        <div className="absolute inset-0 -z-10 bg-linear-to-t from-ink from-42% via-ink/80 via-58% to-transparent md:bg-linear-to-r md:from-ink md:from-28% md:via-ink/75 md:via-52% md:to-transparent" />
+        <video autoPlay muted loop playsInline poster="/hero.jpg" aria-hidden className="absolute inset-0 -z-10 h-full w-full object-cover object-[60%_center] max-md:h-[62%]">
+          <source src="/hero.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 -z-10 bg-linear-to-t from-ink from-42% via-ink/80 via-58% to-transparent md:bg-linear-to-r md:from-ink md:from-8% md:via-ink/55 md:via-38% md:to-transparent" />
         <div className="absolute inset-x-0 top-0 -z-10 h-28 bg-linear-to-b from-ink/85 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 -z-10 h-48 bg-linear-to-t from-ink via-ink/80 to-transparent" />
         <div className="rise mx-auto grid min-h-[86dvh] max-w-6xl content-end gap-10 px-4 pb-12 pt-72 md:min-h-[82dvh] md:pb-16 md:pt-28">

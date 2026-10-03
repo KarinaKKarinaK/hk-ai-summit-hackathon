@@ -1,6 +1,6 @@
 // Browser only. Samples frames from a video file and measures quality live,
 // before anything is uploaded.
-import { FilesetResolver, HandLandmarker, ImageClassifier, ObjectDetector } from '@mediapipe/tasks-vision'
+import { FaceLandmarker, FilesetResolver, HandLandmarker, ImageClassifier, ObjectDetector, PoseLandmarker } from '@mediapipe/tasks-vision'
 import { dhash, type LabelSet, type Metrics } from './score'
 
 const MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task'
@@ -133,3 +133,15 @@ export async function analyze(file: File, on: (m: Metrics, stage: string) => voi
     URL.revokeObjectURL(v.src)
   }
 }
+
+const FACE_MODEL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task'
+const POSE_MODEL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task'
+let faceModel: Promise<FaceLandmarker> | undefined, poseModel: Promise<PoseLandmarker> | undefined
+
+/** 478-point face mesh, for the live overlay on the recorder. */
+export const getFace = () =>
+  (faceModel ??= FilesetResolver.forVisionTasks('/mediapipe').then((f) => FaceLandmarker.createFromOptions(f, { baseOptions: { modelAssetPath: FACE_MODEL, delegate: 'GPU' }, runningMode: 'VIDEO', numFaces: 1 })))
+
+/** 33-point full body pose. The lite model, so it keeps up on a phone. */
+export const getPose = () =>
+  (poseModel ??= FilesetResolver.forVisionTasks('/mediapipe').then((f) => PoseLandmarker.createFromOptions(f, { baseOptions: { modelAssetPath: POSE_MODEL, delegate: 'GPU' }, runningMode: 'VIDEO', numPoses: 1 })))

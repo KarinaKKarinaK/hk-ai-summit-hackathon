@@ -6,73 +6,63 @@ export default async function MarketPage() {
   const market = await getMarket()
   const index = guildIndex(market)
   const rows = Object.entries(market).sort((a, b) => b[1].rate - a[1].rate)
+  const top = rows[0][1].rate
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-4 py-6">
-      <div>
-        <p className="label">Guild Index, the reference price for robot training data</p>
-        <h1 className="text-4xl md:text-6xl">${index.toFixed(2)}<span className="muted text-xl"> per hour</span></h1>
-        <p className="muted mt-2 max-w-2xl text-sm">A live market for robot training data. Buyers bid in open calls, sellers list or set an ask, and the rate for each trade moves with real demand. Nobody sets it behind closed doors. The index is the demand-weighted average across trades with live bids, published as <a className="underline underline-offset-4" href="/api/index">open JSON</a>.</p>
+    <main className="mx-auto max-w-5xl space-y-8 px-4 py-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="label">Guild Index</p>
+          <h1 className="text-5xl tabular-nums md:text-7xl">${index.toFixed(2)}<span className="muted text-xl"> /h</span></h1>
+        </div>
+        <a className="btn btn-ghost !min-h-9 text-sm" href="/api/index">Open JSON</a>
       </div>
 
-      {/* phones get one card per task, no sideways scrolling */}
-      <ul className="grid gap-3 md:hidden">
+      {/* phones: one row per trade, rate and a bar */}
+      <ul className="space-y-2 md:hidden">
         {rows.map(([task, m]) => (
           <li key={task}>
-            <Link href={`/buy?task=${task}`} className="card flex items-center justify-between gap-3 p-4">
-              <div>
-                <p className="font-medium">{task}</p>
-                <p className="muted text-xs">{Math.round(m.demand)} h wanted, {m.supply.toFixed(1)} h listed{m.topBid ? `, top bid $${m.topBid.toFixed(0)}` : ''}</p>
+            <Link href={`/buy?task=${task}`} className={`card block p-4 ${m.demand || m.supply ? '' : 'opacity-50'}`}>
+              <div className="flex items-baseline justify-between">
+                <span className="font-medium">{task}</span>
+                <span className="text-2xl font-light tabular-nums">${m.rate.toFixed(0)}<span className="muted text-xs">/h</span></span>
               </div>
-              <div className="text-right">
-                <p className="text-2xl font-light tracking-tight">${m.rate.toFixed(0)}<span className="muted text-xs">/h</span></p>
-                <span className={`chip ${signal(m) === 'Undersupplied' ? 'chip-slate' : ''}`}>{signal(m)}</span>
-              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full rounded-full bg-linear-to-r from-rust via-tan to-slate" style={{ width: `${(m.rate / top) * 100}%` }} /></div>
             </Link>
           </li>
         ))}
       </ul>
 
-      <div className="card hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="label">
-            <tr>{['Task', 'Market rate', 'Top bid', 'Last sale', 'Wanted', 'Listed', 'Signal', ''].map((h) => <th key={h} className="p-4 font-normal">{h}</th>)}</tr>
+      {/* desktop: fixed columns, numbers right-aligned so they line up */}
+      <div className="card hidden overflow-hidden md:block">
+        <table className="w-full table-fixed text-sm tabular-nums">
+          <colgroup><col /><col className="w-36" /><col className="w-28" /><col className="w-28" /><col className="w-28" /><col className="w-40" /></colgroup>
+          <thead>
+            <tr className="muted text-xs uppercase tracking-wider">
+              <th className="px-6 py-4 text-left font-normal">Trade</th>
+              {['Rate', 'Top bid', 'Wanted', 'Listed'].map((h) => <th key={h} className="px-4 py-4 text-right font-normal">{h}</th>)}
+              <th className="px-6 py-4 text-right font-normal">Supply</th>
+            </tr>
           </thead>
-          <tbody className="[&_td]:border-t [&_td]:border-tan/15 [&_td]:p-4">
-            {rows.map(([task, m]) => {
-              const move = m.last && m.prev ? m.last - m.prev : 0
-              return (
-                <tr key={task}>
-                  <td className="font-medium">{task}</td>
-                  <td className="text-xl font-light">${m.rate.toFixed(2)}<span className="muted text-xs">/h</span></td>
-                  <td>{m.topBid ? `$${m.topBid.toFixed(0)}/h` : <span className="muted">No bids</span>}</td>
-                  <td>{m.last ? <>${m.last.toFixed(0)}/h {move !== 0 && <span className={move > 0 ? 'text-emerald-300' : 'text-red-300'}>{move > 0 ? '+' : ''}{move.toFixed(0)}</span>}</> : <span className="muted">None yet</span>}</td>
-                  <td>{Math.round(m.demand)} h</td>
-                  <td>{m.supply.toFixed(1)} h <span className="muted">({m.listings})</span></td>
-                  <td><span className={`chip ${signal(m) === 'Undersupplied' ? 'chip-slate' : ''}`}>{signal(m)}</span></td>
-                  <td className="whitespace-nowrap"><Link href="/sell" className="underline underline-offset-4">Sell</Link> <Link href={`/buy?task=${task}`} className="ml-2 underline underline-offset-4">Buy</Link></td>
-                </tr>
-              )
-            })}
+          <tbody>
+            {rows.map(([task, m]) => (
+              <tr key={task} className={`border-t border-white/[.06] transition-colors hover:bg-white/[.03] ${m.demand || m.supply ? '' : 'opacity-45'}`}>
+                <td className="px-6 py-4">
+                  <Link href={`/buy?task=${task}`} className="font-medium">{task}</Link>
+                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full rounded-full bg-linear-to-r from-rust via-tan to-slate" style={{ width: `${(m.rate / top) * 100}%` }} /></div>
+                </td>
+                <td className="px-4 py-4 text-right text-xl font-light">${m.rate.toFixed(2)}</td>
+                <td className="px-4 py-4 text-right">{m.topBid ? `$${m.topBid.toFixed(0)}` : <span className="muted">-</span>}</td>
+                <td className="px-4 py-4 text-right">{m.demand ? `${Math.round(m.demand)} h` : <span className="muted">-</span>}</td>
+                <td className="px-4 py-4 text-right">{m.supply ? `${m.supply.toFixed(1)} h` : <span className="muted">-</span>}</td>
+                <td className="px-6 py-4 text-right"><span className={`chip ${signal(m) === 'Undersupplied' ? 'chip-warm' : ''}`}>{m.demand || m.supply ? signal(m) : 'No activity'}</span></td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="card p-5">
-          <p className="label">The formula, in full</p>
-          <p className="text-sm">Rate = average bid (${BASE_RATE}/h if nobody has bid) x 0.6 to 1.4 depending on hours wanted against hours listed, then pulled 30% toward the last real sale.</p>
-          <p className="muted mt-2 text-sm">A clip costs rate x length x score / 4 x the seller&apos;s experience tier.</p>
-        </div>
-        <div className="card p-5">
-          <p className="label">Why it is fair</p>
-          <p className="text-sm">Sellers keep {SELLER_SHARE * 100}% of every sale and can set their own ask or sell straight into a bid. One odd trade cannot move a market more than 30%.</p>
-        </div>
-        <div className="card p-5">
-          <p className="label">Why it matters</p>
-          <p className="text-sm">When wiring footage is scarce, the price says so and electricians start filming. Supply follows what robots need, not what one company decides to collect.</p>
-        </div>
-      </section>
+      <p className="muted max-w-3xl text-xs">Rate per hour of footage = average bid (${BASE_RATE} if nobody has bid), moved 0.6x to 1.4x by hours wanted against hours listed, then pulled 30% toward the last sale. Sellers keep {SELLER_SHARE * 100}%.</p>
     </main>
   )
 }
