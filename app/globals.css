@@ -153,6 +153,19 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
   /* stock photos are tinted toward the palette so mixed sources sit together */
   .photo { filter: saturate(0.7) sepia(0.22) contrast(1.03) brightness(0.92); }
   [data-tilt] { animation: none; will-change: transform; }
+  /* processing pipeline: finished glows green */
+  .glow-green {
+    box-shadow: 0 0 0 1px rgb(52 211 153 / 0.7), 0 0 36px 2px rgb(52 211 153 / 0.35);
+    animation: glow 1.6s ease-in-out 2;
+  }
+  @keyframes glow {
+    50% { box-shadow: 0 0 0 1px rgb(52 211 153 / 0.9), 0 0 64px 10px rgb(52 211 153 / 0.5); }
+  }
+  /* a step that is working right now */
+  .pulse { animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse {
+    50% { opacity: 0.35; }
+  }
   /* score meter: <span class="score" style="--s:4"> */
   .score {
     display: inline-block;

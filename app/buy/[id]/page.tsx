@@ -109,6 +109,7 @@ export default async function Listing({ params, searchParams }: { params: Promis
             {r.minutes >= 60 ? ` ${Math.round(hours)} hours` : ` ${Math.max(1, Math.round(r.minutes))} min`}
             {!r.video_url && ', sample listing'}
             {r.golden && <span className="chip chip-warm ml-1">Golden: labels checked by hand</span>}
+            {capture === 'gallery' && <span className="chip ml-1">Gallery upload, not verified live</span>}
           </p>
         </div>
         <p className="text-sm">{r.description}</p>
@@ -147,7 +148,7 @@ export default async function Listing({ params, searchParams }: { params: Promis
 
         <section className="card space-y-2 p-5">
           <p className="label">Provenance and licence</p>
-          <p className="text-sm">{capture === 'in-app' ? 'Recorded inside the Guild app, with a live hand-motion trace.' : capture ? 'Recorded before in-app capture was required.' : 'Sample listing, no capture record.'}</p>
+          <p className="text-sm">{capture === 'in-app' ? 'Recorded inside the Guild app, with a live hand-motion trace.' : capture ? 'Uploaded from the seller’s gallery. Not verified as filmed live.' : 'Sample listing, no capture record.'}</p>
           <ul className="muted list-disc space-y-1 pl-5 text-sm">{LICENCE.terms.map((t) => <li key={t}>{t}</li>)}</ul>
           <a className="inline-block text-sm underline underline-offset-4" href={`/api/provenance/${r.id}`}>Provenance certificate (JSON, hash-chained trail)</a>
         </section>

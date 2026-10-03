@@ -95,14 +95,15 @@ export default async function Report({ params, searchParams }: { params: Promise
       </section>
 
       <ol className="space-y-3">
-        <Stage n={1} title="Capture and authenticity" by="on your device" state={!auth ? 'skip' : auth.passed ? 'ok' : 'fail'}>
+        <Stage n={1} title="Capture and authenticity" by="on your device" state={observed.capture === 'gallery' ? 'warn' : !auth ? 'skip' : auth.passed ? 'ok' : 'fail'}>
+          {observed.capture === 'gallery' && <p>Uploaded from your gallery. It could not be verified as filmed live, and buyers see that on the listing. Record in the app for verified clips.</p>}
           {auth ? (
             <p className="flex flex-wrap gap-1.5">
               <span className="stat">Live challenge {auth.challenge ? 'passed' : 'failed'}{observed.challenges?.[0]?.prompt ? `: ${observed.challenges[0].prompt}` : ''}</span>
               <span className="stat">Hand tracking covers {pct(auth.tracking)}</span>
               <span className="stat">Motion sensors {auth.sensors ? 'recorded' : 'not available'}</span>
             </p>
-          ) : <p className="muted">No capture record for this clip.</p>}
+          ) : observed.capture === 'gallery' ? null : <p className="muted">No capture record for this clip.</p>}
         </Stage>
 
         <Stage n={2} title="Quality and originality" by="on your device" state={dup ? 'fail' : r.metrics ? 'ok' : 'skip'}>

@@ -120,8 +120,8 @@ How we would start, given the cold-start problem: not as an open marketplace. Si
 | Page | What it does |
 |---|---|
 | `/` | The pitch: business model, unit economics calculator, mission, worker benefits |
-| `/record` | The only way in. Camera hand tracking with a 3D robot arm that mirrors you, quality warnings while you film, a live finger challenge, and motion sensors recorded in sync |
-| `/sell` | Seller dashboard: open requests to film, earnings, market price, set an ask, withdraw. No gallery upload |
+| `/record` | The verified way in. Camera hand tracking with a 3D robot arm that mirrors you, quality warnings while you film, a live finger challenge, and motion sensors recorded in sync |
+| `/sell` | Record live or upload from the gallery, watch the clip move through the processing pipeline, then manage listings: earnings, market price, set an ask, withdraw |
 | `/buy` | Marketplace with filters, including verified sellers and failure cases. Each buyer gets a private acceptance profile |
 | `/buy/[id]` | Evidence trail, price breakdown, seller reputation, licence, packages, accept or pass with a reason, report a training result |
 | `/market` | Guild Index and the price board per trade |
@@ -142,7 +142,7 @@ API: `/api/index` (open price index), `/api/provenance/[id]` (certificate), `/ap
 
 ### Authenticity: making fakes impractical
 
-There are no gallery uploads. Recording happens inside the web app, which blocks most fakes and gives us the session's tracking data for free.
+Clips recorded in the app are verified with the layers below. Existing videos can also be uploaded from the gallery: they go through the same quality and labelling steps, are listed with a "not verified live" flag, and cannot fill paid requests.
 
 | Layer | How it works | Status |
 |---|---|---|

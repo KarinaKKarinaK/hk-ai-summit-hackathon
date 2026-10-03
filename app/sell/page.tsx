@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import SellStart from '@/components/SellStart'
+import Glyph from '@/components/Glyph'
 import { sql, getUser, getMarket, priceOf } from '@/lib/server'
 import { payout, signal, tier, matchesCall, SELLER_SHARE, HOLD_DAYS, type Labels } from '@/lib/score'
 import { reviewLabels, setAsk, fillBid, toggleListed } from '../actions'
@@ -9,7 +11,7 @@ function suggestions(mine: Labels = {}, ai: Labels = {}): string[] {
   return out.concat((ai.tools ?? []).filter((t) => !mine.tools?.some((m) => m.toLowerCase() === t.toLowerCase())))
 }
 
-// Open to everyone. Recording happens on /record, there is no gallery upload.
+// Open to everyone. Two ways to add data: record live on /record, or upload from the gallery right here.
 export default async function Sell() {
   const user = await getUser()
   const [rows, calls, market] = await Promise.all([
@@ -38,7 +40,7 @@ export default async function Sell() {
               {user.credential && <span className="chip ml-2">{user.credential}</span>}
             </p>
           ) : (
-            <p className="muted mt-2 text-sm">Record in the app, get quality warnings while you film, and see what the clip earns. No account needed until you submit.</p>
+            <p className="muted mt-2 text-sm">Record live or upload a video you already have. Watch it get processed, then see what it earns.</p>
           )}
         </div>
         <Link href="/record" className="btn btn-ghost">Record with hand tracking</Link>
@@ -72,50 +74,39 @@ export default async function Sell() {
         </ul>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-[1fr_1.3fr]">
-        <div className="card card-warm flex flex-col justify-between gap-6 p-6">
-          <div>
-            <p className="label !text-paper/70">Step one</p>
-            <h2 className="text-3xl font-semibold">Record a clip</h2>
-            <p className="mt-3 text-sm text-paper/80">Filmed inside the app so every clip is verified as real. Gallery uploads are not accepted.</p>
-          </div>
-          <ul className="flex flex-wrap gap-1.5">
-            {['Live hand tracking', 'Finger challenge', 'Motion sensors', `${HOLD_DAYS}-day payout hold`].map((x) => <li key={x} className="chip bg-ink/40">{x}</li>)}
-          </ul>
-          <Link href="/record" className="btn self-start">Open the recorder</Link>
+      {/* add data: record live or upload from the gallery. Either one runs the processing pipeline. */}
+      <SellStart years={user?.years ?? 0} />
+
+      <section>
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="text-xl font-semibold tracking-tight">Guaranteed pay</h2>
+          <Link href="/calls" className="text-sm underline underline-offset-4">All requests</Link>
         </div>
-        <div className="space-y-2">
-          <div className="flex items-baseline justify-between px-1">
-            <h2 className="text-xl font-semibold tracking-tight">Guaranteed pay</h2>
-            <Link href="/calls" className="text-sm underline underline-offset-4">All requests</Link>
-          </div>
-          <ul className="space-y-2">
-            {calls.slice(0, 4).map((c) => (
-              <li key={c.id} className="card flex items-center justify-between gap-3 p-3 pl-4">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{c.title}</p>
-                  <p className="muted text-xs">Paid when the clip passes the checks</p>
-                </div>
-                <span className="stat stat-warm flex-none text-sm">${c.rate}/h</span>
-                <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="btn btn-warm !min-h-9 flex-none text-sm">Film this</Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <ul className="grid gap-2 md:grid-cols-2">
+          {calls.slice(0, 4).map((c) => (
+            <li key={c.id} className="card flex items-center justify-between gap-3 p-3 pl-4">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{c.title}</p>
+                <p className="muted text-xs">Paid when a live recording passes the checks, after a {HOLD_DAYS}-day hold</p>
+              </div>
+              <span className="stat stat-warm flex-none text-sm">${c.rate}/h</span>
+              <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="btn btn-warm !min-h-9 flex-none text-sm">Film this</Link>
+            </li>
+          ))}
+        </ul>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-3">
-        {[
-          ['It stays yours', 'Buyers get a licence to train on the clip. You keep the footage and the rights.'],
-          [`${SELLER_SHARE * 100}% to you, every time`, 'One clip can be licensed by many labs. Each sale pays you again, including after you are off the tools.'],
-          ['You are in control', 'You choose what to film, you see who bought it and why, and you can withdraw a clip whenever you want.'],
-        ].map(([h, p], i) => (
-          <div key={h} className="card flex gap-4 p-5">
-            <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-tan text-sm font-semibold tabular-nums">{i + 1}</span>
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight">{h}</h2>
-              <p className="muted mt-1 text-sm">{p}</p>
-            </div>
+      {/* line glyphs instead of boxes: the picture carries the point */}
+      <section className="grid gap-x-6 gap-y-8 md:grid-cols-3">
+        {([
+          ['own', 'It stays yours', 'Buyers get a licence to train on the clip. You keep the footage and the rights.'],
+          ['paid', `${SELLER_SHARE * 100}% to you, every time`, 'One clip can be licensed by many labs. Each sale pays you again, including after you are off the tools.'],
+          ['control', 'You are in control', 'You choose what to film, you see who bought it and why, and you can withdraw a clip whenever you want.'],
+        ] as const).map(([g, h, p]) => (
+          <div key={h}>
+            <Glyph name={g} className="h-36 w-full" />
+            <h2 className="mt-4 text-lg font-semibold tracking-tight">{h}</h2>
+            <p className="muted mt-1 text-sm">{p}</p>
           </div>
         ))}
       </section>

@@ -22,26 +22,46 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
             const total = c.hours_total ?? c.hours, done = Math.max(0, total - c.hours)
             const spec = [c.perspective && `${c.perspective} view`, c.environment && `In: ${c.environment}`, c.objects && `Must show: ${c.objects}`, c.min_seconds && `At least ${c.min_seconds}s per clip`].filter(Boolean)
             return (
-              <li key={c.id} className="card space-y-3 p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <h2 className="text-lg font-medium leading-snug tracking-normal">{c.title}</h2>
-                  <span className="whitespace-nowrap text-xl font-light">${c.rate}<span className="muted text-sm">/h</span></span>
+              <li key={c.id} className="card overflow-hidden">
+                {/* who and what on the left, the rate in its own box on the right */}
+                <div className="flex items-start justify-between gap-4 p-5">
+                  <div className="min-w-0">
+                    <p className="muted text-xs">{c.buyer}</p>
+                    <h2 className="mt-1 text-xl font-semibold leading-snug">{c.title}</h2>
+                    {c.description && <p className="muted mt-2 text-sm">{c.description}</p>}
+                  </div>
+                  <div className="card-warm flex-none rounded-2xl px-4 py-3 text-center">
+                    <p className="text-2xl font-light tabular-nums">${c.rate}</p>
+                    <p className="text-[11px] text-paper/70">per hour</p>
+                  </div>
                 </div>
-                <p className="muted text-sm">{c.description}</p>
-                {c.weakness && <p className="text-sm">Targets a model gap: {c.weakness}</p>}
-                <p className="flex flex-wrap items-center gap-1.5 text-xs">
-                  {[c.task, c.industry].filter(Boolean).map((x: string) => <span key={x} className="chip">{x}</span>)}
-                  {c.wants_failures && <span className="chip">Failure and recovery wanted</span>}
-                  {c.forward && <span className="chip chip-slate">Forward contract{c.due ? `, due ${new Date(c.due).toISOString().slice(0, 10)}` : ''}</span>}
-                </p>
-                {spec.length > 0 && <ul className="muted list-disc pl-5 text-xs">{spec.map((s) => <li key={s as string}>{s}</li>)}</ul>}
-                <div>
+                {c.weakness && <p className="mx-5 mb-4 rounded-xl bg-white/[.05] px-3 py-2 text-sm"><span className="muted">Model gap: </span>{c.weakness}</p>}
+                {/* the numbers, one per cell */}
+                <dl className="mx-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {[
+                    [`${c.clips}${c.demos ? ` / ${c.demos}` : ''}`, 'demos'],
+                    [`${c.people}${c.min_people ? ` / ${c.min_people}` : ''}`, 'people'],
+                    [`${done.toFixed(done ? 1 : 0)} / ${Math.round(total)} h`, 'collected'],
+                    [`$${Math.round(total * c.rate).toLocaleString('en-US')}`, 'budget'],
+                  ].map(([v, k]) => (
+                    <div key={k} className="rounded-xl bg-white/[.05] px-3 py-2.5">
+                      <dt className="text-base font-medium tabular-nums">{v}</dt>
+                      <dd className="muted text-[11px] uppercase tracking-wider">{k}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <div className="space-y-4 p-5">
                   <div className="bar"><i style={{ width: `${total ? (done / total) * 100 : 0}%` }} /></div>
-                  <p className="muted mt-1 text-xs">{c.clips}{c.demos ? ` of ${c.demos}` : ''} demos from {c.people}{c.min_people ? ` of ${c.min_people} required` : ''} people, {done.toFixed(1)} of {Math.round(total)} h. Budget ${Math.round(total * c.rate).toLocaleString('en-US')}. By {c.buyer}.</p>
-                </div>
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="underline underline-offset-4">Record for this request</Link>
-                  {user?.id === c.buyer_id && <a href={`/api/dataset/${c.id}`} className="underline underline-offset-4">Download dataset</a>}
+                  <p className="flex flex-wrap items-center gap-1.5">
+                    {[c.task, c.industry].filter(Boolean).map((x: string) => <span key={x} className="chip chip-warm">{x}</span>)}
+                    {spec.map((s) => <span key={s as string} className="chip">{s}</span>)}
+                    {c.wants_failures && <span className="chip">Failure and recovery wanted</span>}
+                    {c.forward && <span className="chip chip-slate">Forward contract{c.due ? `, due ${new Date(c.due).toISOString().slice(0, 10)}` : ''}</span>}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="btn btn-warm !min-h-10 text-sm">Record for this request</Link>
+                    {user?.id === c.buyer_id && <a href={`/api/dataset/${c.id}`} className="btn btn-ghost !min-h-10 text-sm">Download dataset</a>}
+                  </div>
                 </div>
               </li>
             )

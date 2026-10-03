@@ -1,0 +1,30 @@
+// Line glyphs: a picture drawn by lighting some of the ticks in a field of vertical lines.
+// Each glyph is a 16 x 10 bitmap, '#' lit and '.' dim. No image files.
+
+const BITMAPS = {
+  record: ['................', '.....######.....', '...##......##...', '..##...##...##..', '..#...####...#..', '..#...####...#..', '..##...##...##..', '...##......##...', '.....######.....', '................'],
+  upload: ['................', '.......##.......', '......####......', '.....######.....', '....########....', '.......##.......', '.......##.......', '.......##.......', '..############..', '................'],
+  own: ['................', '.....######.....', '....##....##....', '....##....##....', '...##########...', '...####..####...', '...####..####...', '...##########...', '...##########...', '................'],
+  paid: ['................', '............##..', '............##..', '.........##.##..', '.........##.##..', '......##.##.##..', '......##.##.##..', '...##.##.##.##..', '...##.##.##.##..', '................'],
+  control: ['................', '..############..', '......##........', '......##........', '..############..', '..........##....', '..........##....', '..############..', '....##..........', '................'],
+} as const
+
+export type GlyphName = keyof typeof BITMAPS
+
+export default function Glyph({ name, className = '' }: { name: GlyphName; className?: string }) {
+  const rows = BITMAPS[name]
+  return (
+    <svg viewBox="0 0 320 150" className={className} role="img" aria-hidden preserveAspectRatio="xMidYMid meet">
+      {/* the field: long faint lines, with a row of short heavy ticks along the bottom */}
+      {Array.from({ length: 32 }, (_, i) => (
+        <g key={i} stroke="#6b492e">
+          <line x1={5 + i * 10} x2={5 + i * 10} y1={4} y2={134} strokeWidth={1} opacity={0.28} />
+          <line x1={5 + i * 10} x2={5 + i * 10} y1={138} y2={148} strokeWidth={2.5} opacity={0.55} />
+        </g>
+      ))}
+      {rows.flatMap((row, y) =>
+        [...row].map((c, x) => c === '#' && <line key={`${x}-${y}`} x1={5 + (x + 8) * 10} x2={5 + (x + 8) * 10} y1={12 + y * 12.4} y2={21 + y * 12.4} stroke="#f1ece6" strokeWidth={2} strokeLinecap="round" />),
+      )}
+    </svg>
+  )
+}

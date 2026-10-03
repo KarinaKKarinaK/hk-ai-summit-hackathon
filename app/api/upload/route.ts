@@ -88,10 +88,10 @@ export async function POST(request: Request) {
   const video_url = blobUrl(b?.video_url)
   if (!video_url) return NextResponse.json({ error: 'video_url must be a file uploaded through /api/blob' }, { status: 400 })
   if (b.consent !== true) return NextResponse.json({ error: 'Confirm that you filmed this and have the right to license it' }, { status: 400 })
-  // No gallery uploads. A clip must come from /record, which produces the episode file alongside the video.
-  const episode_url = blobUrl(b.episode_url)
-  if (!episode_url) return NextResponse.json({ error: 'Record inside the app. Gallery uploads are not accepted.' }, { status: 400 })
-  const episode = await fetch(episode_url, { signal: AbortSignal.timeout(10_000) })
+  // Two ways in. Recorded live on /record: comes with an episode file and is verified. Picked from the gallery: no episode, listed with a flag.
+  const episode_url = b.episode_url ? blobUrl(b.episode_url) : null
+  if (b.episode_url && !episode_url) return NextResponse.json({ error: 'episode_url must be a file uploaded through /api/blob' }, { status: 400 })
+  const episode = !episode_url ? null : await fetch(episode_url, { signal: AbortSignal.timeout(10_000) })
     .then((r) => (r.ok && Number(r.headers.get('content-length') ?? 0) < 30_000_000 ? r.json() : null))
     .catch(() => null)
   const frames: string[] = (Array.isArray(b.frames) ? b.frames : [])
@@ -126,12 +126,12 @@ export async function POST(request: Request) {
     returning id`
   const auth = authenticity(episode, metrics.duration ?? 0)
   await log(row.id, 'device', 'observed', {
-    metrics, labels, description, steps, frames: frames.length, episode: true, capture: 'in-app', authenticity: auth,
+    metrics, labels, description, steps, frames: frames.length, episode: !!episode_url, capture: episode_url ? 'in-app' : 'gallery', authenticity: episode_url ? auth : null,
     challenges: Array.isArray(episode?.challenges) ? episode.challenges.slice(0, 5) : [], request_id: call?.id ?? null,
     consent: true, originality: dup ? `${dup.kind} match` : 'no match',
   }, user.id)
   await log(row.id, 'model', 'labelled', { engine: 'MediaPipe on the device', objects: labelsets.objects, scene: labelsets.scene, hands: labelsets.hands })
-  if (!dup && !auth.passed) {
+  if (!dup && episode_url && !auth.passed) {
     // Could not show it was recorded live: stored for the record, never reviewed, priced or listed.
     const reason = !auth.challenge ? 'The live challenge was not passed' : 'Hand tracking does not cover the recording'
     await sql`update uploads set status = 'scored', quality_score = 1, price = 0, title = coalesce(title, 'Unverified clip') where id = ${row.id}`
@@ -168,7 +168,8 @@ export async function POST(request: Request) {
   // Path 1, bounties: a clip recorded for a request is bought by that request as soon as it passes. Guaranteed payout.
   let bounty: { paid: number; title?: string; reason?: string } | null = null
   if (call) {
-    if (!(call.hours > 0) || call.buyer_id === user.id) bounty = { paid: 0, title: call.title, reason: 'This request is closed' }
+    if (!episode_url) bounty = { paid: 0, title: call.title, reason: 'Requests only accept clips recorded live in the app' }
+    else if (!(call.hours > 0) || call.buyer_id === user.id) bounty = { paid: 0, title: call.title, reason: 'This request is closed' }
     else if (score < 3) bounty = { paid: 0, title: call.title, reason: 'The quality score is below 3' }
     else if (!matchesCall(call, labels, minutes)) bounty = { paid: 0, title: call.title, reason: 'The clip does not match what the request asks for' }
     else {

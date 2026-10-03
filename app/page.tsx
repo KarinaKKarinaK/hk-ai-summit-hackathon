@@ -84,8 +84,8 @@ export default async function Home() {
 
       {rates && (
         <section data-tilt className="mx-auto max-w-6xl px-4 pb-20 md:pb-28">
-          <h2 className="max-w-2xl text-3xl md:text-5xl">What an hour of skilled work is worth.</h2>
-          <p className="muted mb-8 mt-4 max-w-xl">The platform takes {Math.round((1 - SELLER_SHARE) * 100)}% of each licence. Supply costs nothing to stand up, and one clip sells many times.</p>
+          <h2 className="max-w-2xl text-3xl md:text-5xl">Calculate what an hour of your work is worth as data.</h2>
+          <p className="muted mb-8 mt-4 max-w-xl">Pick your trade and how much you film. One clip can be licensed by many labs, and you are paid each time.</p>
           <Calculator rates={rates} />
         </section>
       )}

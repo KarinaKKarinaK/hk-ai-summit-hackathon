@@ -5,17 +5,18 @@ import * as THREE from 'three'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
-import { buildArm, addLights } from '@/lib/arm'
+import { buildArm, buildMug, addLights } from '@/lib/arm'
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * Math.min(1, Math.max(0, t))
-const STEPS = [
-  ['Reach', 'A person films the task. Hand tracking turns it into a path a gripper can follow.'],
-  ['Grip', 'Thumb and finger closing becomes open and close. No robot-specific joints, any gripper can replay it.'],
-  ['Lift', 'The clip, the motion and the proof it is real are sold together as one training episode.'],
+const MISSION = [
+  ['Open to every lab', 'Any robotics company, startup or university can license the same data, on the same terms.'],
+  ['Owned by the people who do the work', 'Sellers keep their footage and earn every time it is licensed.'],
+  ['Priced in the open', 'Rates follow real demand on a public index. Nobody sets them behind closed doors.'],
+  ['Proof, not trust', 'Every clip carries the record of how it was filmed, labelled and checked.'],
 ]
 
 /**
- * Landing page 3D: one arm, one cup, driven by scroll. Reach, grip, lift.
+ * Landing page 3D: one arm and one glass mug, driven by scroll. Reach, grip, lift, then swing left and set it down.
  * Also runs the page's smooth scroll and the tilt-in of sections marked data-tilt.
  */
 export default function ArmScene() {
@@ -54,14 +55,13 @@ export default function ArmScene() {
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
     el.appendChild(renderer.domElement)
     const scene = new THREE.Scene()
-    const cam = new THREE.PerspectiveCamera(36, 1, 0.1, 50)
-    addLights(scene)
-    const arm = buildArm()
-    // a table and a cup: the only props
-    const table = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.9, 0.04, 64), new THREE.MeshStandardMaterial({ color: 0x2a180a, roughness: 0.9 }))
-    table.position.y = -0.02
-    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.085, 0.24, 32, 1, true), new THREE.MeshStandardMaterial({ color: 0x8e9a9b, roughness: 0.45, metalness: 0.2, side: THREE.DoubleSide }))
-    scene.add(arm.root, table, cup)
+    const cam = new THREE.PerspectiveCamera(34, 1, 0.1, 50)
+    addLights(scene, renderer)
+    const arm = buildArm('graphite'), mug = buildMug()
+    const table = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.9, 0.05, 96), new THREE.MeshStandardMaterial({ color: 0x1c110a, roughness: 0.8, metalness: 0.05 }))
+    table.position.y = -0.025
+    table.receiveShadow = true
+    scene.add(arm.root, table, mug)
 
     const size = () => {
       const w = el.clientWidth, h = el.clientHeight
@@ -72,18 +72,22 @@ export default function ArmScene() {
     size()
     addEventListener('resize', size)
 
-    const CUP = { x: 1.15, y: 0.12, z: 0.25 }
+    // The mug sits at radius R on bearing A0. The arm carries it round to A1, to the left, and sets it down.
+    const R = 1.25, A0 = -0.35, A1 = 0.75, HOLD = 0.47
     const draw = (p: number) => {
-      const reach = p / 0.4, grip = (p - 0.4) / 0.15, lift = (p - 0.55) / 0.45
-      const x = lerp(lerp(0.5, CUP.x, reach), 0.75, lift), y = lerp(lerp(1.5, CUP.y + 0.16, reach), 1.35, lift), z = lerp(lerp(-0.4, CUP.z, reach), 0.1, lift)
-      arm.solve(x, y, z, lerp(1, 0.28, grip))
-      // once gripped, the cup travels with the gripper
-      cup.position.set(p > 0.55 ? x : CUP.x, p > 0.55 ? y - 0.16 : CUP.y, p > 0.55 ? z : CUP.z)
-      const a = lerp(0.9, 0.25, p) // the camera drifts around as you scroll
-      cam.position.set(Math.sin(a) * 5, 1.9, Math.cos(a) * 5)
-      cam.lookAt(0.4, 0.75, 0)
+      const yaw = lerp(lerp(A0 + 0.7, A0, p / 0.25), A1, (p - 0.62) / 0.38)
+      const r = lerp(0.8, R, p / 0.25)
+      // wrist height: come in high, drop onto the mug, lift, then lower again while turning
+      const y = lerp(lerp(lerp(lerp(1.7, 1.1, p / 0.25), 0.5, (p - 0.25) / 0.12), 1.2, (p - HOLD) / 0.15), 0.5, (p - 0.78) / 0.22)
+      arm.solve(r * Math.cos(yaw), y, -r * Math.sin(yaw), lerp(1, 0.3, (p - 0.37) / 0.1))
+      const held = p >= HOLD, a = held ? yaw : A0
+      mug.position.set(R * Math.cos(a), held ? y - 0.5 : 0, -R * Math.sin(a))
+      mug.rotation.y = a - A0 // it turns with the claw, which is what the handle shows
+      const o = lerp(-0.45, 0.1, p) // the camera drifts round as you scroll
+      cam.position.set(Math.sin(o) * 5.0, 1.9, Math.cos(o) * 5.0)
+      cam.lookAt(0.45, 0.7, 0)
       renderer.render(scene, cam)
-      setStep(p < 0.4 ? 0 : p < 0.55 ? 1 : 2)
+      setStep(Math.min(MISSION.length - 1, Math.floor(p * MISSION.length)))
     }
     draw(calm ? 1 : 0)
     const st = ScrollTrigger.create({ trigger: sec, start: 'top top', end: 'bottom bottom', scrub: true, onUpdate: (s) => draw(s.progress) })
@@ -100,17 +104,21 @@ export default function ArmScene() {
   }, [])
 
   return (
-    <section id="arm" ref={section} className="relative h-[260vh]" aria-label="How a recording becomes robot data">
-      <div className="sticky top-0 mx-auto grid h-dvh max-w-6xl content-center gap-4 px-4 md:grid-cols-[1fr_1.25fr] md:items-center md:gap-10">
-        <ol className="order-2 space-y-3 md:order-1">
-          {STEPS.map(([t, d], i) => (
-            <li key={t} className={`rounded-2xl p-4 transition-all duration-500 md:p-5 ${step === i ? 'card-warm' : 'opacity-45'}`}>
-              <h2 className="text-2xl font-semibold md:text-3xl"><span className="muted mr-3 text-sm font-normal tabular-nums">0{i + 1}</span>{t}</h2>
-              <p className={`mt-2 text-sm text-paper/80 ${step === i ? '' : 'max-md:hidden'}`}>{d}</p>
-            </li>
-          ))}
-        </ol>
-        <div ref={stage} className="order-1 h-[42dvh] md:order-2 md:h-[70dvh]" aria-hidden />
+    <section id="arm" ref={section} className="relative h-[300vh]" aria-label="Our mission: data democratization">
+      <div className="sticky top-0 mx-auto grid h-dvh max-w-6xl content-center gap-4 px-4 md:grid-cols-[1fr_1.3fr] md:items-center md:gap-10">
+        <div className="order-2 md:order-1">
+          <p className="label">Data democratization</p>
+          <h2 className="text-3xl font-semibold md:text-5xl">Robot data, open to everyone.</h2>
+          <ol className="mt-5 space-y-2 md:mt-8">
+            {MISSION.map(([t, d], i) => (
+              <li key={t} className={`rounded-2xl p-4 transition-all duration-500 ${step === i ? 'card-warm' : 'bg-white/[.03] opacity-60'}`}>
+                <h3 className="flex items-baseline gap-3 text-lg font-semibold md:text-xl"><span className="muted text-xs font-normal tabular-nums">0{i + 1}</span>{t}</h3>
+                <p className={`mt-1 pl-7 text-sm text-paper/80 ${step === i ? '' : 'max-md:hidden'}`}>{d}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+        <div ref={stage} className="order-1 h-[38dvh] [mask-image:radial-gradient(closest-side,black_72%,transparent)] md:order-2 md:h-[76dvh]" aria-hidden />
       </div>
     </section>
   )
