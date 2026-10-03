@@ -1,6 +1,10 @@
 import Link from 'next/link'
 import { sql, requireUser } from '@/lib/server'
 import { SELLER_SHARE, tier, money } from '@/lib/score'
+import Dither from '@/components/Dither'
+
+// the four headline boxes are the landing page's posters, one tone each
+const TONES = ['flame', 'coal', 'flow', 'coal'] as const
 
 const usd = (n: number) => `$${money(n)}`
 const DAY = 86_400_000
@@ -13,7 +17,7 @@ function Bars({ values }: { values: number[] }) {
     <div>
       <div className="flex h-40 items-end gap-[3px] md:h-52" aria-hidden>
         {values.map((v, i) => (
-          <div key={i} title={v ? usd(v) : undefined} className={`flex-1 rounded-[2px] ${v ? 'bg-flame' : 'bg-white/[.08]'}`} style={{ height: `${v ? Math.max(8, (v / max) * 100) : 3}%` }} />
+          <div key={i} title={v ? usd(v) : undefined} className={`flex-1 rounded-[2px] ${v ? 'bg-linear-to-t from-emerald-600 to-emerald-300' : 'bg-white/[.08]'}`} style={{ height: `${v ? Math.max(8, (v / max) * 100) : 3}%` }} />
         ))}
       </div>
       <p className="muted mt-2 flex justify-between text-[11px]"><span>30 days ago</span><span>Today</span></p>
@@ -66,20 +70,22 @@ export default async function Profile() {
 
       <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {tiles.map(([k, v], i) => (
-          <div key={k} className={`card p-5 ${i === 0 ? 'card-warm' : ''}`}>
-            <dd className="text-3xl font-semibold tracking-tight tabular-nums md:text-4xl">{v}</dd>
-            <dt className="muted mt-1 text-sm">{k}</dt>
+          <div key={k} className={`tile flex min-h-28 flex-col justify-end p-4 md:min-h-40 md:p-5 ${TONES[i] === 'flame' ? 'tile-flame text-ink' : TONES[i] === 'flow' ? 'on-flow' : 'tile-coal'}`}>
+            <Dither tone={TONES[i]} seed={i * 1.8 + 2.5} />
+            <dd className="text-3xl font-semibold tracking-tight tabular-nums md:text-5xl">{v}</dd>
+            <dt className="mt-1 text-sm opacity-85">{k}</dt>
           </div>
         ))}
       </dl>
 
-      {/* the money: two headline numbers beside the chart */}
-      <section className="card grid gap-6 p-5 md:grid-cols-[14rem_1fr] md:gap-10 md:p-8">
+      {/* the money: two headline numbers beside the chart. Green, because for a seller this is the good news. */}
+      <section className="tile tile-bare grid gap-6 p-5 md:grid-cols-[14rem_1fr] md:gap-10 md:p-8">
+        <Dither tone="coal" seed={6.4} className="opacity-30" />
         <dl className="grid grid-cols-2 gap-4 md:grid-cols-1 md:content-between">
           <div>
             <dt className="label">{seller ? 'Earned this month' : 'Spent this month'}</dt>
-            <dd className="text-4xl font-semibold tracking-tight tabular-nums text-flame md:text-6xl">{usd(month)}</dd>
-            <dd className="muted mt-1 text-xs">{recent} {recent === 1 ? 'licence' : 'licences'}</dd>
+            <dd className={`text-4xl font-semibold tracking-tight tabular-nums md:text-6xl ${seller ? 'text-emerald-400' : 'text-flame'}`}>{usd(month)}</dd>
+            <dd className={`mt-1 text-xs ${seller && recent ? 'text-emerald-300' : 'muted'}`}>{seller && recent ? '↑ ' : ''}{recent} {recent === 1 ? 'licence' : 'licences'}</dd>
           </div>
           <div>
             <dt className="label">All time</dt>
@@ -90,8 +96,8 @@ export default async function Profile() {
         <Bars values={days} />
       </section>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <section className="card p-5 md:p-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <section className="card min-w-0 p-5 md:p-6">
           <h2 className="text-xl font-semibold">{seller ? 'Earnings by task' : 'Hours by task'}</h2>
           {split.length ? (
             <ul className="mt-4 space-y-4">
@@ -104,7 +110,7 @@ export default async function Profile() {
             </ul>
           ) : <p className="muted mt-3 text-sm">{seller ? 'No sales yet. Your first licence shows up here the moment it sells.' : 'Nothing licensed yet. What you buy is broken down by task here.'}</p>}
         </section>
-        <section className="card p-5 md:p-6">
+        <section className="card min-w-0 p-5 md:p-6">
           <h2 className="text-xl font-semibold">{seller ? 'Recent sales' : 'Recent purchases'}</h2>
           {sales.length ? (
             <ul className="mt-2 divide-y divide-white/[.07]">
@@ -114,7 +120,7 @@ export default async function Profile() {
                     <p className="truncate text-sm">{s.title || 'Untitled clip'}</p>
                     <p className="muted text-xs">{day(s.created_at)}, {s.who}</p>
                   </div>
-                  <span className="flex-none text-sm font-medium tabular-nums">{seller ? '+' : ''}{usd(amount(s))}</span>
+                  <span className={`flex-none text-sm font-medium tabular-nums ${seller ? 'text-emerald-400' : ''}`}>{seller ? '+' : ''}{usd(amount(s))}</span>
                 </li>
               ))}
             </ul>
