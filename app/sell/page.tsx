@@ -57,9 +57,9 @@ export default async function Sell() {
       {/* add data: record live or upload from the gallery. Either one runs the processing pipeline. */}
       <SellStart years={user?.years ?? 0} />
 
-      <section className="grid gap-3 md:grid-cols-2">
+      <section className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {/* the three best-paying trades as bars: length is the rate, nothing else to read */}
-        <div className="card p-6">
+        <div className="card min-w-0 p-5 md:p-6">
           <div className="mb-5 flex items-baseline justify-between">
             <h2 className="text-xl font-semibold tracking-tight">Top paying now</h2>
             <Link href="/market" className="muted text-sm underline underline-offset-4">All prices</Link>
@@ -78,7 +78,7 @@ export default async function Sell() {
             ))}
           </ul>
         </div>
-        <div className="card card-warm p-6">
+        <div className="card card-warm min-w-0 p-5 md:p-6">
           <div className="mb-4 flex items-baseline justify-between">
             <h2 className="text-xl font-semibold tracking-tight">Guaranteed pay</h2>
             <Link href="/calls" className="text-sm text-paper/70 underline underline-offset-4">All requests</Link>
@@ -87,7 +87,7 @@ export default async function Sell() {
             {calls.slice(0, 3).map((c) => (
               <li key={c.id}>
                 <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="flex items-center justify-between gap-3 rounded-xl bg-ink/40 p-3 pl-4 transition-colors hover:bg-ink/60">
-                  <span className="truncate font-medium">{c.title}</span>
+                  <span className="min-w-0 truncate font-medium">{c.title}</span>
                   <span className="flex-none text-lg font-light tabular-nums">${c.rate}<span className="text-xs text-paper/60">/h</span></span>
                 </Link>
               </li>

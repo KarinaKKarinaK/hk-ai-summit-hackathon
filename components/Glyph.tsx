@@ -23,7 +23,7 @@ export const taskGlyph = (task?: string | null): GlyphName => BY_TASK[task ?? ''
 export default function Glyph({ name, className = '' }: { name: GlyphName; className?: string }) {
   const rows = BITMAPS[name]
   return (
-    <svg viewBox="0 0 320 150" className={className} role="img" aria-hidden preserveAspectRatio="xMidYMid meet">
+    <svg viewBox="0 0 320 150" className={className} role="img" aria-hidden preserveAspectRatio="xMidYMid slice">
       {/* the field: long faint lines, with a row of short heavy ticks along the bottom */}
       {Array.from({ length: 32 }, (_, i) => (
         <g key={i} stroke="#6b492e">

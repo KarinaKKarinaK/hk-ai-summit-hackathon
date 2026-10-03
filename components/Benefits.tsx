@@ -27,12 +27,12 @@ export default function Benefits() {
         ))}
       </div>
       {/* keyed by side so the cards animate in again on every switch */}
-      <ul key={side} className="rise mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <ul key={side} className="rise mt-5 grid grid-cols-2 gap-2 md:gap-3 lg:grid-cols-4">
         {s.items.map(([hook, line], i) => (
-          <li key={hook} className={`card relative overflow-hidden p-6 ${i === 0 ? 'card-warm' : ''}`} style={{ animationDelay: `${i * 70}ms` }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="absolute right-5 top-5 text-emerald-400"><path d="M5 12l5 5L20 7" /></svg>
-            <p className="text-4xl font-semibold tracking-tight">{hook}</p>
-            <p className="mt-2 text-sm text-paper/75">{line}</p>
+          <li key={hook} className={`card relative overflow-hidden p-4 md:p-6 ${i === 0 ? 'card-warm' : ''}`} style={{ animationDelay: `${i * 70}ms` }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="absolute right-3 top-3 text-emerald-400 md:right-5 md:top-5"><path d="M5 12l5 5L20 7" /></svg>
+            <p className="text-2xl font-semibold tracking-tight md:text-4xl">{hook}</p>
+            <p className="mt-1.5 text-xs text-paper/75 md:mt-2 md:text-sm">{line}</p>
           </li>
         ))}
       </ul>

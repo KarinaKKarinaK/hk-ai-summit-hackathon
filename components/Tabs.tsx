@@ -29,7 +29,7 @@ export default function Tabs({ bar = false }: { bar?: boolean }) {
     )
   }
   return (
-    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 bg-ink pb-[env(safe-area-inset-bottom)] shadow-[0_-18px_30px_-6px_#080403] md:hidden">
+    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 bg-ink pb-[env(safe-area-inset-bottom)] after:absolute after:inset-x-0 after:top-full after:h-60 after:bg-ink shadow-[0_-18px_30px_-6px_#080403] md:hidden">
       {tabs.map((t) => {
         const on = path.startsWith(t.href)
         return (

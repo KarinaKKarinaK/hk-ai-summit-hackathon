@@ -104,14 +104,14 @@ export default function ArmScene() {
   }, [])
 
   return (
-    <section id="arm" ref={section} className="relative h-[300vh]" aria-label="Our mission: data democratization">
+    <section id="arm" ref={section} className="relative h-[230vh] md:h-[300vh]" aria-label="Our mission: data democratization">
       <div className="sticky top-0 mx-auto grid h-dvh max-w-6xl content-center gap-4 px-4 md:grid-cols-[1fr_1.3fr] md:items-center md:gap-10">
         <div className="order-2 md:order-1">
           <p className="label">Data democratization</p>
-          <h2 className="text-3xl font-semibold md:text-5xl">Robot data, open to everyone.</h2>
-          <ol className="mt-5 space-y-2 md:mt-8">
+          <h2 className="text-2xl font-semibold md:text-5xl">Robot data, open to everyone.</h2>
+          <ol className="mt-3 space-y-1.5 md:mt-8 md:space-y-2">
             {MISSION.map(([t, d], i) => (
-              <li key={t} className={`rounded-2xl p-4 transition-all duration-500 ${step === i ? 'card-warm' : 'bg-white/[.03] opacity-60'}`}>
+              <li key={t} className={`rounded-2xl p-3 transition-all duration-500 md:p-4 ${step === i ? 'card-warm' : 'bg-white/[.03] opacity-60'}`}>
                 <h3 className="flex items-baseline gap-3 text-lg font-semibold md:text-xl"><span className="muted text-xs font-normal tabular-nums">0{i + 1}</span>{t}</h3>
                 <p className={`mt-1 pl-7 text-sm text-paper/80 ${step === i ? '' : 'max-md:hidden'}`}>{d}</p>
               </li>

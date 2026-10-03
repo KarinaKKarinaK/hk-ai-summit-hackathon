@@ -23,7 +23,7 @@ const compare = [
 ]
 
 const usd = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
-const section = 'mx-auto max-w-6xl px-4 py-10 md:py-14'
+const section = 'mx-auto max-w-6xl px-4 py-8 md:py-14'
 
 export default async function Home() {
   const [stats, market] = await Promise.all([
@@ -45,7 +45,7 @@ export default async function Home() {
         <div className="absolute inset-0 -z-10 bg-linear-to-t from-ink from-42% via-ink/80 via-58% to-transparent md:bg-linear-to-r md:from-ink md:from-8% md:via-ink/55 md:via-38% md:to-transparent" />
         <div className="absolute inset-x-0 top-0 -z-10 h-28 bg-linear-to-b from-ink/85 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 -z-10 h-48 bg-linear-to-t from-ink via-ink/80 to-transparent" />
-        <div className="rise mx-auto grid min-h-[84dvh] max-w-6xl content-end gap-10 px-4 pb-10 pt-72 md:min-h-[80dvh] md:pb-14 md:pt-28">
+        <div className="rise mx-auto grid min-h-[76dvh] max-w-6xl content-end gap-7 px-4 pb-6 pt-56 md:min-h-[80dvh] md:pb-14 md:pt-28">
           <div className="max-w-xl">
             <h1 className="text-5xl md:text-7xl">The open market for robot training data.</h1>
             <p className="muted mt-5 max-w-md text-lg">Labs request what their models are missing. Anyone with a phone records it and earns on every licence.</p>
@@ -69,21 +69,21 @@ export default async function Home() {
 
       {/* The case in one chart: a tag, a headline, one big number, and four bars with the last one lit. */}
       <section data-tilt className={section}>
-        <div className="grid gap-8 md:grid-cols-[1fr_2.2fr] md:gap-12">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_2.2fr] md:gap-12">
           <div className="flex flex-col">
             <p className="chip chip-warm self-start">Why human video</p>
-            <h2 className="mt-5 text-4xl md:text-5xl">More robot data for the same money</h2>
-            <p className="mt-8 max-w-xs text-paper/80 md:mt-auto">Filming a person costs a third to half as much per hour as teleoperating a robot, and collects 3 to 5 times faster. The same budget buys up to:</p>
-            <p className="mt-3 text-8xl font-light leading-none tracking-tighter md:text-[10rem]">4x</p>
+            <h2 className="mt-4 text-3xl md:text-5xl">More robot data for the same money</h2>
+            <p className="mt-4 max-w-xs text-sm text-paper/80 md:mt-auto md:text-base">Filming a person costs a third to half as much per hour as teleoperating a robot, and collects 3 to 5 times faster. The same budget buys up to:</p>
+            <p className="mt-2 text-7xl font-light leading-none tracking-tighter md:text-[10rem]">4x</p>
           </div>
           <div className="grid grid-cols-4 items-end gap-2 md:gap-5">
             {BUDGET.map(([h, name, cost], i) => {
               const lit = i === BUDGET.length - 1
               return (
                 <div key={name} className="flex h-full flex-col">
-                  <p className={`text-3xl font-light tabular-nums md:text-5xl ${lit ? '' : 'text-slate'}`}>{h} h</p>
-                  <p className="mb-4 mt-1 min-h-10 text-xs leading-tight text-paper/80 md:text-sm">{name}</p>
-                  <div className="mt-auto flex h-64 items-end md:h-96">
+                  <p className={`text-2xl font-light tabular-nums md:text-5xl ${lit ? '' : 'text-slate'}`}>{h} h</p>
+                  <p className="mb-4 mt-1 min-h-10 text-sm leading-tight text-paper/80 max-md:hidden">{name}</p>
+                  <div className="mt-2 flex h-40 items-end md:mt-auto md:h-96">
                     <div className={`relative w-full ${lit ? 'bg-linear-to-t from-rust via-tan to-slate' : 'bg-white/[.09]'}`} style={{ height: `${(h / 67) * 100}%` }}>
                       <span className={`absolute bottom-2 left-2 text-xs tabular-nums ${lit ? '' : 'muted'}`}>{cost}</span>
                     </div>
@@ -93,14 +93,15 @@ export default async function Home() {
             })}
           </div>
         </div>
-        <p className="muted mt-6 text-xs">
+        <p className="mt-3 text-xs text-paper/80 md:hidden">Left to right: teleoperation on a complex rig, teleoperation on a simple rig, human video at the high end, human video at the low end.</p>
+        <p className="muted mt-4 text-xs">
           Hours of training data per $1,000, worked out from published collection costs per hour. Public teleoperated robot data totals about 11,000 hours (Open X-Embodiment), while the largest private collection, 16M+ videos, is shared with nobody.
           Sources: <a className="underline" href="https://dexset.ai/blogs/egocentric-data-collection-robotics/">Dexset</a>, <a className="underline" href="https://truelabel.ai/solutions/egocentric-video-data">truelabel</a>, <a className="underline" href="https://arxiv.org/abs/2606.20521">HumanScale</a>. Reported figures, not verified by us.
         </p>
       </section>
 
       <section data-tilt className={section}>
-        <h2 className="mb-8 text-center text-3xl md:text-5xl">What is in it for you</h2>
+        <h2 className="mb-5 text-center text-3xl md:mb-8 md:text-5xl">What is in it for you</h2>
         <Benefits />
       </section>
 
@@ -109,13 +110,13 @@ export default async function Home() {
       {rates && (
         <section data-tilt className={section}>
           <h2 className="max-w-2xl text-3xl md:text-5xl">Calculate what an hour of your work is worth as data.</h2>
-          <p className="muted mb-8 mt-4 max-w-xl">Pick your trade and how much you film. One clip can be licensed by many labs, and you are paid each time.</p>
+          <p className="muted mb-5 mt-3 max-w-xl md:mb-8">Pick your trade and how much you film. One clip can be licensed by many labs, and you are paid each time.</p>
           <Calculator rates={rates} />
         </section>
       )}
 
       <section id="mission" className="streaks">
-        <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
+        <div className="mx-auto max-w-6xl px-4 py-12 md:py-24">
           <h2 className="max-w-2xl text-4xl md:text-6xl">Robot data should not belong to one company.</h2>
           <p className="mt-6 max-w-lg text-lg text-paper/75">Figure can spend a billion dollars on its own data and shares nothing. We are the open market for everyone else.</p>
         </div>

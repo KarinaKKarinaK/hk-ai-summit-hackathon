@@ -12,7 +12,7 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
     from calls c join users b on b.id = c.buyer_id order by c.created_at desc`
 
   return (
-    <main className="mx-auto grid max-w-6xl gap-6 px-4 py-6 md:grid-cols-[1.5fr_1fr]">
+    <main className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-6 md:grid-cols-[1.5fr_1fr]">
       <div className="space-y-4">
         <div>
           <h1 className="text-3xl md:text-5xl">Requests</h1>
@@ -27,10 +27,10 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
                 {/* who and what on the left, the rate in its own box on the right */}
                 {/* a cover icon for the kind of work, then the title and who is asking */}
                 <div className="flex items-center gap-4 p-4">
-                  <div className="card-warm w-24 flex-none overflow-hidden rounded-2xl md:w-32"><Glyph name={taskGlyph(c.task)} className="w-full" /></div>
+                  <div className="card-warm h-20 w-20 flex-none overflow-hidden rounded-2xl md:h-24 md:w-24"><Glyph name={taskGlyph(c.task)} className="h-full w-full" /></div>
                   <div className="min-w-0">
                     <p className="flex flex-wrap gap-1.5">{[c.task, c.industry].filter(Boolean).map((x: string) => <span key={x} className="chip chip-warm">{x}</span>)}</p>
-                    <h2 className="mt-2 text-lg font-semibold leading-snug md:text-xl">{c.title}</h2>
+                    <h2 className="mt-1.5 text-base font-semibold leading-snug md:text-xl">{c.title}</h2>
                     <p className="muted mt-1 text-xs">{c.buyer}</p>
                   </div>
                 </div>
@@ -48,7 +48,7 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
                     </div>
                   ))}
                 </dl>
-                <div className="space-y-4 p-5">
+                <div className="space-y-3 p-4">
                   <div className="bar"><i style={{ width: `${total ? (done / total) * 100 : 0}%` }} /></div>
                   <p className="flex flex-wrap items-center gap-1.5">
                     {c.demos && <span className="chip">{c.clips} / {c.demos} demos</span>}

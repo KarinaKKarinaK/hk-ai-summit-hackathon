@@ -18,9 +18,9 @@ export default function Calculator({ rates }: { rates: Record<string, number> })
 
   return (
     <div className="card overflow-hidden">
-      <div className="card-warm px-6 py-10 text-center md:py-14" aria-live="polite">
+      <div className="card-warm px-6 py-7 text-center md:py-14" aria-live="polite">
         <p className="text-sm text-paper/70">You would earn about</p>
-        <p className="mt-2 text-6xl font-light tracking-tight tabular-nums md:text-8xl">{usd(yearly)}</p>
+        <p className="mt-1 text-5xl font-light tracking-tight tabular-nums md:text-8xl">{usd(yearly)}</p>
         <p className="mt-2 text-paper/80">a year in royalties, or {usd(yearly / 12)} a month</p>
       </div>
       <div className="grid gap-6 p-6 md:grid-cols-3">

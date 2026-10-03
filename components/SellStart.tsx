@@ -17,16 +17,16 @@ export default function SellStart({ years = 0 }: { years?: number }) {
     )
   }
   return (
-    <section className="grid gap-3 md:grid-cols-2">
+    <section className="grid grid-cols-1 gap-3 md:grid-cols-2">
       <Link href="/record" className="card card-warm block overflow-hidden">
-        <Glyph name="record" className="h-40 w-full md:h-48" />
+        <Glyph name="record" className="h-28 w-full md:h-48" />
         <div className="p-5 pt-3">
           <h2 className="text-2xl font-semibold">Record live</h2>
           <p className="mt-1 text-sm text-paper/80">Film in the app with hand tracking and a quick live challenge. Verified clips earn more and can fill paid requests.</p>
         </div>
       </Link>
       <label className="card block cursor-pointer overflow-hidden has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-slate">
-        <Glyph name="upload" className="h-40 w-full md:h-48" />
+        <Glyph name="upload" className="h-28 w-full md:h-48" />
         <div className="p-5 pt-3">
           <h2 className="text-2xl font-semibold">Upload from gallery</h2>
           <p className="muted mt-1 text-sm">Pick a video you already have. It is analysed on your phone first, then listed as not verified live.</p>
