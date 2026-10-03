@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Dither from './Dither'
 
 // Each benefit: the short hook, then one line. Kept to four a side.
 const SIDES = {
@@ -15,6 +16,9 @@ const SIDES = {
   },
 } as const
 
+// one poster tone and one height per card, so the row is not a row
+const LOOK = [['flame', 'lg:mt-8'], ['coal', ''], ['flow', 'lg:mt-14'], ['coal', 'lg:mt-4']] as const
+
 /** Two buttons, two lists: what you get as a seller and as a buyer. */
 export default function Benefits() {
   const [side, setSide] = useState<keyof typeof SIDES>('sell')
@@ -23,20 +27,23 @@ export default function Benefits() {
     <div>
       <div role="group" aria-label="Who are you" className="mx-auto grid max-w-md grid-cols-2 rounded-full bg-white/[.07] p-1.5">
         {(Object.keys(SIDES) as (keyof typeof SIDES)[]).map((k) => (
-          <button key={k} aria-pressed={side === k} onClick={() => setSide(k)} className={`rounded-full px-5 py-3 font-medium transition-colors duration-300 ${side === k ? 'bg-linear-to-br from-amber to-rust text-paper shadow-[0_8px_22px_-8px_#6c4724]' : 'muted'}`}>{SIDES[k].name}</button>
+          <button key={k} aria-pressed={side === k} onClick={() => setSide(k)} className={`rounded-full px-5 py-3 font-medium transition-colors duration-300 ${side === k ? 'bg-linear-to-br from-flame to-pink text-ink shadow-[0_8px_22px_-8px_#ee7340]' : 'muted'}`}>{SIDES[k].name}</button>
         ))}
       </div>
       {/* keyed by side so the cards animate in again on every switch */}
-      <ul key={side} className="rise plots stagger mt-8 grid grid-cols-2 gap-5 pb-6 md:gap-8 md:pb-12 lg:grid-cols-[1.3fr_1fr_1.1fr_0.95fr]">
-        {s.items.map(([hook, line], i) => (
-          <li key={hook} className={`plot plot-check p-4 md:p-6 ${i === 0 ? 'plot-warm' : i === 3 ? 'plot-solid' : ''}`} style={{ animationDelay: `${i * 70}ms` }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={`!absolute text-emerald-400 ${i % 2 ? "bottom-[calc(var(--r)-10px)] right-[calc(var(--r)-10px)]" : "right-[calc(var(--r)-10px)] top-[calc(var(--r)-10px)]"}`}><path d="M5 12l5 5L20 7" /></svg>
-            <p className={`text-2xl font-semibold tracking-tight md:text-4xl pr-10`}>{hook}</p>
-            <p className={`mt-1.5 text-xs text-paper/75 md:mt-2 md:text-sm pr-10`}>{line}</p>
-          </li>
-        ))}
+      <ul key={side} className="rise mt-6 grid grid-cols-2 items-start gap-3 md:gap-5 lg:grid-cols-4">
+        {s.items.map(([hook, line], i) => {
+          const [tone, drop] = LOOK[i]
+          return (
+            <li key={hook} className={`tile flex min-h-36 flex-col justify-end p-4 md:min-h-56 md:p-6 ${drop} ${i % 2 ? 'max-lg:mt-6' : ''} ${tone === 'flame' ? 'tile-flame text-ink' : tone === 'flow' ? 'on-flow' : 'tile-coal'}`} style={{ animationDelay: `${i * 70}ms` }}>
+              <Dither tone={tone} seed={i * 1.9 + (side === 'sell' ? 3 : 6)} />
+              <p className="text-2xl font-semibold tracking-tight md:text-4xl">{hook}</p>
+              <p className="mt-1.5 text-xs opacity-90 md:mt-2 md:text-sm">{line}</p>
+            </li>
+          )
+        })}
       </ul>
-      <div className="mt-6 text-center"><Link href={s.cta[1]} className="btn">{s.cta[0]}</Link></div>
+      <div className="mt-8 text-center"><Link href={s.cta[1]} className="btn">{s.cta[0]}</Link></div>
     </div>
   )
 }

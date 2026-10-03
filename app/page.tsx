@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import ArmScene from '@/components/ArmScene'
 import Benefits from '@/components/Benefits'
-import { sql, getMarket } from '@/lib/server'
+import Dither from '@/components/Dither'
+import { sql } from '@/lib/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,25 +15,22 @@ const BUDGET = [
   [67, 'Human video, low end', '$15/h'],
 ] as const
 
-const compare = [
-  ['Model', 'Closed pipeline into one robot', 'Open exchange any lab can buy from'],
-  ['Ownership', 'Given away for a flat fee', 'Worker keeps it, earns on every licence'],
-  ['Price', 'Set by the collector', 'A live market that follows demand'],
-  ['Proof', 'Trust the uploader', 'Filmed in-app, live challenge, evidence trail'],
-]
+// The whole product in four steps. Each is a poster: its own tone, and its own height on the page.
+const STEPS = [
+  ['Request', 'A company asks for examples of the task it needs.', 'flow', 'md:mt-10'],
+  ['Record', 'A person films their hands, or records their screen, doing it.', 'coal', 'md:mt-24'],
+  ['Label', 'Kimi turns the recording into steps and labels.', 'flame', ''],
+  ['Buy', 'The company downloads a checked, labelled dataset.', 'flow', 'md:mt-16'],
+] as const
 
 const usd = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
 const section = 'mx-auto max-w-6xl px-4 py-8 md:py-14'
 
 export default async function Home() {
-  const [stats, market] = await Promise.all([
-    sql`select coalesce(sum(minutes), 0)::int / 60 as hours,
+  const stats = await sql`select coalesce(sum(minutes), 0)::int / 60 as hours,
       (select coalesce(sum(hours * rate), 0)::int from calls where hours > 0) as book,
       (select count(distinct task)::int from calls where task is not null and hours > 0) as markets
-      from uploads where status = 'scored' and quality_score >= 2 and withdrawn_at is null`.then((r) => r[0]).catch(() => null),
-    getMarket().catch(() => null),
-  ])
-  const rates = market && Object.fromEntries(Object.entries(market).sort((a, b) => b[1].rate - a[1].rate).map(([k, m]) => [k, m.rate]))
+      from uploads where status = 'scored' and quality_score >= 2 and withdrawn_at is null`.then((r) => r[0]).catch(() => null)
 
   return (
     <main>
@@ -46,7 +44,7 @@ export default async function Home() {
         <div className="absolute inset-x-0 bottom-0 -z-10 h-48 bg-linear-to-t from-ink via-ink/80 to-transparent" />
         <div className="rise mx-auto grid min-h-[76dvh] max-w-6xl content-end gap-7 px-4 pb-6 pt-56 md:min-h-[80dvh] md:pb-14 md:pt-28">
           <div className="max-w-xl">
-            <h1 className="text-5xl md:text-7xl">The open market for task data.</h1>
+            <h1 className="text-5xl md:text-7xl">The open market <span className="text-flow">for task data.</span></h1>
             <p className="muted mt-5 max-w-md text-lg">People record how they do a task. AI turns it into training data. Companies buy it.</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/buy" className="btn">Browse data</Link>
@@ -66,63 +64,69 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* The whole product in four steps. */}
-      <section data-tilt className={section}>
-        <ol className="plots stagger grid grid-cols-2 gap-5 pb-6 md:grid-cols-[1.15fr_0.95fr_1.3fr_1fr] md:gap-8 md:pb-12">
-          {[['Request', 'A company asks for examples of the task it needs.'], ['Record', 'A person films their hands, or records their screen, doing it.'], ['Label', 'Kimi turns the recording into steps and labels.'], ['Buy', 'The company downloads a checked, labelled dataset.']].map(([t, d], i) => (
-            <li key={t} className={`plot p-4 md:p-6 ${i === 2 ? 'plot-warm' : i === 0 ? 'plot-solid' : ''}`}>
-              <p className="muted text-xs tabular-nums">0{i + 1}</p>
-              <h2 className="mt-2 text-xl font-semibold md:text-3xl">{t}</h2>
-              <p className="mt-1 text-xs text-paper/75 md:text-sm">{d}</p>
+      <section className={section}>
+        <ol className="grid grid-cols-2 items-start gap-3 md:grid-cols-4 md:gap-5">
+          {STEPS.map(([t, d, tone, drop], i) => (
+            <li key={t} className={`tile flex min-h-44 flex-col justify-end p-4 md:min-h-72 md:p-6 ${drop} ${i % 2 ? 'max-md:mt-8' : ''} ${tone === 'flame' ? 'tile-flame text-ink' : tone === 'flow' ? 'on-flow' : 'tile-coal'}`}>
+              <Dither tone={tone} seed={i * 2.3 + 1} />
+              <p className="mb-auto text-xs tabular-nums opacity-80">0{i + 1}</p>
+              <h2 className="text-2xl font-semibold md:text-4xl">{t}</h2>
+              <p className="mt-1.5 text-xs opacity-90 md:text-sm">{d}</p>
             </li>
           ))}
         </ol>
       </section>
 
-      {/* The case in one chart: a tag, a headline, one big number, and four bars with the last one lit. */}
-      <section data-tilt className={section}>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_2.2fr] md:gap-12">
-          <div className="flex flex-col">
-            <p className="chip chip-warm self-start">Why human video</p>
-            <h2 className="mt-4 text-3xl md:text-5xl">More robot data for the same money</h2>
-            <p className="mt-4 max-w-xs text-sm text-paper/80 md:mt-auto md:text-base">Filming a person costs a third to half as much per hour as teleoperating a robot, and collects 3 to 5 times faster. The same budget buys up to:</p>
-            <p className="mt-2 text-7xl font-light leading-none tracking-tighter md:text-[10rem]">4x</p>
-          </div>
-          <div className="grid grid-cols-4 items-end gap-2 md:gap-5">
-            {BUDGET.map(([h, name, cost], i) => {
-              const lit = i === BUDGET.length - 1
-              return (
-                <div key={name} className="flex h-full flex-col">
-                  <p className={`text-2xl font-light tabular-nums md:text-5xl ${lit ? '' : 'text-slate'}`}>{h} h</p>
-                  <p className="mb-4 mt-1 min-h-10 text-sm leading-tight text-paper/80 max-md:hidden">{name}</p>
-                  <div className="mt-2 flex h-40 items-end md:mt-auto md:h-96">
-                    <div className={`relative w-full ${lit ? 'bg-linear-to-t from-rust via-tan to-slate' : 'bg-white/[.09]'}`} style={{ height: `${(h / 67) * 100}%` }}>
-                      <span className={`absolute bottom-2 left-2 text-xs tabular-nums ${lit ? '' : 'muted'}`}>{cost}</span>
+      {/* The case in one chart, on a charcoal band: a tag, a headline, one big number, and four bars with the last one lit. */}
+      <div className="band-coal mt-6 md:mt-10">
+        <section className={section}>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_2.2fr] md:gap-12">
+            <div className="flex flex-col">
+              <p className="chip chip-flame self-start">Why human video</p>
+              <h2 className="mt-4 text-3xl md:text-5xl">More robot data for the <span className="text-flow">same money</span></h2>
+              <p className="mt-4 max-w-xs text-sm text-paper/80 md:mt-auto md:text-base">Filming a person costs a third to half as much per hour as teleoperating a robot, and collects 3 to 5 times faster. The same budget buys up to:</p>
+              <p className="text-dither mt-2 self-start text-7xl font-medium leading-none tracking-tighter md:text-[10rem]">4x</p>
+            </div>
+            <div className="grid grid-cols-4 items-end gap-2 md:gap-5">
+              {BUDGET.map(([h, name, cost], i) => {
+                const lit = i === BUDGET.length - 1
+                return (
+                  <div key={name} className="flex h-full flex-col">
+                    <p className={`text-2xl font-light tabular-nums md:text-5xl ${lit ? 'text-blush' : 'text-slate'}`}>{h} h</p>
+                    <p className="mb-4 mt-1 min-h-10 text-sm leading-tight text-paper/80 max-md:hidden">{name}</p>
+                    <div className="mt-2 flex h-40 items-end md:mt-auto md:h-96">
+                      <div className={`tile tile-bare w-full ${lit ? 'text-ink' : '!bg-white/[.07]'}`} style={{ height: `${(h / 67) * 100}%` }}>
+                        {lit && <Dither tone="flow" seed={7.4} />}
+                        <span className={`!absolute bottom-2 left-2 text-xs font-medium tabular-nums ${lit ? '' : 'muted'}`}>{cost}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
-        </div>
-        <p className="mt-3 text-xs text-paper/80 md:hidden">Left to right: teleoperation on a complex rig, teleoperation on a simple rig, human video at the high end, human video at the low end.</p>
-        <p className="muted mt-4 text-xs">
-          Hours of training data per $1,000, worked out from published collection costs per hour. Public teleoperated robot data totals about 11,000 hours (Open X-Embodiment), while the largest private collection, 16M+ videos, is shared with nobody.
-          Sources: <a className="underline" href="https://dexset.ai/blogs/egocentric-data-collection-robotics/">Dexset</a>, <a className="underline" href="https://truelabel.ai/solutions/egocentric-video-data">truelabel</a>, <a className="underline" href="https://arxiv.org/abs/2606.20521">HumanScale</a>. Reported figures, not verified by us.
-        </p>
-      </section>
+          <p className="mt-3 text-xs text-paper/80 md:hidden">Left to right: teleoperation on a complex rig, teleoperation on a simple rig, human video at the high end, human video at the low end.</p>
+          <p className="muted mt-4 text-xs">
+            Hours of training data per $1,000, worked out from published collection costs per hour. Public teleoperated robot data totals about 11,000 hours (Open X-Embodiment), while the largest private collection, 16M+ videos, is shared with nobody.
+            Sources: <a className="underline" href="https://dexset.ai/blogs/egocentric-data-collection-robotics/">Dexset</a>, <a className="underline" href="https://truelabel.ai/solutions/egocentric-video-data">truelabel</a>, <a className="underline" href="https://arxiv.org/abs/2606.20521">HumanScale</a>. Reported figures, not verified by us.
+          </p>
+        </section>
+      </div>
 
-      <section data-tilt className={section}>
-        <h2 className="mb-5 text-center text-3xl md:mb-8 md:text-5xl">What is in it for you</h2>
-        <Benefits />
-      </section>
+      <div className="band-ember">
+        <section className={section}>
+          <h2 className="mb-5 text-center text-3xl md:mb-8 md:text-5xl">What is in it <span className="text-flow">for you</span></h2>
+          <Benefits />
+        </section>
+      </div>
 
       <ArmScene />
 
-      <section id="mission" className="streaks">
-        <div className="mx-auto max-w-6xl px-4 py-12 md:py-24">
+      <section id="mission" className="tile tile-row on-flow">
+        <Dither tone="flow" seed={4.2} />
+        <div className="mx-auto max-w-6xl px-4 py-16 md:py-28">
           <h2 className="max-w-2xl text-4xl md:text-6xl">Robot data should not belong to one company.</h2>
-          <p className="mt-6 max-w-lg text-lg text-paper/75">Figure can spend a billion dollars on its own data and shares nothing. We are the open market for everyone else.</p>
+          <p className="mt-6 max-w-lg text-lg">Figure can spend a billion dollars on its own data and shares nothing. We are the open market for everyone else.</p>
         </div>
       </section>
 

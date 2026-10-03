@@ -1,0 +1,75 @@
+'use client'
+
+import { useEffect, useRef } from 'react'
+
+type RGB = [number, number, number]
+const COAL: RGB = [38, 36, 42], FLAME: RGB = [238, 115, 64], BLUSH: RGB = [243, 188, 174], PINK: RGB = [226, 110, 170]
+// dark to burnt orange to orange to pale pink to pink
+const FLOW: RGB[] = [[20, 17, 22], [150, 62, 22], FLAME, BLUSH, PINK]
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
+const CELL = 7 // px per halftone cell
+const css = (c: RGB) => `rgb(${c[0]} ${c[1]} ${c[2]})`
+
+/** A slow swirl: two sine waves, each bent by the other axis. Same seed, same picture. */
+export function flow(x: number, y: number, seed: number): number {
+  const wx = x + 0.3 * Math.sin(2.3 * y + seed), wy = y + 0.3 * Math.sin(1.9 * x + seed * 1.7)
+  return Math.min(1, Math.max(0, 0.5 + 0.27 * Math.sin(3.1 * wx + 1.7 * wy + seed * 2.1) + 0.23 * Math.sin(4.3 * wy - 2.2 * wx + seed)))
+}
+
+/**
+ * Poster background: a flowing orange and pink gradient broken into square halftone dots (ordered dithering).
+ * flow is the full swirl, coal is flat charcoal with dots drifting in, flame is flat orange with dots drifting in.
+ * Drawn on a canvas that fills its parent, which must be positioned. It shifts a little under the pointer.
+ */
+export default function Dither({ tone = 'flow', seed = 1, className = '' }: { tone?: 'flow' | 'coal' | 'flame'; seed?: number; className?: string }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const c = ref.current!, host = c.parentElement!
+    let drift = seed, raf = 0
+    const paint = () => {
+      const w = c.clientWidth, h = c.clientHeight
+      if (!w || !h) return
+      const dpr = Math.min(devicePixelRatio, 2), cols = Math.ceil(w / CELL), rows = Math.ceil(h / CELL)
+      c.width = w * dpr
+      c.height = h * dpr
+      const g = c.getContext('2d')!
+      const flat = tone === 'coal' ? COAL : tone === 'flame' ? FLAME : null
+      // the smooth layer is painted one pixel per cell, then stretched
+      const small = document.createElement('canvas')
+      small.width = cols
+      small.height = rows
+      const sg = small.getContext('2d')!, img = sg.createImageData(cols, rows)
+      const dots: [number, number, string][] = []
+      for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+        const v = flow((i * CELL) / 420, (j * CELL) / 420, drift), o = (j * cols + i) * 4
+        const p = v * (FLOW.length - 1), k = Math.min(FLOW.length - 2, Math.floor(p)), t = p - k
+        const base = flat ?? (FLOW[k].map((a, n) => a + (FLOW[k + 1][n] - a) * t) as RGB)
+        img.data.set([...base, 255], o)
+        // how many dots: on the swirl they thicken toward the next colour, on a flat tone they drift in where the swirl peaks
+        const density = flat ? (v - 0.55) / 0.45 : k === 0 ? t * 0.45 : t
+        if ((BAYER[(j & 3) * 4 + (i & 3)] + 0.5) / 16 < density) dots.push([i, j, css(!flat && k === 3 ? PINK : BLUSH)])
+      }
+      sg.putImageData(img, 0, 0)
+      g.imageSmoothingEnabled = true
+      g.drawImage(small, 0, 0, c.width, c.height)
+      const s = CELL * dpr, d = s * 0.52
+      for (const [i, j, col] of dots) {
+        g.fillStyle = col
+        g.fillRect(i * s + (s - d) / 2, j * s + (s - d) / 2, d, d)
+      }
+    }
+    paint()
+    const ro = new ResizeObserver(paint)
+    ro.observe(c)
+    // the swirl drifts as the pointer moves across the card
+    const move = (e: PointerEvent) => {
+      drift = seed + (e.clientX + e.clientY) * 0.0016
+      raf ||= requestAnimationFrame(() => { raf = 0; paint() })
+    }
+    host.addEventListener('pointermove', move)
+    return () => { ro.disconnect(); host.removeEventListener('pointermove', move); cancelAnimationFrame(raf) }
+  }, [tone, seed])
+
+  return <canvas ref={ref} aria-hidden className={`absolute inset-0 -z-10 h-full w-full ${className}`} />
+}
