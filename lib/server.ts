@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto'
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless'
-import { LABELS, BASE_RATE, marketRate, listPrice, nearDuplicate, reputation, type Market } from './score'
+import { LABELS, BASE_RATE, marketRate, listPrice, nearDuplicate, reputation, GOLDEN_MULT, type LabelSet, type LabelSets, type Market } from './score'
 
 // Lazy so the build does not need DATABASE_URL.
 export const sql = ((s: TemplateStringsArray, ...v: unknown[]) => neon(process.env.DATABASE_URL!)(s, ...v)) as NeonQueryFunction<false, false>
@@ -100,7 +100,7 @@ export const getMarket = cache(async (): Promise<Record<string, TaskMarket>> => 
 
 /** What a buyer pays for the raw package: the seller's ask if they set one, else the live market price. */
 export function priceOf(r: Record<string, any>, market: Record<string, TaskMarket>): number {
-  return r.ask ?? listPrice(market[r.labels?.task ?? '']?.rate ?? BASE_RATE, r.minutes, r.quality_score, r.years ?? 0)
+  return r.ask ?? Math.round(listPrice(market[r.labels?.task ?? '']?.rate ?? BASE_RATE, r.minutes, r.quality_score, r.years ?? 0) * (r.golden ? GOLDEN_MULT : 1))
 }
 
 /** Trust boundary for the duplicate check inputs. */
@@ -121,4 +121,15 @@ export async function findDuplicate(fingerprint: string | null, hashes: string[]
     if (kind) return { id: r.id as string, kind, own: r.seller_id === userId }
   }
   return null
+}
+
+/** Trust boundary for the open-source model outputs computed on the seller's device. */
+export function cleanLabelsets(b: any): LabelSets {
+  const set = (v: unknown): LabelSet =>
+    (Array.isArray(v) ? v : [])
+      .filter((x) => typeof x?.name === 'string' && typeof x.confidence === 'number' && isFinite(x.confidence))
+      .slice(0, 10)
+      .map((x) => ({ name: x.name.trim().slice(0, 40), confidence: Math.min(1, Math.max(0, x.confidence)), frames: Math.min(6, Math.max(1, Math.round(Number(x.frames) || 1))) }))
+  const n = (v: unknown) => (typeof v === 'number' && isFinite(v) ? Math.min(1, Math.max(0, v)) : 0)
+  return { objects: set(b?.objects), scene: set(b?.scene), hands: { coverage: n(b?.hands?.coverage), confidence: n(b?.hands?.confidence) } }
 }

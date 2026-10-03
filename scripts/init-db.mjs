@@ -56,6 +56,10 @@ const schema = [
   // Task requests ask for a number of demos from a minimum number of different people.
   `alter table calls add column if not exists demos int`,
   `alter table calls add column if not exists min_people int`,
+  // Labelling: open-source model outputs from the device, the human-checked flag, and the labelling fee on a sale.
+  `alter table uploads add column if not exists labelsets jsonb`,
+  `alter table uploads add column if not exists golden boolean default false`,
+  `alter table purchases add column if not exists fee int default 0`,
 ]
 for (const s of schema) await sql.query(s)
 

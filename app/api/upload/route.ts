@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { sql, getUser, getMarket, log, findDuplicate, cleanHashes } from '@/lib/server'
+import { sql, getUser, getMarket, log, findDuplicate, cleanHashes, cleanLabelsets } from '@/lib/server'
 import { LABELS, BASE_RATE, technical, completeness, finalScore, listPrice, authenticity, matchesCall, type Labels, type Metrics } from '@/lib/score'
 
 export const maxDuration = 60
@@ -118,10 +118,11 @@ export async function POST(request: Request) {
   // Duplicate check runs with the quality check. ponytail: hashes come from the browser like the metrics do,
   // so a determined cheat can send fake ones. Recompute server-side when the measurements move there.
   const { fingerprint, hashes } = cleanHashes(b)
+  const labelsets = cleanLabelsets(b.labelsets)
   const dup = await findDuplicate(fingerprint, hashes, user.id)
-  const [row] = await sql`insert into uploads (seller_id, title, video_url, episode_url, labels, description, steps, thumb, metrics, minutes, fingerprint, phash, duplicate_of)
+  const [row] = await sql`insert into uploads (seller_id, title, video_url, episode_url, labels, description, steps, thumb, metrics, minutes, fingerprint, phash, duplicate_of, labelsets)
     values (${user.id}, ${clip(b.title, 120) || null}, ${video_url}, ${episode_url}, ${JSON.stringify(labels)}::jsonb, ${description}, ${steps}, ${thumb}, ${JSON.stringify(metrics)}::jsonb, ${minutes},
-      ${fingerprint}, ${JSON.stringify(hashes)}::jsonb, ${dup?.id ?? null})
+      ${fingerprint}, ${JSON.stringify(hashes)}::jsonb, ${dup?.id ?? null}, ${JSON.stringify(labelsets)}::jsonb)
     returning id`
   const auth = authenticity(episode, metrics.duration ?? 0)
   await log(row.id, 'device', 'observed', {
@@ -129,6 +130,7 @@ export async function POST(request: Request) {
     challenges: Array.isArray(episode?.challenges) ? episode.challenges.slice(0, 5) : [], request_id: call?.id ?? null,
     consent: true, originality: dup ? `${dup.kind} match` : 'no match',
   }, user.id)
+  await log(row.id, 'model', 'labelled', { engine: 'MediaPipe on the device', objects: labelsets.objects, scene: labelsets.scene, hands: labelsets.hands })
   if (!dup && !auth.passed) {
     // Could not show it was recorded live: stored for the record, never reviewed, priced or listed.
     const reason = !auth.challenge ? 'The live challenge was not passed' : 'Hand tracking does not cover the recording'

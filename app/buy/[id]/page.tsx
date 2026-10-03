@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { sql, getUser, getMarket, priceOf, getReputation } from '@/lib/server'
-import { checks, packages, tier, signal, ACCEPT_REASONS, PASS_REASONS, BASE_RATE, LICENCE, taskPhoto, type Labels } from '@/lib/score'
+import { checks, packages, unavailable, tier, signal, ACCEPT_REASONS, PASS_REASONS, BASE_RATE, LICENCE, taskPhoto, type Labels } from '@/lib/score'
 import { buy, pass, reportResult } from '../../actions'
 
 const HEAD: Record<string, string> = {
   observed: 'Observed on the device', proposed: 'Model proposed', changed: 'Reviewer changed', kept: 'Reviewer kept their labels',
-  priced: 'Scored and priced', ask: 'Seller ask', accepted: 'Buyer accepted', passed: 'Buyer passed', result: 'Buyer reported a training result',
+  priced: 'Scored and priced', ask: 'Seller ask', accepted: 'Buyer accepted', passed: 'Buyer passed', labelled: 'Open-source models labelled it on the device', golden: 'Seller checked every label by hand: golden clip', result: 'Buyer reported a training result',
   duplicate: 'Flagged as a copy of a clip already on Guild. Not listed', unverified: 'Could not verify this was filmed live. Not listed', withdrawn: 'Seller withdrew the clip from the market', relisted: 'Seller put the clip back on the market',
 }
 const labelText = (l: Labels = {}) => [l.task, l.industry, l.perspective, l.device, ...(l.tools ?? [])].filter(Boolean).join(', ')
@@ -30,6 +30,10 @@ function lines(kind: string, d: any): string[] {
       return [d.ask ? `Set to $${d.ask}. Market price was $${d.market}` : 'Cleared. Back to the market price']
     case 'accepted':
       return [`${d.package} for $${d.price}${d.via === 'bid' ? ', filled from a standing bid' : ''}`, `Why: ${(d.reasons ?? []).join(', ') || 'see note'}`]
+    case 'labelled':
+      return [d.objects?.length ? `Objects: ${d.objects.map((o: any) => `${o.name} ${pct(o.confidence)}`).join(', ')}` : 'No objects above the confidence threshold', d.scene?.length ? `Scene: ${d.scene.map((o: any) => `${o.name} ${pct(o.confidence)}`).join(', ')}` : '']
+    case 'golden':
+      return [(d.fields ?? []).length ? `Corrected: ${d.fields.join(', ')}` : 'Confirmed every label as it was', `Score ${d.score_before} to ${d.score_after}`]
     case 'result':
       return [`Outcome: ${d.outcome}${d.metric ? ` (${d.metric})` : ''}`, d.bonus ? `Seller bonus $${d.bonus}` : '']
     case 'passed':
@@ -54,8 +58,9 @@ export default async function Listing({ params, searchParams }: { params: Promis
   const mine = user?.id === r.seller_id
   if (!mine && (r.status !== 'scored' || r.quality_score < 2)) notFound()
   const owned = user ? (await sql`select package from purchases where upload_id = ${id} and buyer_id = ${user.id}`).map((p) => p.package) : []
-  const raw = mine || owned.includes('raw') || owned.includes('both')
-  const processed = mine || owned.includes('processed') || owned.includes('both')
+  const raw = mine || owned.length > 0 // every option includes the raw data
+  const has = (k: string) => mine || owned.includes(k) || owned.includes('both') || owned.includes('processed') || (k !== 'verified' && owned.includes('verified'))
+  const processed = mine || owned.some((k) => k !== 'byo' && k !== 'raw')
   const l: Labels = r.labels ?? {}
   const photo: string | null = r.thumb ?? taskPhoto(l.task)
   if (!mine && r.withdrawn_at && !owned.length) notFound() // withdrawn: only the seller and past buyers still see it
@@ -84,7 +89,7 @@ export default async function Listing({ params, searchParams }: { params: Promis
   const m = market[l.task ?? '']
   const price = priceOf(r, market)
   const hours = r.minutes / 60
-  const report = { title: r.title, labels: l, steps, quality_score: r.quality_score, metrics: r.metrics, review: r.ai, seller: { trade: r.trade, years: r.years, credential: r.credential }, evidence_trail: trail.map(({ kind, actor, data, note, created_at }) => ({ kind, actor, data, note, created_at })) }
+  const report = { title: r.title, quality_score: r.quality_score, metrics: r.metrics, labelling: { open_source_objects: has('oss-objects') ? r.labelsets?.objects : undefined, open_source_scene: has('oss-scene') ? r.labelsets?.scene : undefined, hand_tracking: r.labelsets?.hands, llm: has('llm') ? r.ai : undefined, human_verified: has('verified') && r.golden ? { labels: l, steps } : undefined, seller_entered: has('llm') || has('verified') ? { labels: l, steps } : undefined }, seller: { trade: r.trade, years: r.years, credential: r.credential }, evidence_trail: trail.map(({ kind, actor, data, note, created_at }) => ({ kind, actor, data, note, created_at })) }
 
   return (
     <main className="mx-auto grid max-w-6xl gap-6 px-4 py-6 md:grid-cols-[1.4fr_1fr]">
@@ -103,6 +108,7 @@ export default async function Listing({ params, searchParams }: { params: Promis
             <span className="score" style={{ '--s': r.quality_score } as React.CSSProperties} /> {r.quality_score}/5,
             {r.minutes >= 60 ? ` ${Math.round(hours)} hours` : ` ${Math.max(1, Math.round(r.minutes))} min`}
             {!r.video_url && ', sample listing'}
+            {r.golden && <span className="chip chip-warm ml-1">Golden: labels checked by hand</span>}
           </p>
         </div>
         <p className="text-sm">{r.description}</p>
@@ -159,6 +165,7 @@ export default async function Listing({ params, searchParams }: { params: Promis
           <div className="card space-y-3 p-5">
             <p className="label">{mine ? 'Your files' : 'Purchased'}</p>
             {raw && (r.video_url ? <a className="btn w-full" href={r.video_url} download>Download raw video</a> : <p className="muted text-sm">Sample listing, no raw file attached.</p>)}
+            {raw && r.video_url && !mine && <a className="btn btn-ghost w-full" download="label-studio-task.json" href={`data:application/json,${encodeURIComponent(JSON.stringify([{ data: { video: r.video_url, clip_id: r.id } }]))}`}>Label Studio task file</a>}
             {processed && <a className="btn btn-ghost w-full" download="labels-and-evidence.json" href={`data:application/json,${encodeURIComponent(JSON.stringify(report, null, 2))}`}>Download labels and evidence trail</a>}
             {processed && r.episode_url && <a className="btn btn-ghost w-full" href={r.episode_url} download>Download hand-pose episode</a>}
             {!mine && owned.length > 0 && (
@@ -186,7 +193,7 @@ export default async function Listing({ params, searchParams }: { params: Promis
           {r.ask ? (
             <p>The seller asks ${r.ask}. The market price would be ${priceOf({ ...r, ask: null }, market)}.</p>
           ) : (
-            <p>${(m?.rate ?? BASE_RATE).toFixed(2)}/h market rate x {hours < 1 ? `${Math.round(r.minutes)} min` : `${hours.toFixed(1)} h`} x score {r.quality_score}/4 x {tier(r.years).mult} ({tier(r.years).name}) = ${price}{price === 5 ? ' (minimum)' : ''}</p>
+            <p>${(m?.rate ?? BASE_RATE).toFixed(2)}/h market rate x {hours < 1 ? `${Math.round(r.minutes)} min` : `${hours.toFixed(1)} h`} x score {r.quality_score}/4 x {tier(r.years).mult} ({tier(r.years).name}){r.golden ? ' x 1.3 golden' : ''} = ${price}{price === 5 ? ' (minimum)' : ''}</p>
           )}
           {m && <p className="muted">{l.task}: {signal(m).toLowerCase()}. {Math.round(m.demand)} h wanted, {m.supply.toFixed(1)} h listed{m.last ? `, last sale $${m.last.toFixed(0)}/h` : ''}. <Link href="/market" className="underline underline-offset-4">Prices</Link></p>}
           <p className="muted">80% goes to the seller.</p>
@@ -196,14 +203,29 @@ export default async function Listing({ params, searchParams }: { params: Promis
           <form action={buy} className="card space-y-3 p-5">
             <input type="hidden" name="id" value={r.id} />
             {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
+            <div className="flex items-baseline justify-between">
+              <span className="label !mb-0">Raw data</span>
+              <span className="text-2xl font-light tabular-nums">${price.toLocaleString('en-US')}</span>
+            </div>
+            <p className="muted text-xs">Video, hand-pose episode and motion data. 80% to the seller, 20% platform fee.</p>
+            {/* labelling is a separate line: bring your own, two free open-source models, the LLM, or human-verified */}
             <fieldset className="space-y-2">
-              <legend className="label">Package</legend>
-              {packages(price).map((p, i) => (
-                <label key={p.key} className="flex cursor-pointer items-start gap-3 rounded-xl bg-white/5 p-3 has-[:checked]:bg-white/15">
-                  <input type="radio" name="package" value={p.key} defaultChecked={i === 2} className="mt-1" />
-                  <span className="flex-1"><span className="flex justify-between"><span>{p.name}{owned.includes(p.key) ? ' (owned)' : ''}</span><span>${p.price.toLocaleString('en-US')}</span></span><span className="muted block text-xs">{p.what}</span></span>
-                </label>
-              ))}
+              <legend className="label">How should it be labelled?</legend>
+              {packages(price).map((p, i) => {
+                const why = unavailable(p.key, r)
+                return (
+                  <label key={p.key} className={`flex items-start gap-3 rounded-xl bg-white/5 p-3 has-[:checked]:bg-tan/60 ${why ? 'opacity-50' : 'cursor-pointer'}`}>
+                    <input type="radio" name="package" value={p.key} defaultChecked={i === 0} disabled={!!why} className="mt-1" />
+                    <span className="flex-1">
+                      <span className="flex justify-between gap-3">
+                        <span className="font-medium">{p.name}{owned.includes(p.key) ? ' (owned)' : ''}</span>
+                        <span className="whitespace-nowrap tabular-nums">{p.labelling ? `+ $${p.labelling.toLocaleString('en-US')}` : 'Free'}</span>
+                      </span>
+                      <span className="muted block text-xs">{why ? `${why}.` : p.what}</span>
+                    </span>
+                  </label>
+                )
+              })}
             </fieldset>
             <fieldset>
               <legend className="label">Why are you accepting it?</legend>

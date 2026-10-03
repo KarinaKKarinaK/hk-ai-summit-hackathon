@@ -307,3 +307,34 @@ docs/           README screenshots
 ## Photo credits
 
 Sample listings use stand-in photos from Wikimedia Commons (public domain and CC BY / CC BY-SA). Authors, licences and source links are in [public/tasks/CREDITS.md](public/tasks/CREDITS.md). `wiring.jpg` was supplied by the team and its source is not recorded.
+
+## Labelling options
+
+A buyer always pays for the raw data (80% to the seller, 20% platform fee). Labelling is a separate line they choose per clip:
+
+| Option | Cost | What they get |
+|---|---|---|
+| Bring your own labelling | Free | Raw video, hand-pose episode and motion data, plus a Label Studio task file to load into their own pipeline |
+| Open source: object detection | Free | EfficientDet-Lite0 (Apache 2.0): objects and tools in frame, with confidence |
+| Open source: scene classification | Free | EfficientNet-Lite0 (Apache 2.0): what the scene shows, with confidence |
+| LLM labelling (Kimi) | +15% | Task, step list, skill level and privacy flags from a vision language model |
+| Guild verified | +60% | Model labels checked by a person, field by field |
+
+The two open-source models run on the seller's phone through MediaPipe while the clip is being checked, which is why they cost nothing to offer. An option is only sold when its labels exist for that clip: LLM labelling needs the Kimi review to have run, and Guild verified needs a golden clip.
+
+**Processing report** (`/sell/[id]`, private to the seller). After submitting, the seller lands on a page that shows every stage with its outputs: authenticity, quality and originality, each open-source model's labels with confidence and frame counts, the LLM result or why it did not run, the score parts, and the human check.
+
+**Golden clips.** On that page the seller checks each label against what they filmed and confirms it. The clip becomes golden, lists 30% higher, and unlocks the Guild verified option. The correction is written to the evidence trail.
+
+### Open-source video labelling tools we looked at
+
+| Project | Licence | What it is | Why it is or is not in the build |
+|---|---|---|---|
+| [MediaPipe](https://github.com/google-ai-edge/mediapipe) | Apache 2.0 | On-device vision models and runtime | Used. Small enough to run on a phone, so labelling is free and instant |
+| [Label Studio](https://github.com/HumanSignal/label-studio) | Apache 2.0 | Multi-type annotation platform | Not hosted by us. Bring-your-own buyers get a task file in its format |
+| [CVAT](https://github.com/cvat-ai/cvat) | MIT | The reference tool for video and object tracking annotation | Needs its own server. The natural home for a human review queue later |
+| SAM 2, Grounded-SAM-2 | Apache 2.0 | Segmentation and tracking across video | Needs a GPU server. The next step for per-object masks |
+
+Licence and usage notes for CVAT and Label Studio are from the projects' own pages and [this comparison](https://www.cvat.ai/resources/blog/best-open-source-data-annotation-tools).
+
+Limits: "Guild verified" today means the seller checked their own labels, not an independent reviewer. Open-source labels are computed in the browser and can be spoofed like the quality metrics. The two models use general vocabularies (COCO objects, ImageNet classes), so they miss trade-specific tools.

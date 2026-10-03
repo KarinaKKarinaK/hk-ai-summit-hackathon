@@ -67,12 +67,12 @@ export default function UploadForm({ initialFile: file, episode, requestId, year
       const res = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ video_url: video.url, episode_url: ep.url, request_id: requestId, consent: consent && workplace, title: f.title, description: f.description, steps: f.steps, labels, metrics, frames: shots?.frames ?? [], thumb: shots?.thumb, hashes: shots?.hashes, fingerprint: shots?.fingerprint }),
+        body: JSON.stringify({ video_url: video.url, episode_url: ep.url, request_id: requestId, consent: consent && workplace, title: f.title, description: f.description, steps: f.steps, labels, metrics, frames: shots?.frames ?? [], thumb: shots?.thumb, hashes: shots?.hashes, fingerprint: shots?.fingerprint, labelsets: shots?.labelsets }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
       setResult(json)
-      router.refresh()
+      router.push(`/sell/${json.id}`) // the processing report shows every stage and what each model said
     } catch (err) {
       setError((err as Error).message || 'Upload failed')
     } finally {
@@ -121,7 +121,7 @@ export default function UploadForm({ initialFile: file, episode, requestId, year
             ) : (
               <p className="muted text-sm">The vision review did not run ({result.aiError}). This score uses the technical checks and your labels only.</p>
             )}
-            <p className="text-sm">In the catalog at ${result.price}, earning you a share every time it sells. <Link className="underline underline-offset-4" href={`/buy/${result.id}`}>See the evidence trail</Link></p>
+            <p className="text-sm">In the catalog at ${result.price}, earning you a share every time it sells. <Link className="underline underline-offset-4" href={`/sell/${result.id}`}>Open the processing report</Link></p>
           </>
         )}
         <a href="/record" className="btn btn-ghost">Record another</a>

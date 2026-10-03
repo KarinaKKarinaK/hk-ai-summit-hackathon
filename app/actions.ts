@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { sql, hash, verify, createSession, requireUser, getMarket, priceOf, log } from '@/lib/server'
-import { LABELS, ACCEPT_REASONS, PASS_REASONS, packages, technical, completeness, finalScore, tier, matchesCall, RESULT_BONUS, type Labels } from '@/lib/score'
+import { LABELS, ACCEPT_REASONS, PASS_REASONS, packages, technical, completeness, finalScore, tier, matchesCall, unavailable, RESULT_BONUS, type Labels } from '@/lib/score'
 
 const str = (f: FormData, k: string, max = 200) => String(f.get(k) ?? '').trim().slice(0, max)
 const int = (f: FormData, k: string, max: number) => Math.min(max, Math.max(0, parseInt(str(f, k)) || 0))
@@ -121,17 +121,17 @@ function impliedRate(price: number, r: Record<string, any>) {
 export async function buy(f: FormData) {
   const user = await requireUser()
   const id = uuid(f, 'id')
-  const [r] = await sql`select u.id, u.seller_id, u.ask, u.labels, u.minutes, u.quality_score, s.years from uploads u join users s on s.id = u.seller_id
+  const [r] = await sql`select u.id, u.seller_id, u.ask, u.labels, u.minutes, u.quality_score, u.golden, u.ai, u.labelsets, s.years from uploads u join users s on s.id = u.seller_id
     where u.id = ${id} and u.status = 'scored' and u.quality_score >= 2 and u.withdrawn_at is null`
   if (!r || r.seller_id === user.id) redirect('/buy')
   const base = priceOf(r, await getMarket()) // priced server-side at the moment of sale
   const pkg = packages(base).find((p) => p.key === str(f, 'package'))
   const reasons = picks(f, 'reasons', ACCEPT_REASONS), note = str(f, 'note', 500)
-  if (!pkg) redirect(`/buy/${id}`)
+  if (!pkg || unavailable(pkg.key, r)) redirect(`/buy/${id}`)
   if (!reasons.length && !note) redirect(`/buy/${id}?error=${encodeURIComponent('Pick at least one reason for accepting this clip')}`)
   const rate = impliedRate(base, r)
-  await sql`insert into purchases (buyer_id, upload_id, package, price, rate) values (${user.id}, ${id}, ${pkg.key}, ${pkg.price}, ${rate})`
-  await log(id, 'buyer', 'accepted', { package: pkg.name, price: pkg.price, rate, reasons, score: r.quality_score, labels: r.labels }, user.id, note)
+  await sql`insert into purchases (buyer_id, upload_id, package, price, rate, fee) values (${user.id}, ${id}, ${pkg.key}, ${pkg.price}, ${rate}, ${pkg.labelling})`
+  await log(id, 'buyer', 'accepted', { package: pkg.name, price: pkg.price, labelling_fee: pkg.labelling, rate, reasons, score: r.quality_score, labels: r.labels }, user.id, note)
   revalidatePath(`/buy/${id}`)
   redirect(`/buy/${id}`)
 }
@@ -172,4 +172,28 @@ export async function toggleListed(f: FormData) {
     where id = ${uuid(f, 'id')} and seller_id = ${user.id} returning id, withdrawn_at`
   if (r) await log(r.id, 'seller', r.withdrawn_at ? 'withdrawn' : 'relisted', {}, user.id)
   revalidatePath('/sell')
+}
+
+/** Golden clips: the seller checks every label by hand against the footage. Human-verified clips list for more. */
+export async function verifyLabels(f: FormData) {
+  const user = await requireUser()
+  const [r] = await sql`select id, labels, ai, metrics, description, quality_score from uploads
+    where id = ${uuid(f, 'id')} and seller_id = ${user.id} and status = 'scored' and duplicate_of is null and quality_score >= 2`
+  if (!r) redirect('/sell')
+  const fail = (m: string): never => redirect(`/sell/${r.id}?error=${encodeURIComponent(m)}`)
+  if (f.get('watched') !== 'on') fail('Confirm that you watched the clip and checked each label')
+  const before: Labels = r.labels ?? {}
+  const after: Labels = {
+    task: pick(LABELS.task, str(f, 'task')) ?? undefined, industry: pick(LABELS.industry, str(f, 'industry')) ?? undefined,
+    perspective: pick(LABELS.perspective, str(f, 'perspective')) ?? undefined, outcome: pick(LABELS.outcome, str(f, 'outcome')) ?? undefined, device: before.device,
+    tools: str(f, 'tools', 400).split(',').map((t) => t.trim().slice(0, 40)).filter(Boolean).slice(0, 12),
+  }
+  if (!after.task || !after.perspective) fail('A golden clip needs at least a task and a camera view')
+  const steps = str(f, 'steps', 2000)
+  const fields = (['task', 'industry', 'perspective', 'outcome', 'tools'] as const).filter((k) => JSON.stringify(before[k] ?? null) !== JSON.stringify(after[k] ?? null))
+  const score = finalScore(technical(r.metrics ?? {}), completeness(after, r.description ?? '', steps), r.ai?.quality_score)
+  await sql`update uploads set labels = ${JSON.stringify(after)}::jsonb, steps = ${steps}, golden = true, quality_score = ${Math.max(score, 2)} where id = ${r.id}`
+  await log(r.id, 'seller', 'golden', { fields, before, after, score_before: r.quality_score, score_after: Math.max(score, 2) }, user.id, str(f, 'note', 500))
+  revalidatePath(`/sell/${r.id}`)
+  redirect(`/sell/${r.id}`)
 }

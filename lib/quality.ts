@@ -1,7 +1,7 @@
 // Browser only. Samples frames from a video file and measures quality live,
 // before anything is uploaded.
-import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision'
-import { dhash, type Metrics } from './score'
+import { FilesetResolver, HandLandmarker, ImageClassifier, ObjectDetector } from '@mediapipe/tasks-vision'
+import { dhash, type LabelSet, type Metrics } from './score'
 
 const MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task'
 const cached: Partial<Record<'IMAGE' | 'VIDEO', Promise<HandLandmarker>>> = {}
@@ -18,6 +18,29 @@ const once = (el: HTMLElement, ev: string, ms = 5000) =>
     const t = setTimeout(() => rej(new Error(`video did not respond (${ev})`)), ms)
     el.addEventListener(ev, () => (clearTimeout(t), res()), { once: true })
   })
+
+const OBJECT_MODEL = 'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite'
+const SCENE_MODEL = 'https://storage.googleapis.com/mediapipe-models/image_classifier/efficientnet_lite0/float32/1/efficientnet_lite0.tflite'
+let labellers: Promise<{ objects: ObjectDetector; scene: ImageClassifier }> | undefined
+
+/** The two free labelling options: small Apache 2.0 models that run on the phone, so they cost nothing per clip. */
+export function getLabellers() {
+  return (labellers ??= FilesetResolver.forVisionTasks('/mediapipe').then(async (files) => ({
+    objects: await ObjectDetector.createFromOptions(files, { baseOptions: { modelAssetPath: OBJECT_MODEL }, runningMode: 'IMAGE', scoreThreshold: 0.3, maxResults: 8 }),
+    scene: await ImageClassifier.createFromOptions(files, { baseOptions: { modelAssetPath: SCENE_MODEL }, runningMode: 'IMAGE', scoreThreshold: 0.1, maxResults: 3 }),
+  })))
+}
+
+type Tally = Record<string, { sum: number; n: number }>
+const tally = (t: Tally, c?: { categoryName: string; score: number }) => {
+  if (!c?.categoryName) return
+  const e = (t[c.categoryName] ??= { sum: 0, n: 0 })
+  e.sum += c.score
+  e.n++
+}
+/** Labels seen across the sampled frames: mean confidence and frame count, strongest first. */
+const summarise = (t: Tally): LabelSet =>
+  Object.entries(t).map(([name, e]) => ({ name, confidence: +(e.sum / e.n).toFixed(3), frames: e.n })).sort((a, b) => b.frames * b.confidence - a.frames * a.confidence).slice(0, 8)
 
 const SAMPLES = 6
 const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / (a.length || 1)
@@ -55,6 +78,9 @@ export async function analyze(file: File, on: (m: Metrics, stage: string) => voi
       await once(v, 'seeked')
     }
     const hands = await getHands('IMAGE').catch(() => null) // offline or blocked: skip the hands check
+    on({ ...m }, 'Loading open-source labelling models')
+    const lab = await getLabellers().catch(() => null)
+    const objects: Tally = {}, scene: Tally = {}, handConf: number[] = []
 
     // Fingerprint for exact copies: SHA-256 of the first megabyte plus the size, so a 500MB file is not read into memory.
     const digest = await crypto.subtle.digest('SHA-256', new Uint8Array([...new Uint8Array(await file.slice(0, 1 << 20).arrayBuffer()), ...new TextEncoder().encode(String(file.size))]))
@@ -79,7 +105,13 @@ export async function analyze(file: File, on: (m: Metrics, stage: string) => voi
       big.getContext('2d')!.drawImage(v, 0, 0, big.width, big.height)
       frames.push(big.toDataURL('image/jpeg', 0.7))
       if (i === SAMPLES >> 1) thumb = small.toDataURL('image/jpeg', 0.6)
-      if (hands && hands.detect(big).landmarks.length) seen++
+      const hr = hands?.detect(big)
+      if (hr?.landmarks.length) (seen++, handConf.push(hr.handedness?.[0]?.[0]?.score ?? 0))
+      if (lab) {
+        const seenHere = new Set<string>() // count an object once per frame, at its best score
+        for (const d of lab.objects.detect(big).detections) if (d.categories[0] && !seenHere.has(d.categories[0].categoryName)) (seenHere.add(d.categories[0].categoryName), tally(objects, d.categories[0]))
+        for (const c of lab.scene.classify(big).classifications[0]?.categories ?? []) tally(scene, c)
+      }
 
       if (duration > 0.3) {
         await seek(Math.min(t + 0.15, duration - 0.01))
@@ -95,7 +127,8 @@ export async function analyze(file: File, on: (m: Metrics, stage: string) => voi
       on({ ...m }, `Checked frame ${i + 1} of ${SAMPLES}`)
     }
     on({ ...m }, '')
-    return { metrics: m, frames, thumb, hashes, fingerprint }
+    const labelsets = { objects: summarise(objects), scene: summarise(scene), hands: { coverage: seen / SAMPLES, confidence: +mean(handConf).toFixed(3) } }
+    return { metrics: m, frames, thumb, hashes, fingerprint, labelsets }
   } finally {
     URL.revokeObjectURL(v.src)
   }

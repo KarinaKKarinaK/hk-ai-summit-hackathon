@@ -14,7 +14,7 @@ export default async function Sell() {
   const user = await getUser()
   const [rows, calls, market] = await Promise.all([
     user ? sql`select u.*, ${user.years ?? 0}::int as years,
-        (select coalesce(sum(price), 0)::int from purchases p where p.upload_id = u.id) as revenue,
+        (select coalesce(sum(price - coalesce(fee, 0)), 0)::int from purchases p where p.upload_id = u.id) as revenue,
         (select coalesce(sum(bonus), 0)::int from purchases p where p.upload_id = u.id) as bonus,
         array(select buyer_id::text from purchases p where p.upload_id = u.id) as buyers,
         exists(select 1 from events e where e.upload_id = u.id and e.kind in ('changed', 'kept')) as reviewed
@@ -152,7 +152,7 @@ export default async function Sell() {
                     {scored && (
                       <p className="muted text-xs">
                         {r.withdrawn_at ? 'Withdrawn from the market. ' : listed ? `Listed at $${r.ask ?? marketPrice}${r.ask ? ` (your ask, market says $${marketPrice})` : ' (market price, moves with demand)'}. You get $${payout(r.ask ?? marketPrice).toFixed(2)} per sale, released after ${HOLD_DAYS} days. ` : r.duplicate_of ? 'Not listed: this matches a clip that was already uploaded. ' : 'Not listed: score below 2. '}
-                        Sold {r.buyers.length} times. <Link href={`/buy/${r.id}`} className="underline underline-offset-4">Evidence trail and job record</Link>
+                        Sold {r.buyers.length} times. <Link href={`/sell/${r.id}`} className="underline underline-offset-4">Processing report{r.golden ? '' : ', check labels to make it golden'}</Link>
                       </p>
                     )}
                     {r.ai?.reasons?.length > 0 && <p className="muted text-xs">{r.ai.reasons.join(' ')}</p>}

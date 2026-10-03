@@ -231,10 +231,33 @@ export function nearDuplicate(a: string[], b: string[]): boolean {
 export const ACCEPT_REASONS = ['Matches our task spec', 'Hands and tool clearly visible', 'Quality score', 'Seller experience in the trade', 'Step list is usable', 'Has hand-pose episode', 'Price']
 export const PASS_REASONS = ['Wrong task', 'Quality too low', 'Labels look wrong', 'Too short', 'Face or private data visible', 'Price too high']
 
+// ---- Labelling options. The buyer always pays for the raw data. Labelling is a separate, optional line. ----
+
+export const GOLDEN_MULT = 1.3 // a clip whose labels the seller has checked by hand lists for this much more
+
+/** One model's output over the sampled frames: label, mean confidence, and how many frames it appeared in. */
+export type LabelSet = { name: string; confidence: number; frames: number }[]
+export type LabelSets = { objects?: LabelSet; scene?: LabelSet; hands?: { coverage: number; confidence: number } }
+
+// fee = share of the raw data price. The two open-source models run on the seller's phone, so they cost nothing to offer.
+export const LABELLING = [
+  { key: 'byo', name: 'Bring your own labelling', fee: 0, what: 'Raw video and motion data only, with a Label Studio task file for your own pipeline.' },
+  { key: 'oss-objects', name: 'Open source: object detection', fee: 0, what: 'EfficientDet-Lite0 (Apache 2.0). Objects and tools in frame, with confidence. Free.' },
+  { key: 'oss-scene', name: 'Open source: scene classification', fee: 0, what: 'EfficientNet-Lite0 (Apache 2.0). What the scene shows, with confidence. Free.' },
+  { key: 'llm', name: 'LLM labelling (Kimi)', fee: 0.15, what: 'Task, step list, skill level and privacy flags from a vision language model.' },
+  { key: 'verified', name: 'Guild verified', fee: 0.6, what: 'Model labels checked by a person, field by field. Our most accurate option.' },
+] as const
+
+/** Why an option cannot be bought for this clip, or null if it can. Checked on the page and again at purchase. */
+export function unavailable(key: string, clip: { ai?: unknown; golden?: boolean | null; labelsets?: LabelSets | null }): string | null {
+  if (key === 'oss-objects' && !clip.labelsets?.objects?.length) return 'The detector found nothing on this clip'
+  if (key === 'oss-scene' && !clip.labelsets?.scene?.length) return 'Not run on this clip'
+  if (key === 'llm' && !clip.ai) return 'The LLM review has not run on this clip'
+  if (key === 'verified' && !clip.golden) return 'Nobody has checked this clip by hand yet'
+  return null
+}
+
+/** Each option priced for one clip: the raw data price plus the labelling fee. */
 export function packages(price: number) {
-  return [
-    { key: 'raw', name: 'Raw', price, what: 'Original footage only.' },
-    { key: 'processed', name: 'Processed', price: price * 2, what: 'Labels, step list, quality report and hand-pose episode file. No raw footage.' },
-    { key: 'both', name: 'Raw + processed', price: Math.round(price * 2.6), what: 'Everything.' },
-  ]
+  return LABELLING.map((o) => ({ ...o, labelling: Math.round(price * o.fee), price: price + Math.round(price * o.fee) }))
 }

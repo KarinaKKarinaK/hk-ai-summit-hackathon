@@ -12,7 +12,7 @@ export default async function Buy({ searchParams }: { searchParams: Promise<Sear
   const user = await getUser()
   // ponytail: filter in JS. Move to SQL where-clauses past a few thousand listings.
   const [all, market, history] = await Promise.all([
-    sql`select u.id, u.title, u.thumb, u.labels, u.quality_score, u.minutes, u.ask, u.description, u.video_url,
+    sql`select u.id, u.title, u.thumb, u.labels, u.quality_score, u.minutes, u.ask, u.description, u.video_url, u.golden,
         s.trade, s.years, s.verified from uploads u join users s on s.id = u.seller_id
       where u.status = 'scored' and u.quality_score >= ${min} and u.withdrawn_at is null order by u.video_url is null, u.created_at desc`,
     getMarket(),
@@ -99,6 +99,7 @@ export default async function Buy({ searchParams }: { searchParams: Promise<Sear
                   <span className="stat"><span className="score" style={{ '--s': r.quality_score } as React.CSSProperties} />{r.quality_score}/5</span>
                   <span className="stat">{r.minutes >= 60 ? `${Math.round(r.minutes / 60)} h` : `${Math.max(1, Math.round(r.minutes))} min`}</span>
                   {!r.video_url && <span className="stat stat-warm">Sample</span>}
+                  {r.golden && <span className="stat stat-warm">Golden</span>}
                 </p>
                 <p className="flex flex-wrap gap-1.5">
                   {fits(r) && <span className="chip chip-slate">Fits your past accepts</span>}
