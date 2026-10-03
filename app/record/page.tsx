@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { FaceLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision'
 import { getHands, getFace, getPose } from '@/lib/quality'
 import { countFingers } from '@/lib/score'
-import { buildArm, addLights } from '@/lib/arm'
+import { buildArm, buildMug, addLights, GRIP } from '@/lib/arm'
 import UploadForm from '@/components/UploadForm'
 
 const clamp = (x: number, a: number, b: number) => Math.min(b, Math.max(a, x))
@@ -48,6 +48,7 @@ export default function Record() {
   const [live, setLive] = useState<number | null>(null)
   const [prompt, setPrompt] = useState('')
   const [seen, setSeen] = useState<string[]>([]) // what is being tracked right now: hands, face, body
+  const [cup, setCup] = useState('reach') // where the cup task is: reach, near, held, lifted
   const [request, setRequest] = useState<{ id: string; title: string } | null>(null)
 
   // A seller arrives here from a buyer's request: /record?request=<id>&title=<text>
@@ -63,7 +64,9 @@ export default function Record() {
     // The mirrored arm is one of two modes. "Other task" records the same data without it.
     let renderer: THREE.WebGLRenderer | null = null
     const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(40, 1, 0.1, 50)
-    const arm = buildArm()
+    const arm = buildArm(), mug = buildMug()
+    mug.position.set(0.6, 0, 0.6)
+    let held = false, cupState = 'reach'
     if (mode === 'arm' && stage.current) {
       const el = stage.current
       try {
@@ -75,8 +78,8 @@ export default function Record() {
         cam.updateProjectionMatrix()
         cam.position.set(0, 1.5, 4.4)
         cam.lookAt(0, 1, 0)
-        addLights(scene)
-        scene.add(arm.root, new THREE.GridHelper(6, 12, 0x6b492e, 0x412c1a))
+        addLights(scene, renderer)
+        scene.add(arm.root, mug, new THREE.GridHelper(6, 12, 0x6b492e, 0x412c1a))
       } catch {
         renderer = null // no WebGL: keep recording, just without the arm
       }
@@ -118,7 +121,8 @@ export default function Record() {
           ctx.clearRect(0, 0, o.width, o.height)
           const u = o.width / 640 // stroke sizes follow the video size
           const X = (p: Pt) => p.x * o.width, Y = (p: Pt) => p.y * o.height
-          const shown = (p?: Pt) => !!p && (p.visibility ?? 1) > 0.5
+          let strict = false // only the body model reports visibility. Hands and face report 0, so they must not be filtered on it.
+          const shown = (p?: Pt) => !!p && (!strict || (p.visibility ?? 1) > 0.5)
           const stroke = (pts: Pt[], pairs: number[][], width: number, color: string) => {
             ctx.beginPath()
             for (const [a, b] of pairs) if (shown(pts[a]) && shown(pts[b])) (ctx.moveTo(X(pts[a]), Y(pts[a])), ctx.lineTo(X(pts[b]), Y(pts[b])))
@@ -142,12 +146,14 @@ export default function Record() {
           }
           // body: a filled torso, the skeleton, and a joint at each landmark
           if (poseLm) {
-            skin(poseLm, [11, 12, 24, 23], `rgba(${AMBER}, 0.16)`)
-            stroke(poseLm, BODY, 3.5, `rgba(${AMBER}, 0.9)`)
-            joints(poseLm, BODY_JOINTS, () => 6, `rgb(${AMBER})`)
+            strict = true
+            skin(poseLm, [11, 12, 24, 23], `rgba(${GREEN}, 0.1)`)
+            stroke(poseLm, BODY, 3.5, `rgba(${GREEN}, 0.9)`)
+            joints(poseLm, BODY_JOINTS, () => 6, `rgb(${GREEN})`)
+            strict = false
           }
           // face: the full tessellated mesh, drawn fine. It is shown live but never saved to the episode.
-          if (faceLm) stroke(faceLm, FACE, 0.7, 'rgba(241, 236, 230, 0.6)')
+          if (faceLm) stroke(faceLm, FACE, 0.8, `rgba(${GREEN}, 0.55)`)
           // each hand: a translucent skin, a fine web across it, then the bones and joints on top
           for (const h of all) {
             skin(h, HULL, `rgba(${GREEN}, 0.1)`)
@@ -160,9 +166,18 @@ export default function Record() {
             const size = Math.hypot(lm[0].x - lm[9].x, lm[0].y - lm[9].y) || 0.1 // bigger hand = closer
             const x = facing === 'user' ? 1 - lm[0].x : lm[0].x
             // smoothing: exponential moving average
-            target.lerp(new THREE.Vector3((x - 0.5) * 2.6, 0.3 + (1 - lm[0].y) * 1.6, clamp(1 - size * 2.5, 0.2, 1)), 0.35)
+            target.lerp(new THREE.Vector3((x - 0.5) * 2.6, 0.2 + (1 - lm[0].y) * 1.7, mode === 'arm' ? 0.6 : clamp(1 - size * 2.5, 0.2, 1)), 0.35)
             open += (clamp((Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / size - 0.2) / 0.8, 0, 1) - open) * 0.5
             arm.solve(target.x, target.y, target.z, open)
+            // The cup task. In arm mode the claw moves in the cup's plane, so your hand steers left, right, up and down.
+            // Bring the claw over the cup and low, pinch to grab, lift. Open your hand to let go and the cup drops back.
+            const tipY = target.y - GRIP, near = Math.abs(target.x - mug.position.x) < 0.26
+            if (!held && near && tipY < 0.4 && open < 0.45) held = true
+            else if (held && open > 0.7) held = false
+            if (held) mug.position.set(target.x, Math.max(0, tipY - 0.12), target.z)
+            else mug.position.y = Math.max(0, mug.position.y - 0.06)
+            const state = held ? (mug.position.y > 0.4 ? 'lifted' : 'held') : near ? 'near' : 'reach'
+            if (state !== cupState) setCup((cupState = state))
             r?.frames.push({
               t: Math.round(performance.now() - r.t0),
               landmarks: lm.map((p) => [+p.x.toFixed(4), +p.y.toFixed(4), +p.z.toFixed(4)]),
@@ -286,7 +301,7 @@ export default function Record() {
 
       <div className="card card-warm flex items-start gap-3 p-4 text-sm">
         <span className="chip bg-ink/40 flex-none">Try this</span>
-        <p>{mode === 'arm' ? 'Pick up a cup. Reach for it, pinch to grip, lift it, and put it back down. Watch the arm copy each move.' : 'Film any hands-on task from start to finish: tighten a bolt, strip a wire, fold a shirt. Keep both hands in frame.'}</p>
+        <p>{mode === 'arm' ? 'Pick up the cup in the 3D view. Move your hand until the claw is over it, lower it, pinch thumb and finger to grab, then lift. Open your hand to put it down.' : 'Film any hands-on task from start to finish: tighten a bolt, strip a wire, fold a shirt. Keep both hands in frame.'}</p>
       </div>
 
       <div className={`grid gap-3 ${mode === 'arm' ? 'md:grid-cols-2' : ''}`}>
@@ -301,7 +316,14 @@ export default function Record() {
             {warn.map((w) => <li key={w} className="rounded-lg bg-ink/80 px-3 py-1.5 text-sm text-amber-200">{w}</li>)}
           </ul>
         </div>
-        {mode === 'arm' && <div ref={stage} className="card streaks aspect-video overflow-hidden" />}
+        {mode === 'arm' && (
+          <div className="card streaks relative aspect-video overflow-hidden">
+            <div ref={stage} className="absolute inset-0" />
+            <p role="status" className={`chip absolute left-3 top-3 ${cup === 'lifted' ? 'bg-emerald-500 text-ink' : cup === 'held' ? 'bg-emerald-500/30 text-emerald-200' : 'bg-ink/70'}`}>
+              {cup === 'lifted' ? 'Picked up. Open your hand to put it down' : cup === 'held' ? 'Got it. Now lift' : cup === 'near' ? 'Lower the claw and pinch to grab' : 'Move the claw over the cup'}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-3">

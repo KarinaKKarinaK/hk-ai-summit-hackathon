@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { sql, requireUser, getMarket, priceOf } from '@/lib/server'
 import { LABELS, GOLDEN_MULT, HOLD_DAYS, checks, payout, type Labels, type LabelSet, type LabelSets } from '@/lib/score'
 import { verifyLabels } from '../../actions'
+import ClipStats from '@/components/ClipStats'
 
 type State = 'ok' | 'warn' | 'fail' | 'skip'
 const DOT: Record<State, string> = { ok: 'bg-emerald-400', warn: 'bg-amber-300', fail: 'bg-red-400', skip: 'bg-white/25' }
@@ -93,6 +94,8 @@ export default async function Report({ params, searchParams }: { params: Promise
           {listed && <Link href={`/buy/${r.id}`} className="btn !min-h-9 text-sm">View listing</Link>}
         </div>
       </section>
+
+      {listed && <ClipStats score={r.quality_score} metrics={r.metrics ?? {}} sets={sets} earn={payout(price)} />}
 
       <ol className="space-y-3">
         <Stage n={1} title="Capture and authenticity" by="on your device" state={observed.capture === 'gallery' ? 'warn' : !auth ? 'skip' : auth.passed ? 'ok' : 'fail'}>

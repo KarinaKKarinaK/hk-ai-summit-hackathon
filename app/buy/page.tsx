@@ -80,38 +80,29 @@ export default async function Buy({ searchParams }: { searchParams: Promise<Sear
       </form>
 
       {!rows.length && <p className="muted text-sm">No listings match. Clear a filter, or post an open call so sellers film it.</p>}
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {rows.map((r) => (
-          <li key={r.id}>
-            <Link href={`/buy/${r.id}`} className="card block h-full overflow-hidden">
-              <div className="relative">
-                {r.thumb ?? taskPhoto(r.labels?.task) ? (
-                  <img src={r.thumb ?? taskPhoto(r.labels?.task)!} alt="" loading="lazy" className={`aspect-video w-full object-cover ${r.thumb ? '' : 'photo'}`} />
-                ) : (
-                  <div className="streaks grid aspect-video place-items-center"><span className="emboss text-4xl font-semibold">{r.labels?.task}</span></div>
-                )}
-                <span className="chip chip-warm absolute left-3 top-3">{r.labels?.task}</span>
-                <span className="absolute bottom-3 right-3 rounded-lg bg-ink/80 px-2.5 py-1 text-sm font-medium tabular-nums backdrop-blur">from ${priceOf(r, market).toLocaleString('en-US')}</span>
-              </div>
-              <div className="space-y-3 p-4">
-                <h2 className="text-base font-semibold leading-snug tracking-normal">{r.title}</h2>
-                <p className="flex flex-wrap items-center gap-1.5">
-                  <span className="stat"><span className="score" style={{ '--s': r.quality_score } as React.CSSProperties} />{r.quality_score}/5</span>
-                  <span className="stat">{r.minutes >= 60 ? `${Math.round(r.minutes / 60)} h` : `${Math.max(1, Math.round(r.minutes))} min`}</span>
-                  {!r.video_url && <span className="stat stat-warm">Sample</span>}
-                  {r.golden && <span className="stat stat-warm">Golden</span>}
-                </p>
-                <p className="flex flex-wrap gap-1.5">
-                  {fits(r) && <span className="chip chip-slate">Fits your past accepts</span>}
-                  {[r.labels?.industry, r.labels?.perspective].filter(Boolean).map((c) => <span key={c} className="chip">{c}</span>)}
-                  {r.verified && <span className="chip chip-slate">Verified</span>}
-                  {/^Failed/.test(r.labels?.outcome ?? '') && <span className="chip">Failure case</span>}
-                  {r.trade && <span className="chip chip-slate">{tier(r.years).name} {r.trade.toLowerCase()}</span>}
-                </p>
-              </div>
-            </Link>
-          </li>
-        ))}
+      {/* An irregular grid: every sixth tile is large, the fourth and fifth are wide. Photo, name, price, nothing else. */}
+      <ul className="grid auto-rows-[11rem] grid-flow-dense grid-cols-2 gap-1.5 md:auto-rows-[13rem] md:grid-cols-4">
+        {rows.map((r, i) => {
+          const photo = r.thumb ?? taskPhoto(r.labels?.task)
+          const big = i % 6 === 0
+          const shape = big ? 'col-span-2 row-span-2' : i % 6 === 3 || i % 6 === 4 ? 'col-span-2' : ''
+          return (
+            <li key={r.id} className={shape}>
+              <Link href={`/buy/${r.id}`} className="group relative block h-full overflow-hidden rounded-xl bg-white/[.04]">
+                {photo ? <img src={photo} alt="" loading="lazy" className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${r.thumb ? '' : 'photo'}`} /> : <div className="streaks h-full" />}
+                <div className="absolute inset-0 bg-linear-to-t from-ink/90 via-ink/15 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-4">
+                  <p className="flex flex-wrap gap-1.5">
+                    {r.golden && <span className="chip chip-warm">Golden</span>}
+                    {fits(r) && <span className="chip bg-emerald-500/25 text-emerald-200">Fits you</span>}
+                  </p>
+                  <h2 className={`mt-2 font-medium uppercase leading-tight tracking-wide ${big ? 'text-xl md:text-2xl' : 'text-sm md:text-base'}`}>{r.title}</h2>
+                  <p className="mt-1 text-sm tabular-nums text-paper/70">${priceOf(r, market).toLocaleString('en-US')}<span className="ml-3">{r.quality_score}/5</span><span className="ml-3">{r.minutes >= 60 ? `${Math.round(r.minutes / 60)} h` : `${Math.max(1, Math.round(r.minutes))} min`}</span></p>
+                </div>
+              </Link>
+            </li>
+          )
+        })}
       </ul>
     </main>
   )

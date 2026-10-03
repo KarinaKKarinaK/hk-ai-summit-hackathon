@@ -1,32 +1,29 @@
 import Link from 'next/link'
 import Calculator from '@/components/Calculator'
 import ArmScene from '@/components/ArmScene'
+import Benefits from '@/components/Benefits'
 import { sql, getMarket } from '@/lib/server'
-import { SELLER_SHARE } from '@/lib/score'
 
 export const dynamic = 'force-dynamic'
 
-const steps = [
-  ['Request', 'A lab posts exactly what its model is missing, with a budget.'],
-  ['Record', 'Anyone films it in the app. A live challenge and motion sensors prove it is real.'],
-  ['Earn', 'The request pays on acceptance, and the clip keeps earning every time it is licensed.'],
-]
-
-const workers = [
-  ['A royalty, not a fee', `You keep ${SELLER_SHARE * 100}% of every licence, and one clip can sell to many labs.`],
-  ['It stays yours', 'Buyers license your footage. Withdraw any clip whenever you want.'],
-  ['Nothing hidden', 'Open prices, and you see who bought your work and why.'],
-]
+// Hours of training data that 1,000 USD buys, from published per-hour collection costs:
+// teleoperation 28 to 60 USD/h, raw egocentric video 15 to 22 USD/h. Sources are linked under the chart.
+const BUDGET = [
+  [17, 'Teleoperation, complex rig', '$60/h'],
+  [36, 'Teleoperation, simple rig', '$28/h'],
+  [45, 'Human video, high end', '$22/h'],
+  [67, 'Human video, low end', '$15/h'],
+] as const
 
 const compare = [
   ['Model', 'Closed pipeline into one robot', 'Open exchange any lab can buy from'],
   ['Ownership', 'Given away for a flat fee', 'Worker keeps it, earns on every licence'],
   ['Price', 'Set by the collector', 'A live market that follows demand'],
   ['Proof', 'Trust the uploader', 'Filmed in-app, live challenge, evidence trail'],
-  ['Feedback', 'Rejected after upload', 'Warnings while you record'],
 ]
 
 const usd = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
+const section = 'mx-auto max-w-6xl px-4 py-10 md:py-14'
 
 export default async function Home() {
   const [stats, market] = await Promise.all([
@@ -48,7 +45,7 @@ export default async function Home() {
         <div className="absolute inset-0 -z-10 bg-linear-to-t from-ink from-42% via-ink/80 via-58% to-transparent md:bg-linear-to-r md:from-ink md:from-8% md:via-ink/55 md:via-38% md:to-transparent" />
         <div className="absolute inset-x-0 top-0 -z-10 h-28 bg-linear-to-b from-ink/85 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 -z-10 h-48 bg-linear-to-t from-ink via-ink/80 to-transparent" />
-        <div className="rise mx-auto grid min-h-[86dvh] max-w-6xl content-end gap-10 px-4 pb-12 pt-72 md:min-h-[82dvh] md:pb-16 md:pt-28">
+        <div className="rise mx-auto grid min-h-[84dvh] max-w-6xl content-end gap-10 px-4 pb-10 pt-72 md:min-h-[80dvh] md:pb-14 md:pt-28">
           <div className="max-w-xl">
             <h1 className="text-5xl md:text-7xl">The open market for robot training data.</h1>
             <p className="muted mt-5 max-w-md text-lg">Labs request what their models are missing. Anyone with a phone records it and earns on every licence.</p>
@@ -70,20 +67,47 @@ export default async function Home() {
         </div>
       </section>
 
-      <section data-tilt className="mx-auto grid max-w-6xl gap-3 px-4 py-20 md:grid-cols-3 md:py-28">
-        {steps.map(([t, d], i) => (
-          <div key={t} className={`card p-6 ${i === 1 ? 'card-warm' : ''}`}>
-            <p className="grid h-9 w-9 place-items-center rounded-full bg-tan text-sm font-semibold tabular-nums">{i + 1}</p>
-            <h2 className="mt-4 text-3xl font-semibold">{t}</h2>
-            <p className="muted mt-3 max-w-xs">{d}</p>
+      {/* The case in one chart: a tag, a headline, one big number, and four bars with the last one lit. */}
+      <section data-tilt className={section}>
+        <div className="grid gap-8 md:grid-cols-[1fr_2.2fr] md:gap-12">
+          <div className="flex flex-col">
+            <p className="chip chip-warm self-start">Why human video</p>
+            <h2 className="mt-5 text-4xl md:text-5xl">More robot data for the same money</h2>
+            <p className="mt-8 max-w-xs text-paper/80 md:mt-auto">Filming a person costs a third to half as much per hour as teleoperating a robot, and collects 3 to 5 times faster. The same budget buys up to:</p>
+            <p className="mt-3 text-8xl font-light leading-none tracking-tighter md:text-[10rem]">4x</p>
           </div>
-        ))}
+          <div className="grid grid-cols-4 items-end gap-2 md:gap-5">
+            {BUDGET.map(([h, name, cost], i) => {
+              const lit = i === BUDGET.length - 1
+              return (
+                <div key={name} className="flex h-full flex-col">
+                  <p className={`text-3xl font-light tabular-nums md:text-5xl ${lit ? '' : 'text-slate'}`}>{h} h</p>
+                  <p className="mb-4 mt-1 min-h-10 text-xs leading-tight text-paper/80 md:text-sm">{name}</p>
+                  <div className="mt-auto flex h-64 items-end md:h-96">
+                    <div className={`relative w-full ${lit ? 'bg-linear-to-t from-rust via-tan to-slate' : 'bg-white/[.09]'}`} style={{ height: `${(h / 67) * 100}%` }}>
+                      <span className={`absolute bottom-2 left-2 text-xs tabular-nums ${lit ? '' : 'muted'}`}>{cost}</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        <p className="muted mt-6 text-xs">
+          Hours of training data per $1,000, worked out from published collection costs per hour. Public teleoperated robot data totals about 11,000 hours (Open X-Embodiment), while the largest private collection, 16M+ videos, is shared with nobody.
+          Sources: <a className="underline" href="https://dexset.ai/blogs/egocentric-data-collection-robotics/">Dexset</a>, <a className="underline" href="https://truelabel.ai/solutions/egocentric-video-data">truelabel</a>, <a className="underline" href="https://arxiv.org/abs/2606.20521">HumanScale</a>. Reported figures, not verified by us.
+        </p>
+      </section>
+
+      <section data-tilt className={section}>
+        <h2 className="mb-8 text-center text-3xl md:text-5xl">What is in it for you</h2>
+        <Benefits />
       </section>
 
       <ArmScene />
 
       {rates && (
-        <section data-tilt className="mx-auto max-w-6xl px-4 pb-20 md:pb-28">
+        <section data-tilt className={section}>
           <h2 className="max-w-2xl text-3xl md:text-5xl">Calculate what an hour of your work is worth as data.</h2>
           <p className="muted mb-8 mt-4 max-w-xl">Pick your trade and how much you film. One clip can be licensed by many labs, and you are paid each time.</p>
           <Calculator rates={rates} />
@@ -91,28 +115,15 @@ export default async function Home() {
       )}
 
       <section id="mission" className="streaks">
-        <div className="mx-auto max-w-6xl px-4 py-24 md:py-36">
+        <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
           <h2 className="max-w-2xl text-4xl md:text-6xl">Robot data should not belong to one company.</h2>
           <p className="mt-6 max-w-lg text-lg text-paper/75">Figure can spend a billion dollars on its own data and shares nothing. We are the open market for everyone else.</p>
         </div>
       </section>
 
-      <section data-tilt className="mx-auto max-w-6xl px-4 py-20 md:py-28">
-        <h2 className="max-w-2xl text-3xl md:text-5xl">If your skill trains a robot, you get paid every time.</h2>
-        <div className="mt-10 grid gap-3 md:grid-cols-3">
-          {workers.map(([t, d], i) => (
-            <div key={t} className={`card p-6 ${i === 0 ? 'card-warm' : ''}`}>
-              <h3 className="text-xl font-semibold">{t}</h3>
-              <p className="muted mt-2 max-w-xs">{d}</p>
-            </div>
-          ))}
-        </div>
-        <Link href="/sell" className="btn mt-12">Start earning</Link>
-      </section>
-
-      <section data-tilt className="mx-auto max-w-6xl px-4 pb-20">
+      <section data-tilt className={section}>
         <h2 className="text-3xl md:text-5xl">An exchange, not a pipeline.</h2>
-        <dl className="mt-10 text-sm md:text-base">
+        <dl className="mt-8 text-sm md:text-base">
           <div className="hidden grid-cols-[9rem_1fr_1fr] gap-6 pb-3 md:grid"><span /><span className="muted text-sm">Single-buyer apps</span><span className="text-sm">Guild</span></div>
           {compare.map(([k, them, us]) => (
             <div key={k} className="grid gap-1 border-t border-white/10 py-4 md:grid-cols-[9rem_1fr_1fr] md:gap-6">
@@ -122,7 +133,7 @@ export default async function Home() {
             </div>
           ))}
         </dl>
-        <p className="muted mt-10 text-xs">Demo: figures come from seeded data and no money moves. On a phone, use Add to Home Screen to install Guild as an app.</p>
+        <p className="muted mt-8 text-xs">Demo: marketplace figures come from seeded data and no money moves. On a phone, use Add to Home Screen to install Guild as an app.</p>
       </section>
     </main>
   )

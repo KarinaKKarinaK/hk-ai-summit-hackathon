@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { upload } from '@vercel/blob/client'
 import { analyze } from '@/lib/quality'
+import ClipStats from './ClipStats'
 import { LABELS, BASE_RATE, HOLD_DAYS, checks, technical, completeness, finalScore, listPrice, payout, type Labels, type LabelSet, type Metrics } from '@/lib/score'
 
 type Dup = { kind: string; own: boolean }
@@ -144,7 +145,7 @@ export default function UploadForm({ initialFile: file, episode, requestId, year
 
       {result ? (
         // the breakdown
-        <section className="grid gap-3 md:grid-cols-[1fr_1.4fr]">
+        <section className="space-y-3">
           <div className={`card p-5 ${good ? 'card-warm' : ''}`}>
             {result.duplicate ? (
               <p className="text-sm">{result.duplicate.own ? 'You already submitted this clip.' : 'This matches a clip that someone already submitted.'} A clip can only be sold once, by the person who filmed it.</p>
@@ -164,21 +165,7 @@ export default function UploadForm({ initialFile: file, episode, requestId, year
               <a href={live ? '/record' : '/sell'} className="btn btn-ghost !min-h-10 text-sm">Add another</a>
             </div>
           </div>
-          <div className="card space-y-4 p-5">
-            {found('Objects found', shots?.labelsets.objects) ?? <p className="muted text-sm">The object detector found nothing above its confidence threshold.</p>}
-            {found('Scene', shots?.labelsets.scene)}
-            <div>
-              <p className="label">Hands and quality</p>
-              <p className="flex flex-wrap gap-1.5">
-                <span className="stat">Hands in {pct(shots?.labelsets.hands.coverage)} of frames</span>
-                {checks(metrics).slice(0, 5).map((c) => <span key={c.key} className="stat">{c.label}<span className="muted">{c.value}</span></span>)}
-              </p>
-            </div>
-            <div>
-              <p className="label">LLM labels</p>
-              {result.ai ? <p className="text-sm"><span className="chip chip-slate">{result.ai.skill.level}</span> {result.ai.reasons.join(' ')}</p> : <p className="muted text-sm">Did not run ({result.aiError}).</p>}
-            </div>
-          </div>
+          {good && <ClipStats score={result.quality_score} metrics={metrics} sets={shots?.labelsets ?? {}} earn={payout(result.price)} />}
         </section>
       ) : (
         <form onSubmit={submit} className="card space-y-4 p-5">
