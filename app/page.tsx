@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Calculator from '@/components/Calculator'
 import ArmScene from '@/components/ArmScene'
 import Benefits from '@/components/Benefits'
 import { sql, getMarket } from '@/lib/server'
@@ -47,10 +46,10 @@ export default async function Home() {
         <div className="absolute inset-x-0 bottom-0 -z-10 h-48 bg-linear-to-t from-ink via-ink/80 to-transparent" />
         <div className="rise mx-auto grid min-h-[76dvh] max-w-6xl content-end gap-7 px-4 pb-6 pt-56 md:min-h-[80dvh] md:pb-14 md:pt-28">
           <div className="max-w-xl">
-            <h1 className="text-5xl md:text-7xl">The open market for robot training data.</h1>
-            <p className="muted mt-5 max-w-md text-lg">Labs request what their models are missing. Anyone with a phone records it and earns on every licence.</p>
+            <h1 className="text-5xl md:text-7xl">The open market for task data.</h1>
+            <p className="muted mt-5 max-w-md text-lg">People record how they do a task. AI turns it into training data. Companies buy it.</p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/market" className="btn">See live prices</Link>
+              <Link href="/buy" className="btn">Browse data</Link>
               <Link href="/sell" className="btn btn-ghost">Start earning</Link>
             </div>
           </div>
@@ -65,6 +64,19 @@ export default async function Home() {
             </dl>
           )}
         </div>
+      </section>
+
+      {/* The whole product in four steps. */}
+      <section data-tilt className={section}>
+        <ol className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
+          {[['Request', 'A company asks for examples of the task it needs.'], ['Record', 'A person films their hands, or records their screen, doing it.'], ['Label', 'Kimi turns the recording into steps and labels.'], ['Buy', 'The company downloads a checked, labelled dataset.']].map(([t, d], i) => (
+            <li key={t} className={`card p-4 md:p-6 ${i === 2 ? 'card-warm' : ''}`}>
+              <p className="muted text-xs tabular-nums">0{i + 1}</p>
+              <h2 className="mt-2 text-xl font-semibold md:text-3xl">{t}</h2>
+              <p className="mt-1 text-xs text-paper/75 md:text-sm">{d}</p>
+            </li>
+          ))}
+        </ol>
       </section>
 
       {/* The case in one chart: a tag, a headline, one big number, and four bars with the last one lit. */}
@@ -107,14 +119,6 @@ export default async function Home() {
 
       <ArmScene />
 
-      {rates && (
-        <section data-tilt className={section}>
-          <h2 className="max-w-2xl text-3xl md:text-5xl">Calculate what an hour of your work is worth as data.</h2>
-          <p className="muted mb-5 mt-3 max-w-xl md:mb-8">Pick your trade and how much you film. One clip can be licensed by many labs, and you are paid each time.</p>
-          <Calculator rates={rates} />
-        </section>
-      )}
-
       <section id="mission" className="streaks">
         <div className="mx-auto max-w-6xl px-4 py-12 md:py-24">
           <h2 className="max-w-2xl text-4xl md:text-6xl">Robot data should not belong to one company.</h2>
@@ -122,20 +126,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section data-tilt className={section}>
-        <h2 className="text-3xl md:text-5xl">An exchange, not a pipeline.</h2>
-        <dl className="mt-8 text-sm md:text-base">
-          <div className="hidden grid-cols-[9rem_1fr_1fr] gap-6 pb-3 md:grid"><span /><span className="muted text-sm">Single-buyer apps</span><span className="text-sm">Guild</span></div>
-          {compare.map(([k, them, us]) => (
-            <div key={k} className="grid gap-1 border-t border-white/10 py-4 md:grid-cols-[9rem_1fr_1fr] md:gap-6">
-              <dt className="muted text-sm">{k}</dt>
-              <dd className="muted max-md:text-xs max-md:line-through">{them}</dd>
-              <dd>{us}</dd>
-            </div>
-          ))}
-        </dl>
-        <p className="muted mt-8 text-xs">Demo: marketplace figures come from seeded data and no money moves. On a phone, use Add to Home Screen to install Guild as an app.</p>
-      </section>
+      <p className="muted mx-auto max-w-6xl px-4 py-8 text-xs">Demo: marketplace figures come from seeded data and no money moves. On a phone, use Add to Home Screen to install Guild as an app.</p>
     </main>
   )
 }

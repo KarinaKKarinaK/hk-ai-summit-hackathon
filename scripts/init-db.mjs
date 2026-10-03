@@ -77,6 +77,7 @@ const people = [
   ['Diego Alvarez', 'seller', 'Alvarez Fabrication', 'Welder', 6, 'AWS D1.1 Certified'],
   ['Kowloon Robotics', 'buyer', 'Kowloon Robotics', null, 0, null],
   ['Harbour AI Lab', 'buyer', 'Harbour AI Lab', null, 0, null],
+  ['Priya Shah', 'seller', null, 'Financial analyst', 7, null],
 ]
 const ids = []
 for (const [name, role, org, trade, years, credential] of people) {
@@ -108,6 +109,7 @@ const listings = [
   [1, 'Cable pulling through trunking', 'Wiring', 'Construction', 'Egocentric', 'Head-mounted camera', ['Fish tape', 'Cable cutter'], 4, 660, 1600, 'Deformable cable handling over long runs in commercial fit-outs.'],
   [1, 'Kitchen sink trap replacement', 'Plumbing', 'Domestic', 'Egocentric', 'Phone', ['Pipe wrench', 'PTFE tape'], 4, 180, 60, 'Old trap out, new trap in, leak test. Tight under-sink work.'],
   [3, 'Door frame cut and fit', 'Carpentry', 'Construction', 'Exocentric', 'Phone', ['Mitre saw', 'Chisel', 'Level'], 4, 360, 110, 'Measure, cut, chisel hinge recesses and hang.'],
+  [6, 'Monthly sales pivot and chart in Excel', 'Spreadsheet', 'Office', 'Screen', 'Computer screen', ['Excel'], 4, 95, 30, 'From a raw export to a pivot table and chart. Every click and formula on screen.'],
 ]
 // One sample listing per task, the best scored, so the marketplace shows breadth rather than five welding clips.
 const onePerTask = [...new Map([...listings].sort((a, b) => a[7] - b[7]).map((l) => [l[2], l])).values()]
@@ -123,6 +125,7 @@ const calls = [
   [5, 'Deformable material handling: fabric', 'Cutting, pinning, sewing and folding. Machine and hand work both wanted.', 'Sewing', 'Textile', 400, 10],
   [5, 'Weld bead footage through the visor', 'MIG or TIG. Need torch angle and travel speed visible.', 'Welding', 'Manufacturing', 200, 22],
   [5, 'Split AC installs in high-rise flats', 'Indoor and outdoor units, flare joints, vacuum and leak test.', 'Assembly', 'HVAC', 150, 16],
+  [5, 'Excel: build a pivot table from raw sales data', 'Screen recording from a raw export to a finished pivot table and chart.', 'Spreadsheet', 'Office', 100, 12],
 ]
 for (const [b, title, description, task, industry, hours, rate] of calls) {
   await sql`insert into calls (buyer_id, title, description, task, industry, hours, rate) values (${ids[b]}, ${title}, ${description}, ${task}, ${industry}, ${hours}, ${rate})`

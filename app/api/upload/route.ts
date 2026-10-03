@@ -23,8 +23,8 @@ const cleanLabels = (l: any): Labels => ({
   tools: Array.isArray(l?.tools) ? l.tools.map((t: unknown) => clip(t, 40)).filter(Boolean).slice(0, 8) : [],
 })
 
-const PROMPT = `You review skilled-trade demonstration video for a robot training data marketplace.
-The images are frames sampled in order from one clip. Judge it as training data for robot manipulation.
+const PROMPT = `You review task demonstration recordings for a training data marketplace. A recording is either a person's hands doing physical work, or a screen recording of someone doing a task in software.
+The images are frames sampled in order from one clip. Judge it as an example a model could learn the task from. For a screen recording, the steps are the interface actions in order, and the tools are the applications in use.
 Reply with JSON only, no prose:
 {
  "title": "short factual title of the task",
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
     returning id`
   const auth = authenticity(episode, metrics.duration ?? 0)
   await log(row.id, 'device', 'observed', {
-    metrics, labels, description, steps, frames: frames.length, episode: !!episode_url, capture: episode_url ? 'in-app' : 'gallery', authenticity: episode_url ? auth : null,
+    metrics, labels, description, steps, frames: frames.length, episode: !!episode_url, capture: episode_url ? 'in-app' : b.capture === 'screen' ? 'screen' : 'gallery', authenticity: episode_url ? auth : null,
     challenges: Array.isArray(episode?.challenges) ? episode.challenges.slice(0, 5) : [], request_id: call?.id ?? null,
     consent: true, originality: dup ? `${dup.kind} match` : 'no match',
   }, user.id)

@@ -53,7 +53,6 @@ export default async function Listing({ params, searchParams }: { params: Promis
     getMarket(),
   ])
   if (!r) notFound()
-  const rep = await getReputation(r.seller_id)
   const capture: string | undefined = (events as any[]).find((e) => e.kind === 'observed')?.data?.capture
   const mine = user?.id === r.seller_id
   if (!mine && (r.status !== 'scored' || r.quality_score < 2)) notFound()
@@ -89,7 +88,7 @@ export default async function Listing({ params, searchParams }: { params: Promis
   const m = market[l.task ?? '']
   const price = priceOf(r, market)
   const hours = r.minutes / 60
-  const report = { title: r.title, quality_score: r.quality_score, metrics: r.metrics, labelling: { open_source_objects: has('oss-objects') ? r.labelsets?.objects : undefined, open_source_scene: has('oss-scene') ? r.labelsets?.scene : undefined, hand_tracking: r.labelsets?.hands, llm: has('llm') ? r.ai : undefined, human_verified: has('verified') && r.golden ? { labels: l, steps } : undefined, seller_entered: has('llm') || has('verified') ? { labels: l, steps } : undefined }, seller: { trade: r.trade, years: r.years, credential: r.credential }, evidence_trail: trail.map(({ kind, actor, data, note, created_at }) => ({ kind, actor, data, note, created_at })) }
+  const report = { title: r.title, quality_score: r.quality_score, metrics: r.metrics, labelling: { open_source_objects: r.labelsets?.objects, open_source_scene: r.labelsets?.scene, hand_tracking: r.labelsets?.hands, llm: has('llm') ? r.ai : undefined, human_verified: has('verified') && r.golden ? { labels: l, steps } : undefined, seller_entered: has('llm') || has('verified') ? { labels: l, steps } : undefined }, seller: { trade: r.trade, years: r.years, credential: r.credential }, evidence_trail: trail.map(({ kind, actor, data, note, created_at }) => ({ kind, actor, data, note, created_at })) }
 
   return (
     <main className="mx-auto grid max-w-6xl gap-6 px-4 py-6 md:grid-cols-[1.4fr_1fr]">
@@ -110,6 +109,7 @@ export default async function Listing({ params, searchParams }: { params: Promis
             {!r.video_url && ', sample listing'}
             {r.golden && <span className="chip chip-warm ml-1">Golden: labels checked by hand</span>}
             {capture === 'gallery' && <span className="chip ml-1">Gallery upload, not verified live</span>}
+            {capture === 'screen' && <span className="chip chip-slate ml-1">Screen recording</span>}
           </p>
         </div>
         <p className="text-sm">{r.description}</p>
@@ -143,14 +143,12 @@ export default async function Listing({ params, searchParams }: { params: Promis
           <p className="label">Who filmed it</p>
           <p>{r.org || r.seller}. {r.trade ? `${r.trade}, ${r.years} years.` : ''} <span className="chip chip-slate">{tier(r.years).name}</span> {r.verified && <span className="chip chip-slate">Licence verified</span>}</p>
           {r.credential && <p className="muted text-sm">Credential ({r.verified ? 'checked by Guild' : 'self-declared, not yet checked'}): {r.credential}</p>}
-          <p className="muted text-sm">Reputation {rep.score}/100: {rep.clips} listed clips, {rep.accepted} buyer accepts, {rep.passed} passes, {rep.duplicates} duplicates.</p>
         </section>
 
         <section className="card space-y-2 p-5">
-          <p className="label">Provenance and licence</p>
-          <p className="text-sm">{capture === 'in-app' ? 'Recorded inside the Guild app, with a live hand-motion trace.' : capture ? 'Uploaded from the seller’s gallery. Not verified as filmed live.' : 'Sample listing, no capture record.'}</p>
+          <p className="label">How it was captured, and the licence</p>
+          <p className="text-sm">{capture === 'in-app' ? 'Recorded inside the Guild app, with a live hand-motion trace.' : capture === 'screen' ? 'A screen recording of the task, captured in the app.' : capture ? 'Uploaded from the seller’s gallery. Not verified as filmed live.' : 'Sample listing, no capture record.'}</p>
           <ul className="muted list-disc space-y-1 pl-5 text-sm">{LICENCE.terms.map((t) => <li key={t}>{t}</li>)}</ul>
-          <a className="inline-block text-sm underline underline-offset-4" href={`/api/provenance/${r.id}`}>Provenance certificate (JSON, hash-chained trail)</a>
         </section>
 
         {steps.length > 0 && (
@@ -169,21 +167,6 @@ export default async function Listing({ params, searchParams }: { params: Promis
             {raw && r.video_url && !mine && <a className="btn btn-ghost w-full" download="label-studio-task.json" href={`data:application/json,${encodeURIComponent(JSON.stringify([{ data: { video: r.video_url, clip_id: r.id } }]))}`}>Label Studio task file</a>}
             {processed && <a className="btn btn-ghost w-full" download="labels-and-evidence.json" href={`data:application/json,${encodeURIComponent(JSON.stringify(report, null, 2))}`}>Download labels and evidence trail</a>}
             {processed && r.episode_url && <a className="btn btn-ghost w-full" href={r.episode_url} download>Download hand-pose episode</a>}
-            {!mine && owned.length > 0 && (
-              <form action={reportResult} className="space-y-2 border-t border-tan/25 pt-3">
-                <input type="hidden" name="id" value={r.id} />
-                <p className="label">Did it help your model?</p>
-                <select name="outcome" aria-label="Training result" className="input" required defaultValue="">
-                  <option value="" disabled>Result after training</option>
-                  <option value="improved">Improved</option>
-                  <option value="no change">No change</option>
-                  <option value="worse">Worse</option>
-                </select>
-                <input name="metric" className="input" maxLength={120} placeholder="Metric, e.g. grasp success 51% to 63%" aria-label="Metric" />
-                <button className="btn btn-ghost w-full">Report result</button>
-                <p className="muted text-xs">An improvement pays the seller a 20% bonus and sharpens your acceptance profile.</p>
-              </form>
-            )}
             {mine && <a className="btn btn-ghost w-full" download="job-record.txt" href={`data:text/plain;charset=utf-8,${encodeURIComponent(jobRecord)}`}>Download job record</a>}
             {mine && <p className="muted text-xs">A dated record of the job and its steps, for your customer or your own files.{r.withdrawn_at ? ' This clip is withdrawn from the market.' : ''}</p>}
           </div>

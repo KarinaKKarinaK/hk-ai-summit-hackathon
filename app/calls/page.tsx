@@ -55,7 +55,6 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
                     {c.min_people && <span className="chip">{c.people} / {c.min_people} people</span>}
                     {spec.map((s) => <span key={s as string} className="chip">{s}</span>)}
                     {c.wants_failures && <span className="chip">Failure and recovery wanted</span>}
-                    {c.forward && <span className="chip chip-slate">Forward contract{c.due ? `, due ${new Date(c.due).toISOString().slice(0, 10)}` : ''}</span>}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="btn btn-warm !min-h-10 text-sm">Record for this request</Link>
@@ -103,11 +102,6 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
             </div>
           </div>
           <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="wants_failures" className="mt-1" /> Only failure and recovery clips</label>
-          <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="forward" className="mt-1" /> Forward contract: I commit to buy every matching clip at this rate until filled</label>
-          <div>
-            <label className="label" htmlFor="due">Deliver by, optional</label>
-            <input id="due" name="due" type="date" className="input" />
-          </div>
           {user ? <button className="btn">Post bounty</button> : <Link href="/login" className="btn">Sign in to post</Link>}
         </form>
       </aside>

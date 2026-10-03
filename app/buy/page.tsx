@@ -43,7 +43,8 @@ export default async function Buy({ searchParams }: { searchParams: Promise<Sear
     <main className="mx-auto max-w-6xl space-y-6 px-4 py-6">
       <div>
         <h1 className="text-3xl md:text-5xl">Marketplace</h1>
-        <p className="muted mt-2 text-sm">Real trade work, open to every lab. Each clip carries its evidence trail. {rows.length} of {all.length} listings.</p>
+        <p className="muted mt-2 text-sm">Recordings of real tasks, physical and on screen. Each carries its evidence trail. {rows.length} of {all.length} listings.</p>
+        <p className="mt-3 flex gap-2"><Link href="/calls" className="btn btn-warm !min-h-9 text-sm">Post a request</Link><Link href="/market" className="btn btn-ghost !min-h-9 text-sm">Prices</Link></p>
       </div>
 
       {history.length > 0 && (

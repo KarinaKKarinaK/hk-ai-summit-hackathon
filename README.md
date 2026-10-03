@@ -26,6 +26,14 @@ Built at the HK AI Summit hackathon. It is a working demo: no money moves, and l
 - [Run it](#run-it)
 - [Known limits](#known-limits)
 
+## What the demo shows
+
+One journey: a company posts a request, a person records the task (their hands on camera, or their screen), the recording is checked and labelled, and the company buys the dataset. Navigation is three tabs: Earn, Marketplace, Profile.
+
+Recordings are not only physical work. A screen recording of a software task, such as building a pivot table in Excel, goes through the same pipeline and sells as a task example for automation.
+
+Built but kept out of the demo to stay focused: forward contracts, result bonuses, the provenance certificate link, seller reputation, and face and body tracking. Their routes and data are still in the code.
+
 ## The problem
 
 | What labs have today | Why it falls short |
@@ -314,9 +322,7 @@ A buyer always pays for the raw data (80% to the seller, 20% platform fee). Labe
 
 | Option | Cost | What they get |
 |---|---|---|
-| Bring your own labelling | Free | Raw video, hand-pose episode and motion data, plus a Label Studio task file to load into their own pipeline |
-| Open source: object detection | Free | EfficientDet-Lite0 (Apache 2.0): objects and tools in frame, with confidence |
-| Open source: scene classification | Free | EfficientNet-Lite0 (Apache 2.0): what the scene shows, with confidence |
+| Bring your own labelling | Free | The recording, hand-pose episode and motion data, plus the free on-device checks (objects and scene with confidence) and a Label Studio task file |
 | LLM labelling (Kimi) | +15% | Task, step list, skill level and privacy flags from a vision language model |
 | Guild verified | +60% | Model labels checked by a person, field by field |
 

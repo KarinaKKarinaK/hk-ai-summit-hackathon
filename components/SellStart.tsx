@@ -1,39 +1,86 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Glyph from './Glyph'
 import UploadForm from './UploadForm'
 
-/** The two ways to add data: record live in the app, or pick an existing video. Picking one starts processing right here. */
+/**
+ * The three ways to add data: film your hands in the app, record your screen, or pick an existing video.
+ * The last two start processing right here.
+ */
 export default function SellStart({ years = 0 }: { years?: number }) {
-  const [file, setFile] = useState<File | null>(null)
-  if (file) {
+  const [pick, setPick] = useState<{ file: File; kind?: 'screen' } | null>(null)
+  const [canScreen, setCanScreen] = useState(false)
+  const [recording, setRecording] = useState(false)
+  const [error, setError] = useState('')
+  const rec = useRef<MediaRecorder | null>(null)
+
+  // screen capture exists on desktop browsers only. Checked after mount so server and client render the same.
+  useEffect(() => setCanScreen(!!navigator.mediaDevices?.getDisplayMedia), [])
+
+  async function screen() {
+    if (rec.current) return rec.current.stop()
+    setError('')
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: false })
+      const mimeType = ['video/mp4', 'video/webm'].find((t) => MediaRecorder.isTypeSupported(t))
+      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined), chunks: Blob[] = []
+      mr.ondataavailable = (e) => chunks.push(e.data)
+      mr.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop())
+        rec.current = null
+        setRecording(false)
+        const type = mr.mimeType.split(';')[0] || 'video/webm'
+        setPick({ file: new File(chunks, `screen-${Date.now()}.${type.includes('mp4') ? 'mp4' : 'webm'}`, { type }), kind: 'screen' })
+      }
+      // the browser's own "Stop sharing" button ends the recording too
+      stream.getVideoTracks()[0].onended = () => mr.state !== 'inactive' && mr.stop()
+      mr.start()
+      rec.current = mr
+      setRecording(true)
+    } catch (e) {
+      setError((e as Error).name === 'NotAllowedError' ? 'Screen sharing was cancelled.' : `Could not record the screen: ${(e as Error).message}`)
+    }
+  }
+
+  if (pick) {
     return (
       <section className="space-y-3">
-        <button className="muted text-sm underline underline-offset-4" onClick={() => setFile(null)}>Choose a different video</button>
-        <UploadForm key={file.name + file.size} initialFile={file} years={years} />
+        <button className="muted text-sm underline underline-offset-4" onClick={() => setPick(null)}>Start over</button>
+        <UploadForm key={pick.file.name + pick.file.size} initialFile={pick.file} kind={pick.kind} years={years} />
       </section>
     )
   }
+  const card = 'card block overflow-hidden text-left'
   return (
-    <section className="grid grid-cols-1 gap-3 md:grid-cols-2">
-      <Link href="/record" className="card card-warm block overflow-hidden">
-        <Glyph name="record" className="h-28 w-full md:h-48" />
-        <div className="p-5 pt-3">
-          <h2 className="text-2xl font-semibold">Record live</h2>
-          <p className="mt-1 text-sm text-paper/80">Film in the app with hand tracking and a quick live challenge. Verified clips earn more and can fill paid requests.</p>
-        </div>
-      </Link>
-      <label className="card block cursor-pointer overflow-hidden has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-slate">
-        <Glyph name="upload" className="h-28 w-full md:h-48" />
-        <div className="p-5 pt-3">
-          <h2 className="text-2xl font-semibold">Upload from gallery</h2>
-          <p className="muted mt-1 text-sm">Pick a video you already have. It is analysed on your phone first, then listed as not verified live.</p>
-        </div>
-        {/* accept=video/* opens the phone gallery */}
-        <input type="file" accept="video/*" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-      </label>
+    <section>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <Link href="/record" className={`${card} card-warm`}>
+          <Glyph name="record" className="h-24 w-full md:h-40" />
+          <div className="p-5 pt-3">
+            <h2 className="text-xl font-semibold md:text-2xl">Film your hands</h2>
+            <p className="mt-1 text-sm text-paper/80">Physical tasks, tracked live and verified. Can fill paid requests.</p>
+          </div>
+        </Link>
+        <button onClick={screen} disabled={!canScreen} className={`${card} ${recording ? '!bg-red-900/60' : ''} disabled:opacity-50`}>
+          <Glyph name="box" className="h-24 w-full md:h-40" />
+          <div className="p-5 pt-3">
+            <h2 className="text-xl font-semibold md:text-2xl">{recording ? 'Recording. Click to stop' : 'Record your screen'}</h2>
+            <p className="muted mt-1 text-sm">{canScreen ? 'Software tasks: a spreadsheet, a form, a workflow. Do the task, then stop.' : 'Software tasks. Available in a desktop browser.'}</p>
+          </div>
+        </button>
+        <label className={`${card} cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-slate`}>
+          <Glyph name="upload" className="h-24 w-full md:h-40" />
+          <div className="p-5 pt-3">
+            <h2 className="text-xl font-semibold md:text-2xl">Upload a video</h2>
+            <p className="muted mt-1 text-sm">One you already have. Listed as not verified live.</p>
+          </div>
+          {/* accept=video/* opens the phone gallery */}
+          <input type="file" accept="video/*" className="sr-only" onChange={(e) => e.target.files?.[0] && setPick({ file: e.target.files[0] })} />
+        </label>
+      </div>
+      {error && <p role="alert" className="mt-2 text-sm text-red-300">{error}</p>}
     </section>
   )
 }

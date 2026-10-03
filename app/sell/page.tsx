@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import SellStart from '@/components/SellStart'
-import Glyph from '@/components/Glyph'
+import Calculator from '@/components/Calculator'
 import { sql, getUser, getMarket, priceOf } from '@/lib/server'
 import { payout, signal, tier, matchesCall, SELLER_SHARE, HOLD_DAYS, type Labels } from '@/lib/score'
 import { reviewLabels, setAsk, fillBid, toggleListed } from '../actions'
@@ -33,17 +33,16 @@ export default async function Sell() {
     <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 md:space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl md:text-5xl">Sell your work</h1>
+          <h1 className="text-3xl md:text-5xl">Earn</h1>
           {user ? (
             <p className="muted mt-2 text-sm">
               {user.trade || 'No trade set'}, {user.years || 0} years. <span className="chip chip-slate">{t.name} {t.mult}x price</span>
               {user.credential && <span className="chip ml-2">{user.credential}</span>}
             </p>
           ) : (
-            <p className="muted mt-2 text-sm">Record live or upload a video you already have. Watch it get processed, then see what it earns.</p>
+            <p className="muted mt-2 text-sm">Record how you do a task, with your hands or on your screen. Watch it get checked and labelled, then see what it earns.</p>
           )}
         </div>
-        <Link href="/record" className="btn btn-ghost">Record with hand tracking</Link>
       </div>
 
       {user && (
@@ -179,6 +178,10 @@ export default async function Sell() {
           </ul>
         </section>
       )}
+      <section>
+        <h2 className="mb-4 text-xl font-semibold tracking-tight">What an hour of your work is worth as data</h2>
+        <Calculator rates={Object.fromEntries(Object.entries(market).sort((a, b) => b[1].rate - a[1].rate).map(([k, m]) => [k, m.rate]))} />
+      </section>
     </main>
   )
 }

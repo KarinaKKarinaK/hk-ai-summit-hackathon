@@ -98,7 +98,8 @@ export default async function Report({ params, searchParams }: { params: Promise
       {listed && <ClipStats score={r.quality_score} metrics={r.metrics ?? {}} sets={sets} earn={payout(price)} />}
 
       <ol className="space-y-3">
-        <Stage n={1} title="Capture and authenticity" by="on your device" state={observed.capture === 'gallery' ? 'warn' : !auth ? 'skip' : auth.passed ? 'ok' : 'fail'}>
+        <Stage n={1} title="Capture and authenticity" by="on your device" state={observed.capture === 'screen' ? 'ok' : observed.capture === 'gallery' ? 'warn' : !auth ? 'skip' : auth.passed ? 'ok' : 'fail'}>
+          {observed.capture === 'screen' && <p>A screen recording, captured in the app. The hand-tracking steps do not apply.</p>}
           {observed.capture === 'gallery' && <p>Uploaded from your gallery. It could not be verified as filmed live, and buyers see that on the listing. Record in the app for verified clips.</p>}
           {auth ? (
             <p className="flex flex-wrap gap-1.5">
@@ -106,7 +107,7 @@ export default async function Report({ params, searchParams }: { params: Promise
               <span className="stat">Hand tracking covers {pct(auth.tracking)}</span>
               <span className="stat">Motion sensors {auth.sensors ? 'recorded' : 'not available'}</span>
             </p>
-          ) : observed.capture === 'gallery' ? null : <p className="muted">No capture record for this clip.</p>}
+          ) : observed.capture ? null : <p className="muted">No capture record for this clip.</p>}
         </Stage>
 
         <Stage n={2} title="Quality and originality" by="on your device" state={dup ? 'fail' : r.metrics ? 'ok' : 'skip'}>
@@ -134,7 +135,7 @@ export default async function Report({ params, searchParams }: { params: Promise
               <Confidence rows={sets.scene} />
             </div>
           ) : null}
-          {sets.hands && <p className="flex flex-wrap gap-1.5"><span className="stat">Hands in {pct(sets.hands.coverage)} of frames</span><span className="stat">Hand confidence {pct(sets.hands.confidence)}</span></p>}
+          {sets.hands && r.metrics?.hands != null && <p className="flex flex-wrap gap-1.5"><span className="stat">Hands in {pct(sets.hands.coverage)} of frames</span><span className="stat">Hand confidence {pct(sets.hands.confidence)}</span></p>}
         </Stage>
 
         <Stage n={4} title="LLM labelling" by="Kimi vision model, on the server" state={r.ai ? 'ok' : 'skip'}>

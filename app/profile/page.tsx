@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { sql, requireUser, getReputation } from '@/lib/server'
+import { sql, requireUser } from '@/lib/server'
 import { SELLER_SHARE, tier } from '@/lib/score'
 
 const usd = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
@@ -62,9 +62,8 @@ export default async function Profile() {
 
   const [clips] = seller ? await sql`select count(*) filter (where status = 'scored' and quality_score >= 2 and withdrawn_at is null and duplicate_of is null)::int as listed,
       count(*) filter (where golden)::int as golden, coalesce(avg(quality_score) filter (where status = 'scored' and duplicate_of is null), 0)::float as avg from uploads where seller_id = ${user.id}` : [null]
-  const rep = seller ? await getReputation(user.id) : null
   const tiles: [string, string][] = seller
-    ? [['Clips on the market', String(clips!.listed)], ['Golden clips', String(clips!.golden)], ['Average quality', clips!.avg ? `${clips!.avg.toFixed(1)}/5` : '-'], ['Reputation', `${rep!.score}/100`]]
+    ? [['Clips on the market', String(clips!.listed)], ['Golden clips', String(clips!.golden)], ['Average quality', clips!.avg ? `${clips!.avg.toFixed(1)}/5` : '-'], ['Licences sold', String(sales.length)]]
     : [['Clips licensed', String(sales.length)], ['Hours of data', hours.toFixed(1)], ['Average quality', quality ? `${quality.toFixed(1)}/5` : '-'], ['Trades covered', String(new Set(sales.map((s) => s.task)).size)]]
 
   return (

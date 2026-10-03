@@ -45,7 +45,7 @@ const summarise = (t: Tally): LabelSet =>
 const SAMPLES = 6
 const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / (a.length || 1)
 
-export async function analyze(file: File, on: (m: Metrics, stage: string) => void) {
+export async function analyze(file: File, on: (m: Metrics, stage: string) => void, opts?: { screen?: boolean }) {
   const v = document.createElement('video')
   v.muted = true
   v.playsInline = true
@@ -77,9 +77,9 @@ export async function analyze(file: File, on: (m: Metrics, stage: string) => voi
       v.currentTime = t
       await once(v, 'seeked')
     }
-    const hands = await getHands('IMAGE').catch(() => null) // offline or blocked: skip the hands check
+    const hands = opts?.screen ? null : await getHands('IMAGE').catch(() => null) // offline or blocked: skip the hands check
     on({ ...m }, 'Loading open-source labelling models')
-    const lab = await getLabellers().catch(() => null)
+    const lab = opts?.screen ? null : await getLabellers().catch(() => null)
     const objects: Tally = {}, scene: Tally = {}, handConf: number[] = []
 
     // Fingerprint for exact copies: SHA-256 of the first megabyte plus the size, so a 500MB file is not read into memory.

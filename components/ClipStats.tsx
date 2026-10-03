@@ -18,7 +18,7 @@ export default function ClipStats({ score, metrics, sets, earn }: { score: numbe
   const tiles: [string, string, string, boolean][] = [
     ['Quality score', `${score}/5`, score >= 4 ? 'Strong' : score >= 3 ? 'Good' : 'Needs work', score >= 3],
     ['Checks passed', `${passed}/${cs.length}`, passed === cs.length ? 'All clear' : `${cs.length - passed} to fix`, passed === cs.length],
-    ['Hands in frame', pct(sets.hands?.coverage), (sets.hands?.coverage ?? 0) >= 0.8 ? 'Tracked' : 'Keep them in view', (sets.hands?.coverage ?? 0) >= 0.8],
+    metrics.hands == null ? ['Length', `${Math.round(metrics.duration ?? 0)}s`, 'Recorded start to finish', true] : ['Hands in frame', pct(sets.hands?.coverage), (sets.hands?.coverage ?? 0) >= 0.8 ? 'Tracked' : 'Keep them in view', (sets.hands?.coverage ?? 0) >= 0.8],
     ['You earn per sale', `$${earn.toFixed(2)}`, 'At today’s rate', earn > 0],
   ]
   const row = 'grid gap-4 md:grid-cols-[7rem_1fr] md:gap-8'

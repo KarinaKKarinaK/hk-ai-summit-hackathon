@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { FaceLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision'
-import { getHands, getFace, getPose } from '@/lib/quality'
+import { getHands } from '@/lib/quality'
 import { countFingers } from '@/lib/score'
 import { buildArm, buildMug, addLights, GRIP } from '@/lib/arm'
 import UploadForm from '@/components/UploadForm'
@@ -21,11 +20,7 @@ const WEB = [[1, 5], [2, 5], [2, 6], [3, 6], [3, 7], [4, 7], [6, 10], [10, 14], 
 const HULL = [0, 1, 2, 3, 4, 8, 12, 16, 20, 19, 18, 17]
 const TIPS = [4, 8, 12, 16, 20]
 const HAND_JOINTS = Array.from({ length: 21 }, (_, i) => i)
-// Body: MediaPipe's 33 pose points. The first 11 are on the face, which the face mesh covers better.
 const AMBER = '255, 176, 59'
-const BODY = PoseLandmarker.POSE_CONNECTIONS.map((c) => [c.start, c.end]).filter(([a, b]) => a > 10 && b > 10)
-const BODY_JOINTS = Array.from({ length: 22 }, (_, i) => i + 11)
-const FACE = FaceLandmarker.FACE_LANDMARKS_TESSELATION.map((c) => [c.start, c.end])
 type Pt = { x: number; y: number; z: number; visibility?: number }
 
 type Mode = 'arm' | 'other'
@@ -99,9 +94,6 @@ export default function Record() {
         await v.play()
         setStatus('Loading hand model')
         const hands = await getHands('VIDEO')
-        // face and body are extras: if either model fails to load, recording still works with hands only
-        const [face, pose] = await Promise.all([getFace().catch(() => null), getPose().catch(() => null)])
-        let faceLm: Pt[] | undefined, poseLm: Pt[] | undefined
         setStatus('Tracking')
         const ctx = o.getContext('2d')!
         const px = Object.assign(document.createElement('canvas'), { width: 32, height: 18 }).getContext('2d', { willReadFrequently: true })!
@@ -115,8 +107,6 @@ export default function Record() {
           const now = performance.now()
           const all: Pt[][] = hands.detectForVideo(v, now).landmarks // up to two hands
           const lm = all[0]
-          // face and body take turns, so three models never all run on the same frame
-          if (n % 2 === 0) { if (face) faceLm = face.detectForVideo(v, now).faceLandmarks[0] } else if (pose) poseLm = pose.detectForVideo(v, now).landmarks[0]
           const r = rec.current
           ctx.clearRect(0, 0, o.width, o.height)
           const u = o.width / 640 // stroke sizes follow the video size
@@ -144,16 +134,6 @@ export default function Record() {
             for (const i of ids) if (shown(pts[i])) (ctx.beginPath(), ctx.arc(X(pts[i]), Y(pts[i]), size(i) * u, 0, Math.PI * 2), ctx.fill())
             ctx.shadowBlur = 0
           }
-          // body: a filled torso, the skeleton, and a joint at each landmark
-          if (poseLm) {
-            strict = true
-            skin(poseLm, [11, 12, 24, 23], `rgba(${GREEN}, 0.1)`)
-            stroke(poseLm, BODY, 3.5, `rgba(${GREEN}, 0.9)`)
-            joints(poseLm, BODY_JOINTS, () => 6, `rgb(${GREEN})`)
-            strict = false
-          }
-          // face: the full tessellated mesh, drawn fine. It is shown live but never saved to the episode.
-          if (faceLm) stroke(faceLm, FACE, 0.8, `rgba(${GREEN}, 0.55)`)
           // each hand: a translucent skin, a fine web across it, then the bones and joints on top
           for (const h of all) {
             skin(h, HULL, `rgba(${GREEN}, 0.1)`)
@@ -183,7 +163,6 @@ export default function Record() {
               landmarks: lm.map((p) => [+p.x.toFixed(4), +p.y.toFixed(4), +p.z.toFixed(4)]),
               gripper: { x: +target.x.toFixed(3), y: +target.y.toFixed(3), z: +target.z.toFixed(3), open: +open.toFixed(2) },
               second_hand: all[1]?.map((p) => [+p.x.toFixed(4), +p.y.toFixed(4), +p.z.toFixed(4)]),
-              body: poseLm?.slice(11).map((p) => [+p.x.toFixed(3), +p.y.toFixed(3), +p.z.toFixed(3)]), // 22 points from the shoulders down
             })
           }
 
@@ -216,7 +195,7 @@ export default function Record() {
             if (bright < DARK) w.push('Too dark, add light')
             if (speed > FAST) w.push('Moving too fast, the footage will blur')
             setWarn(w)
-            setSeen([all.length === 2 ? 'Both hands' : all.length ? 'One hand' : '', faceLm ? 'Face mesh' : '', poseLm ? 'Body' : ''].filter(Boolean))
+            setSeen(all.length === 2 ? ['Both hands'] : all.length ? ['One hand'] : [])
             setLive(clamp(Math.round(1 + 4 * (0.5 * share + 0.3 * (bright < DARK ? 0.2 : 1) + 0.2 * (speed > FAST ? 0.2 : 1))), 1, 5))
             hit = 0
             move = 0
@@ -289,7 +268,7 @@ export default function Record() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl md:text-5xl">{request ? 'Record for a request' : mode === 'arm' ? 'Your hand, a robot arm.' : 'Record any task.'}</h1>
-          <p className="muted mt-2 text-sm">{request ? <>Filming for: <span className="text-paper">{request.title}</span>. Guaranteed payout when the clip passes the checks.</> : 'Tracks both hands, your face and your body live, and exports the motion as a training episode.'}</p>
+          <p className="muted mt-2 text-sm">{request ? <>Filming for: <span className="text-paper">{request.title}</span>. Guaranteed payout when the clip passes the checks.</> : 'Tracks both hands live and exports the motion as a training episode.'}</p>
         </div>
         {/* two ways to record: mirrored by the arm, or any other task without it */}
         <div role="group" aria-label="Recording mode" className="grid grid-cols-2 rounded-full bg-white/[.07] p-1 text-sm">

@@ -2,10 +2,10 @@
 // No imports, so node can run score.test.mjs against it directly.
 
 export const LABELS = {
-  perspective: ['Egocentric', 'Exocentric'],
-  task: ['Assembly', 'Repair', 'Welding', 'Wiring', 'Plumbing', 'Carpentry', 'Machining', 'Sewing', 'Painting', 'Cooking', 'Cleaning', 'Folding'],
-  industry: ['Automotive', 'Construction', 'Electrical', 'Manufacturing', 'HVAC', 'Textile', 'Food', 'Domestic', 'Landscaping'],
-  device: ['Phone', 'Head-mounted camera', 'Smart glasses', 'Action camera'],
+  perspective: ['Egocentric', 'Exocentric', 'Screen'],
+  task: ['Assembly', 'Repair', 'Welding', 'Wiring', 'Plumbing', 'Carpentry', 'Machining', 'Sewing', 'Painting', 'Cooking', 'Cleaning', 'Folding', 'Spreadsheet', 'Data entry', 'Software task'],
+  industry: ['Automotive', 'Construction', 'Electrical', 'Manufacturing', 'HVAC', 'Textile', 'Food', 'Domestic', 'Landscaping', 'Office'],
+  device: ['Phone', 'Head-mounted camera', 'Smart glasses', 'Action camera', 'Computer screen'],
   // Failure and recovery footage is rare and robots need it, so it is a first-class label.
   outcome: ['Completed', 'Failed then recovered', 'Failed'],
 } as const
@@ -239,11 +239,9 @@ export const GOLDEN_MULT = 1.3 // a clip whose labels the seller has checked by 
 export type LabelSet = { name: string; confidence: number; frames: number }[]
 export type LabelSets = { objects?: LabelSet; scene?: LabelSet; hands?: { coverage: number; confidence: number } }
 
-// fee = share of the raw data price. The two open-source models run on the seller's phone, so they cost nothing to offer.
+// fee = share of the raw data price. The on-device open-source checks come free with every option.
 export const LABELLING = [
-  { key: 'byo', name: 'Bring your own labelling', fee: 0, what: 'Raw video and motion data only, with a Label Studio task file for your own pipeline.' },
-  { key: 'oss-objects', name: 'Open source: object detection', fee: 0, what: 'EfficientDet-Lite0 (Apache 2.0). Objects and tools in frame, with confidence. Free.' },
-  { key: 'oss-scene', name: 'Open source: scene classification', fee: 0, what: 'EfficientNet-Lite0 (Apache 2.0). What the scene shows, with confidence. Free.' },
+  { key: 'byo', name: 'Bring your own labelling', fee: 0, what: 'The recording, motion data and the free on-device checks. Label it in your own pipeline.' },
   { key: 'llm', name: 'LLM labelling (Kimi)', fee: 0.15, what: 'Task, step list, skill level and privacy flags from a vision language model.' },
   { key: 'verified', name: 'Guild verified', fee: 0.6, what: 'Model labels checked by a person, field by field. Our most accurate option.' },
 ] as const

@@ -16,24 +16,26 @@ type Result = {
 }
 
 // The pipeline, in order, with the open-source piece that does each step.
+// The third value is the phase the step belongs to: 0 reading, 1 analysing, 2 originality, 3 upload, 4 server.
 const STEPS = [
-  ['Read frames', 'browser video decoder'],
-  ['Quality checks', 'light, sharpness, steadiness'],
-  ['Hand tracking', 'MediaPipe Hands'],
-  ['Object detection', 'EfficientDet-Lite0'],
-  ['Scene classification', 'EfficientNet-Lite0'],
-  ['Originality', 'perceptual hash'],
-  ['Upload', 'direct to storage'],
-  ['Verify and label', 'Kimi vision model'],
-  ['Score and price', 'live market rate'],
-]
+  ['Read frames', 'browser video decoder', 0],
+  ['Quality checks', 'light, sharpness, steadiness', 1],
+  ['Hand tracking', 'MediaPipe Hands', 1],
+  ['Object detection', 'EfficientDet-Lite0', 1],
+  ['Scene classification', 'EfficientNet-Lite0', 1],
+  ['Originality', 'perceptual hash', 2],
+  ['Upload', 'direct to storage', 3],
+  ['Label with Kimi', 'vision language model', 4],
+  ['Score and price', 'live market rate', 4],
+] as const
+const HANDS_ONLY = ['Hand tracking', 'Object detection', 'Scene classification'] // skipped for screen recordings
 const pct = (x = 0) => `${Math.round(x * 100)}%`
 
 /**
- * Takes one video, recorded live on /record (with its episode file) or picked from the gallery,
+ * Takes one recording: hands filmed live on /record (with its episode file), a screen recording, or a video from the gallery,
  * shows it moving through the processing pipeline, and ends on the breakdown.
  */
-export default function UploadForm({ initialFile: file, episode, requestId, years = 0 }: { initialFile: File; episode?: object; requestId?: string; years?: number }) {
+export default function UploadForm({ initialFile: file, episode, requestId, kind, years = 0 }: { initialFile: File; episode?: object; requestId?: string; kind?: 'screen'; years?: number }) {
   const router = useRouter()
   const [metrics, setMetrics] = useState<Metrics>({})
   const [frame, setFrame] = useState(0) // frames analysed so far, of 6
@@ -49,7 +51,7 @@ export default function UploadForm({ initialFile: file, episode, requestId, year
 
   useEffect(() => {
     let on = true
-    analyze(file, (m, s) => on && (setMetrics(m), setFrame((n) => Math.max(n, +(s.match(/Checked frame (\d)/)?.[1] ?? 0)))))
+    analyze(file, (m, s) => on && (setMetrics(m), setFrame((n) => Math.max(n, +(s.match(/Checked frame (\d)/)?.[1] ?? 0)))), { screen: kind === 'screen' })
       .then(async (r) => {
         if (!on) return
         setShots(r)
@@ -59,7 +61,7 @@ export default function UploadForm({ initialFile: file, episode, requestId, year
       })
       .catch((e) => on && setError(`Could not read this video: ${e.message}`))
     return () => { on = false }
-  }, [file])
+  }, [file, kind])
 
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value })
   const labels: Labels = { perspective: f.perspective, task: f.task, industry: f.industry, device: f.device, outcome: f.outcome, tools: f.tools.split(',').map((t) => t.trim()).filter(Boolean) }
@@ -68,8 +70,9 @@ export default function UploadForm({ initialFile: file, episode, requestId, year
   const copy = dup && dup !== 'clear' ? dup : null
   const ready = !!shots && dup !== null
 
-  // how far along: steps before `doing` are done, `doing` to `until` are running
-  const [doing, until] = result ? [9, 9] : verifying ? [7, 8] : sent !== null ? [6, 6] : ready ? [6, 5] : shots ? [5, 5] : frame > 0 ? [1, 4] : [0, 0]
+  // how far along: a step is done once the clip is past its phase, and running while the clip is in it
+  const phase = result ? 5 : verifying ? 4 : sent !== null ? 3 : ready ? 2.5 : shots ? 2 : frame > 0 ? 1 : 0
+  const steps = kind === 'screen' ? STEPS.filter((s) => !HANDS_ONLY.includes(s[0])) : STEPS
   const progress = result ? 1 : verifying ? 0.9 : sent !== null ? 0.6 + 0.25 * sent : ready ? 0.6 : shots ? 0.55 : 0.05 + 0.45 * (frame / 6)
   const good = result && !result.duplicate && !result.unverified
 
@@ -88,7 +91,7 @@ export default function UploadForm({ initialFile: file, episode, requestId, year
       const res = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ video_url: video.url, episode_url: ep ? ep.url : undefined, request_id: requestId, consent, title: f.title, description: f.description, steps: f.steps, labels, metrics, frames: shots?.frames ?? [], thumb: shots?.thumb, hashes: shots?.hashes, fingerprint: shots?.fingerprint, labelsets: shots?.labelsets }),
+        body: JSON.stringify({ video_url: video.url, episode_url: ep ? ep.url : undefined, request_id: requestId, capture: kind, consent, title: f.title, description: f.description, steps: f.steps, labels, metrics, frames: shots?.frames ?? [], thumb: shots?.thumb, hashes: shots?.hashes, fingerprint: shots?.fingerprint, labelsets: shots?.labelsets }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
@@ -127,13 +130,13 @@ export default function UploadForm({ initialFile: file, episode, requestId, year
           <h2 className="text-xl font-semibold tracking-tight">{result ? (good ? 'Processed' : 'Processed, not listed') : ready && sent === null ? 'Analysed. Confirm to finish' : 'Processing your clip'}</h2>
           <span className={`text-2xl font-light tabular-nums ${good ? 'text-emerald-300' : ''}`}>{pct(progress)}</span>
         </div>
-        <p className="muted mt-1 text-xs">{file.name}, {(file.size / 1e6).toFixed(1)} MB. {live ? 'Recorded live in the app.' : 'Uploaded from your gallery.'}</p>
+        <p className="muted mt-1 text-xs">{file.name}, {(file.size / 1e6).toFixed(1)} MB. {live ? 'Recorded live in the app.' : kind === 'screen' ? 'Screen recording, captured in the app.' : 'Uploaded from your gallery.'}</p>
         <div className="bar mt-4 !h-2"><i className={good ? '!bg-emerald-400 !bg-none' : ''} style={{ width: pct(progress) }} /></div>
-        <ol className="mt-4 grid grid-cols-3 gap-2 md:grid-cols-9">
-          {STEPS.map(([name, tool], i) => {
-            const state = i < doing ? 'done' : i <= until ? 'now' : 'wait'
+        <ol className="mt-4 grid grid-cols-3 gap-2 md:flex">
+          {steps.map(([name, tool, at]) => {
+            const state = at < phase ? 'done' : at === phase ? 'now' : 'wait'
             return (
-              <li key={name} className={`rounded-xl p-2.5 transition-colors duration-500 ${state === 'done' ? (good ? 'bg-emerald-400/15' : 'bg-white/[.07]') : state === 'now' ? 'card-warm' : 'bg-white/[.025] opacity-50'}`}>
+              <li key={name} className={`rounded-xl p-2.5 md:flex-1 transition-colors duration-500 ${state === 'done' ? (good ? 'bg-emerald-400/15' : 'bg-white/[.07]') : state === 'now' ? 'card-warm' : 'bg-white/[.025] opacity-50'}`}>
                 <span className={`block h-1.5 w-1.5 rounded-full ${state === 'done' ? 'bg-emerald-400' : state === 'now' ? 'pulse bg-amber-300' : 'bg-white/30'}`} aria-hidden />
                 <p className="mt-2 text-xs font-medium leading-tight">{name}</p>
                 <p className="muted mt-0.5 text-[10px] leading-tight">{tool}</p>
@@ -157,7 +160,7 @@ export default function UploadForm({ initialFile: file, episode, requestId, year
                 <p className="text-6xl font-light tracking-tight tabular-nums">{result.quality_score}<span className="text-2xl text-paper/60"> / 5</span></p>
                 <p className="mt-3 text-sm">Listed at ${result.price}. You get ${payout(result.price).toFixed(2)} each time it sells, released after {HOLD_DAYS} days.</p>
                 {result.bounty?.paid ? <p className="mt-2 text-sm"><span className="chip bg-ink/40">Request accepted</span> ${result.bounty.paid} guaranteed for &ldquo;{result.bounty.title}&rdquo;.</p> : result.bounty ? <p className="mt-2 text-sm text-amber-200">Not accepted for the request: {result.bounty.reason}.</p> : null}
-                {!live && <p className="mt-2 text-xs text-paper/70">Shown to buyers as a gallery upload, not verified live.</p>}
+                {!live && kind !== 'screen' && <p className="mt-2 text-xs text-paper/70">Shown to buyers as a gallery upload, not verified live.</p>}
               </>
             )}
             <div className="mt-4 flex flex-wrap gap-2">
@@ -181,7 +184,7 @@ export default function UploadForm({ initialFile: file, episode, requestId, year
             <p className="text-right text-sm"><span className="muted block text-xs">Est. payout per sale</span>${copy ? '0.00' : payout(listPrice(BASE_RATE, (metrics.duration ?? 0) / 60, estimate, years)).toFixed(2)}</p>
           </div>
           {copy && <p role="alert" className="text-sm text-amber-200">{copy.own ? 'You already submitted this clip.' : 'This matches a clip someone already submitted.'} It can be saved but will not be listed or paid.</p>}
-          {!live && <p className="muted text-sm">Gallery uploads are listed as not verified live, and cannot fill a paid request. Record in the app for verified clips.</p>}
+          {!live && kind !== 'screen' && <p className="muted text-sm">Gallery uploads are listed as not verified live, and cannot fill a paid request. Record in the app for verified clips.</p>}
 
           <details className="rounded-xl bg-white/[.04] p-4" open={comp > 0}>
             <summary className="cursor-pointer text-sm font-medium">Add labels to raise your score ({Math.round(comp * 7)} of 7)</summary>
