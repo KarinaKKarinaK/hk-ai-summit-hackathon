@@ -185,21 +185,20 @@ export function buildArm(finish: 'graphite' | 'light' = 'light') {
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
 
 /**
- * The ground: a disc of square blocks, the landing page's halftone pattern in 3D.
+ * The ground: a square platform of blocks, the landing page's halftone pattern in 3D.
  * Flat where the arm works, then the blocks shrink and step up in terraces toward the rim.
  * A dithered river of orange and pink blocks runs through the charcoal ones. One instanced mesh.
  */
-export function buildFloor(R = 2.5, N = 52, flat = 1.55) {
+export function buildFloor(R = 1.95, N = 40, flat = 1.5) {
   const cell = (2 * R) / N
-  const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.6, 1).translate(0, -0.3, 0), new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0.25 }), N * N)
+  const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.28, 1).translate(0, -0.14, 0), new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0.25 }), N * N)
   const o = new THREE.Object3D(), col = new THREE.Color()
   let n = 0
   for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-    const x = (i + 0.5) * cell - R, z = (j + 0.5) * cell - R, r = Math.hypot(x, z)
-    if (r > R) continue
+    const x = (i + 0.5) * cell - R, z = (j + 0.5) * cell - R, r = Math.max(Math.abs(x), Math.abs(z)) // square platform
     const v = flow(x * 0.5 + 2, z * 0.5 + 2, 3.3), edge = clamp((r - flat) / (R - flat), 0, 1)
     const size = cell * (0.9 - 0.6 * edge)
-    o.position.set(x, (Math.round(v * 5) / 5) * 0.3 * edge, z)
+    o.position.set(x, (Math.round(v * 5) / 5) * 0.16 * edge, z)
     o.scale.set(size, 1, size)
     o.updateMatrix()
     mesh.setMatrixAt(n, o.matrix)

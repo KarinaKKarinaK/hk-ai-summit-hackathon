@@ -34,34 +34,30 @@ export default async function Home() {
 
   return (
     <main>
-      {/* Hero video: a welder at work, looping silently, faded into the page on the left and bottom. */}
-      <section className="relative isolate overflow-hidden">
-        <video autoPlay muted loop playsInline poster="/hero.jpg" aria-hidden className="absolute inset-0 -z-10 h-full w-full object-cover object-[60%_center] max-md:h-[62%]">
-          <source src="/hero.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 -z-10 bg-linear-to-t from-ink from-42% via-ink/80 via-58% to-transparent md:bg-linear-to-r md:from-ink md:from-8% md:via-ink/55 md:via-38% md:to-transparent" />
-        <div className="absolute inset-x-0 top-0 -z-10 h-28 bg-linear-to-b from-ink/85 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 -z-10 h-48 bg-linear-to-t from-ink via-ink/80 to-transparent" />
-        <div className="rise mx-auto grid min-h-[76dvh] max-w-6xl content-end gap-7 px-4 pb-6 pt-56 md:min-h-[80dvh] md:pb-14 md:pt-28">
-          <div className="max-w-xl">
-            <h1 className="text-5xl md:text-7xl">The open market <span className="text-flow">for task data.</span></h1>
-            <p className="muted mt-5 max-w-md text-lg">People record how they do a task. AI turns it into training data. Companies buy it.</p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/buy" className="btn">Browse data</Link>
-              <Link href="/sell" className="btn btn-ghost">Start earning</Link>
-            </div>
+      {/* Hero: what it is in one line, the two ways in, three live numbers. The video sits in its own frame. */}
+      <section className="mx-auto grid max-w-6xl items-center gap-8 px-4 pb-8 pt-10 md:grid-cols-[1fr_1.05fr] md:gap-14 md:pb-16 md:pt-16">
+        <div className="rise">
+          <p className="label">Task data marketplace</p>
+          <h1 className="text-5xl md:text-7xl">The open market for task data.</h1>
+          <p className="mt-5 max-w-md text-lg text-paper/80">Companies post the tasks their AI needs to learn. People record themselves doing them. Every clip is checked, labelled and licensed.</p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/buy" className="btn">Browse data</Link>
+            <Link href="/sell" className="btn btn-ghost">Start earning</Link>
           </div>
           {stats && (
-            <dl className="flex flex-wrap gap-x-12 gap-y-4 tabular-nums">
-              {[[usd(stats.book), 'open requests'], [`${stats.hours.toLocaleString('en-US')} h`, 'footage listed'], [stats.markets, 'live markets']].map(([n, l]) => (
+            <dl className="mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-white/10 pt-6 tabular-nums">
+              {[[usd(stats.book), 'in open requests'], [`${stats.hours.toLocaleString('en-US')} h`, 'footage listed'], [stats.markets, 'live markets']].map(([n, l]) => (
                 <div key={l}>
-                  <dt className="text-3xl font-light tracking-tight">{n}</dt>
-                  <dd className="muted text-sm">{l}</dd>
+                  <dt className="text-2xl font-medium tracking-tight md:text-3xl">{n}</dt>
+                  <dd className="muted mt-0.5 text-xs md:text-sm">{l}</dd>
                 </div>
               ))}
             </dl>
           )}
         </div>
+        <video autoPlay muted loop playsInline poster="/hero.jpg" aria-hidden className="aspect-[4/3] w-full rounded-[28px] object-cover object-[60%_center] md:aspect-[4/5] md:rounded-[36px]">
+          <source src="/hero.mp4" type="video/mp4" />
+        </video>
       </section>
 
       <section className={section}>
@@ -77,45 +73,44 @@ export default async function Home() {
         </ol>
       </section>
 
-      {/* The case in one chart, on a charcoal band: a tag, a headline, one big number, and four bars with the last one lit. */}
-      <div className="band-coal mt-6 md:mt-10">
-        <section className={section}>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_2.2fr] md:gap-12">
+      {/* The case in one chart, on its own rounded panel: a tag, a headline, one big number, and four bars with the last one lit. */}
+      <section id="chart" className={section}>
+        <div className="rounded-[28px] bg-[#1d1b20] p-5 md:rounded-[40px] md:p-12">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-[1fr_2fr] md:gap-12">
             <div className="flex flex-col">
               <p className="chip chip-flame self-start">Why human video</p>
-              <h2 className="mt-4 text-3xl md:text-5xl">More robot data for the <span className="text-flow">same money</span></h2>
+              <h2 className="mt-4 text-3xl md:text-5xl">More robot data for the <span className="text-flame">same money</span></h2>
               <p className="mt-4 max-w-xs text-sm text-paper/80 md:mt-auto md:text-base">Filming a person costs a third to half as much per hour as teleoperating a robot, and collects 3 to 5 times faster. The same budget buys up to:</p>
               <p className="text-dither mt-2 self-start text-7xl font-medium leading-none tracking-tighter md:text-[10rem]">4x</p>
             </div>
-            <div className="grid grid-cols-4 items-end gap-2 md:gap-5">
+            {/* each bar carries its own numbers: hours bought at the top, cost per hour at the foot, what it is underneath */}
+            <div className="grid grid-cols-4 gap-2 md:gap-4">
               {BUDGET.map(([h, name, cost], i) => {
                 const lit = i === BUDGET.length - 1
                 return (
-                  <div key={name} className="flex h-full flex-col">
-                    <p className={`text-2xl font-light tabular-nums md:text-5xl ${lit ? 'text-blush' : 'text-slate'}`}>{h} h</p>
-                    <p className="mb-4 mt-1 min-h-10 text-sm leading-tight text-paper/80 max-md:hidden">{name}</p>
-                    <div className="mt-2 flex h-40 items-end md:mt-auto md:h-96">
-                      <div className={`tile tile-bare w-full ${lit ? 'text-ink' : '!bg-white/[.07]'}`} style={{ height: `${(h / 67) * 100}%` }}>
-                        {lit && <Dither tone="flow" seed={7.4} />}
-                        <span className={`!absolute bottom-2 left-2 text-xs font-medium tabular-nums ${lit ? '' : 'muted'}`}>{cost}</span>
+                  <div key={name} className="flex flex-col">
+                    <div className="flex h-56 items-end md:h-[26rem]">
+                      <div className={`flex w-full flex-col justify-between rounded-lg p-2 md:rounded-2xl md:p-4 ${lit ? 'bg-flame text-ink' : 'bg-white/[.08]'}`} style={{ height: `${(h / 67) * 100}%` }}>
+                        <p className="text-xl font-medium leading-none tabular-nums md:text-5xl">{h} h</p>
+                        <p className={`text-[11px] tabular-nums md:text-sm ${lit ? 'font-medium' : 'muted'}`}>{cost}</p>
                       </div>
                     </div>
+                    <p className="mt-2 text-[11px] leading-tight text-paper/80 md:mt-3 md:text-sm">{name}</p>
                   </div>
                 )
               })}
             </div>
           </div>
-          <p className="mt-3 text-xs text-paper/80 md:hidden">Left to right: teleoperation on a complex rig, teleoperation on a simple rig, human video at the high end, human video at the low end.</p>
-          <p className="muted mt-4 text-xs">
+          <p className="muted mt-6 text-xs">
             Hours of training data per $1,000, worked out from published collection costs per hour. Public teleoperated robot data totals about 11,000 hours (Open X-Embodiment), while the largest private collection, 16M+ videos, is shared with nobody.
             Sources: <a className="underline" href="https://dexset.ai/blogs/egocentric-data-collection-robotics/">Dexset</a>, <a className="underline" href="https://truelabel.ai/solutions/egocentric-video-data">truelabel</a>, <a className="underline" href="https://arxiv.org/abs/2606.20521">HumanScale</a>. Reported figures, not verified by us.
           </p>
-        </section>
-      </div>
+        </div>
+      </section>
 
       <div className="band-ember">
         <section className={section}>
-          <h2 className="mb-5 text-center text-3xl md:mb-8 md:text-5xl">What is in it <span className="text-flow">for you</span></h2>
+          <h2 className="mb-5 text-center text-3xl md:mb-8 md:text-5xl">What is in it <span className="text-flame">for you</span></h2>
           <Benefits />
         </section>
       </div>

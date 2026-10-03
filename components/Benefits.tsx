@@ -27,7 +27,7 @@ export default function Benefits() {
     <div>
       <div role="group" aria-label="Who are you" className="mx-auto grid max-w-md grid-cols-2 rounded-full bg-white/[.07] p-1.5">
         {(Object.keys(SIDES) as (keyof typeof SIDES)[]).map((k) => (
-          <button key={k} aria-pressed={side === k} onClick={() => setSide(k)} className={`rounded-full px-5 py-3 font-medium transition-colors duration-300 ${side === k ? 'bg-linear-to-br from-flame to-pink text-ink shadow-[0_8px_22px_-8px_#ee7340]' : 'muted'}`}>{SIDES[k].name}</button>
+          <button key={k} aria-pressed={side === k} onClick={() => setSide(k)} className={`rounded-full px-5 py-3 font-medium transition-colors duration-300 ${side === k ? 'bg-flame text-ink' : 'muted'}`}>{SIDES[k].name}</button>
         ))}
       </div>
       {/* keyed by side so the cards animate in again on every switch */}

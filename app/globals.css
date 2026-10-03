@@ -169,13 +169,6 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
   .tile-bare::before { content: none; }
   /* light text sitting on the swirl needs a little shade to stay readable over the pale parts */
   .on-flow { text-shadow: 0 1px 14px rgb(20 10 6 / 0.6), 0 0 2px rgb(20 10 6 / 0.35); }
-  /* headline words filled with the poster gradient */
-  .text-flow {
-    background: linear-gradient(100deg, var(--color-flame), var(--color-blush) 55%, var(--color-pink));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
   /* big numerals filled with halftone dots over the same gradient */
   .text-dither {
     background:
@@ -197,8 +190,7 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
     text-transform: uppercase;
     white-space: nowrap;
     color: var(--color-blush);
-    background: rgb(8 4 3 / 0.5);
-    backdrop-filter: blur(8px);
+    background: rgb(8 4 3 / 0.72);
     border-left: 2px solid var(--color-flame);
     transition: opacity 0.4s;
     will-change: transform;
@@ -235,25 +227,7 @@ a.card, .btn, .chip, .input { transition: transform 0.18s, background-color 0.18
   @media (max-width: 767px) {
     .tag:nth-child(2), .tag:nth-child(3) { display: none; }
   }
-  /* a soft light that follows the pointer across the landing page */
-  .glow {
-    position: fixed;
-    left: -260px;
-    top: -260px;
-    z-index: 40;
-    width: 520px;
-    height: 520px;
-    border-radius: 50%;
-    pointer-events: none;
-    background: radial-gradient(circle, rgb(238 115 64 / 0.6), rgb(226 110 170 / 0.4) 45%, transparent 70%);
-    filter: blur(60px);
-    mix-blend-mode: screen;
-    opacity: 0;
-    transition: opacity 0.6s;
-    will-change: transform;
-  }
   /* section colour shifts: a charcoal band, then a warm one that fades back to ink */
-  .band-coal { background: linear-gradient(#080403, #1b191d 14%, #1b191d 86%, #080403); }
   .band-ember { background: radial-gradient(90% 70% at 50% 40%, rgb(226 110 170 / 0.09), rgb(238 115 64 / 0.06) 45%, transparent 75%); }
   /* small boxed fact: score, length, sample */
   .stat {

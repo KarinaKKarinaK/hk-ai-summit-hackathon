@@ -18,15 +18,14 @@ const MISSION = [
 
 /**
  * Landing page 3D: one arm and one glass mug, driven by scroll. Reach, grip, lift, then swing left and set it down.
- * The scene arrives as coarse pixels and sharpens, the camera closes in on the claw for the grip, and the frame is
+ * The camera closes in on the claw for the grip, and the frame is
  * marked up the way a labelling tool would: joint angles, the action, a box round the mug.
- * Also runs the page's smooth scroll and the light that follows the pointer.
+ * Also runs the page's smooth scroll.
  */
 export default function ArmScene() {
   const section = useRef<HTMLElement>(null)
   const stage = useRef<HTMLDivElement>(null)
   const marks = useRef<HTMLDivElement>(null)
-  const glow = useRef<HTMLDivElement>(null)
   const [step, setStep] = useState(0)
 
   useEffect(() => {
@@ -43,17 +42,13 @@ export default function ArmScene() {
       gsap.ticker.lagSmoothing(0)
     }
 
-    // pointer: a soft light follows it down the page, and the camera leans a little toward it
+    // pointer: the camera leans a little toward it
     const mouse = { x: 0, y: 0 }
     let redraw = () => {}
     const onMove = (e: PointerEvent) => {
       if (e.pointerType !== 'mouse') return
       mouse.x = e.clientX / innerWidth - 0.5
       mouse.y = e.clientY / innerHeight - 0.5
-      if (glow.current) {
-        glow.current.style.opacity = '0.16'
-        glow.current.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`
-      }
       redraw()
     }
     if (!calm) addEventListener('pointermove', onMove)
@@ -65,8 +60,7 @@ export default function ArmScene() {
     } catch {
       return stop // no WebGL: the text still tells the story
     }
-    const sharp = Math.min(devicePixelRatio, 1.5)
-    renderer.domElement.style.imageRendering = 'pixelated'
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5))
     el.appendChild(renderer.domElement)
     const scene = new THREE.Scene()
     const cam = new THREE.PerspectiveCamera(34, 1, 0.1, 50)
@@ -78,7 +72,7 @@ export default function ArmScene() {
     const arm = buildArm('graphite'), mug = buildMug()
     scene.add(arm.root, buildFloor(), mug, warm, rose)
 
-    let w = 1, h = 1, ratio = 0
+    let w = 1, h = 1
     const size = () => {
       w = el.clientWidth
       h = el.clientHeight
@@ -99,12 +93,6 @@ export default function ArmScene() {
     let shown = -1, last = 0
     const draw = (p: number) => {
       last = p
-      // arrive as big pixels, resolve to sharp over the first tenth of the scroll
-      const want = Math.max(0.05, Math.round(lerp(0.05, 1, p / 0.1) * 20) / 20) * sharp
-      if (want !== ratio) {
-        renderer.setPixelRatio((ratio = want))
-        renderer.setSize(w, h)
-      }
       const yaw = lerp(lerp(A0 + 0.7, A0, p / 0.25), A1, (p - 0.62) / 0.38)
       const r = lerp(0.8, R, p / 0.25)
       // wrist height: come in high, drop onto the mug, lift, then lower again while turning
@@ -116,16 +104,16 @@ export default function ArmScene() {
       mug.rotation.y = a - A0 // it turns with the claw, which is what the handle shows
       // the camera drifts round as you scroll, and closes in on the claw for the grip and the lift
       const zoom = lerp(0, 1, (p - 0.2) / 0.14) * (1 - lerp(0, 1, (p - 0.62) / 0.14))
-      const o = lerp(-0.45, 0.1, p) + mouse.x * 0.16, dist = 5 - 1.0 * zoom
+      const o = lerp(-0.45, 0.1, p) + mouse.x * 0.16, dist = 7.6 - 0.9 * zoom
       cam.position.set(Math.sin(o) * dist, 1.9 - 0.3 * zoom - mouse.y * 0.25, Math.cos(o) * dist)
       arm.root.updateMatrixWorld(true)
       arm.parts.wrist.getWorldPosition(v)
-      cam.lookAt(look.set(0.45, 0.7, 0).lerp(v.setY(v.y - 0.2), zoom * 0.5))
+      cam.lookAt(look.set(0.15, 0.5, 0).lerp(v.setY(v.y - 0.2), zoom * 0.5))
       cam.updateMatrixWorld()
       renderer.render(scene, cam)
 
-      // mark up the frame once it is sharp
-      const on = p > 0.1 && p < 0.985 ? '1' : '0'
+      // mark up the frame
+      const on = p > 0.03 && p < 0.985 ? '1' : '0'
       const action = p < 0.25 ? 'reach' : p < HOLD ? 'grasp' : p < 0.62 ? 'lift' : p < 0.9 ? 'carry' : 'place'
       const say = [`joint 1 · ${deg(arm.parts.shoulder.rotation.z)}`, `joint 2 · ${deg(arm.parts.elbow.rotation.z)}`, `gripper · ${Math.round(open * 100)}% open · action: ${action}`]
       ;[arm.parts.shoulder, arm.parts.elbow, arm.parts.wrist].forEach((part, i) => {
@@ -166,11 +154,10 @@ export default function ArmScene() {
 
   return (
     <section id="arm" ref={section} className="relative h-[230vh] md:h-[300vh]" aria-label="Our mission: data democratization">
-      <div ref={glow} className="glow" aria-hidden />
       <div className="sticky top-0 mx-auto grid h-dvh max-w-6xl content-center gap-4 px-4 md:grid-cols-[1fr_1.3fr] md:items-center md:gap-10">
         <div className="order-2 md:order-1">
           <p className="label">Data democratization</p>
-          <h2 className="text-2xl font-semibold md:text-5xl">Robot data, <span className="text-flow">open to everyone.</span></h2>
+          <h2 className="text-2xl font-semibold md:text-5xl">Robot data, <span className="text-flame">open to everyone.</span></h2>
           <ol className="mt-3 space-y-1.5 md:mt-8 md:space-y-2">
             {MISSION.map(([t, d], i) => (
               <li key={t} className={`tile tile-row p-3 transition-opacity duration-500 md:p-4 ${step === i ? 'on-flow' : 'opacity-60'}`}>
@@ -182,7 +169,7 @@ export default function ArmScene() {
           </ol>
         </div>
         <div className="relative order-1 h-[38dvh] md:order-2 md:h-[76dvh]" aria-hidden>
-          <div ref={stage} className="h-full [mask-image:radial-gradient(closest-side,black_86%,transparent)]" />
+          <div ref={stage} className="h-full" />
           {/* labels over the frame, placed by the draw loop */}
           <div ref={marks} className="pointer-events-none absolute inset-0 overflow-hidden">
             <div className="bbox opacity-0"><span /></div>
