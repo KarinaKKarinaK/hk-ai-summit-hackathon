@@ -24,6 +24,37 @@ export function reputation(r: { clips: number; duplicates: number; accepted: num
   return Math.round(100 * (0.5 * (decisions ? r.accepted / decisions : 0.5) + 0.3 * (total ? r.clips / total : 1) + 0.2 * Math.min(1, r.clips / 10)))
 }
 
+// ---- Authenticity. Recording happens in the app, and a live session leaves traces a pre-made video cannot. ----
+
+export const HOLD_DAYS = 14 // payouts are held this long so fraud found later can be clawed back. Shown in the UI, no payments yet.
+
+// Calibration knobs for finger counting. Loosen if real hands fail the challenge.
+const FINGER_UP = 1.1, THUMB_OUT = 1.05
+
+/** Fingers held up, from the 21 hand landmarks. Drives the live "show N fingers" challenge. */
+export function countFingers(lm: { x: number; y: number }[]): number {
+  const d = (a: number, b: number) => Math.hypot(lm[a].x - lm[b].x, lm[a].y - lm[b].y)
+  // a finger is up when its tip is further from the wrist than its middle joint
+  const fingers = [[8, 6], [12, 10], [16, 14], [20, 18]].filter(([tip, pip]) => d(tip, 0) > d(pip, 0) * FINGER_UP).length
+  // the thumb is out when its tip is further from the pinky base than its own joint
+  return fingers + (d(4, 17) > d(3, 17) * THUMB_OUT ? 1 : 0)
+}
+
+/**
+ * Was this recorded live in the app? Three traces: the hand-tracking stream covers the video,
+ * every challenge was passed, and (on phones) the motion sensors ran alongside.
+ * ponytail: the episode is produced in the browser, so a determined cheat can forge it.
+ * Upgrade path: device attestation (App Attest, Play Integrity) and C2PA signing.
+ */
+export function authenticity(ep: any, seconds: number) {
+  const frames = Array.isArray(ep?.frames) ? ep.frames.length : 0
+  const tracking = seconds > 0 ? Math.min(1, frames / (seconds * 10)) : 0 // 10 tracked frames per second counts as full cover
+  const challenges: any[] = Array.isArray(ep?.challenges) ? ep.challenges : []
+  const challenge = challenges.length > 0 && challenges.every((c) => c?.passed === true)
+  const sensors = (ep?.sensors?.accel?.length ?? 0) >= Math.max(5, seconds * 5) // laptops have none, so this is recorded but not required
+  return { tracking: Math.round(tracking * 100) / 100, challenge, sensors, passed: challenge && tracking >= 0.3 }
+}
+
 export const RESULT_BONUS = 0.2 // pay on results: share of the price paid again to the seller when the clip improved the buyer's model
 
 export const LICENCE = {

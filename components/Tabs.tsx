@@ -8,7 +8,7 @@ const tabs = [
   { href: '/sell', name: 'Sell', long: 'Sell', icon: 'M12 20V6m0 0l-6 6m6-6l6 6M4 3h16' },
   { href: '/buy', name: 'Buy', long: 'Marketplace', icon: 'M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z' },
   { href: '/market', name: 'Prices', long: 'Prices', icon: 'M3 17l5-5 4 4 8-9M15 7h5v5' },
-  { href: '/calls', name: 'Bounties', long: 'Bounties', icon: 'M4 6h16M4 12h16M4 18h10' },
+  { href: '/calls', name: 'Requests', long: 'Requests', icon: 'M4 6h16M4 12h16M4 18h10' },
 ]
 
 /** Top links on desktop, bottom tab bar on phones. */

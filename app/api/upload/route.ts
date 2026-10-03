@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { sql, getUser, getMarket, log, findDuplicate, cleanHashes } from '@/lib/server'
-import { LABELS, BASE_RATE, technical, completeness, finalScore, listPrice, type Labels, type Metrics } from '@/lib/score'
+import { LABELS, BASE_RATE, technical, completeness, finalScore, listPrice, authenticity, matchesCall, type Labels, type Metrics } from '@/lib/score'
 
 export const maxDuration = 60
 
@@ -88,13 +88,22 @@ export async function POST(request: Request) {
   const video_url = blobUrl(b?.video_url)
   if (!video_url) return NextResponse.json({ error: 'video_url must be a file uploaded through /api/blob' }, { status: 400 })
   if (b.consent !== true) return NextResponse.json({ error: 'Confirm that you filmed this and have the right to license it' }, { status: 400 })
-  const episode_url = b.episode_url ? blobUrl(b.episode_url) : null
+  // No gallery uploads. A clip must come from /record, which produces the episode file alongside the video.
+  const episode_url = blobUrl(b.episode_url)
+  if (!episode_url) return NextResponse.json({ error: 'Record inside the app. Gallery uploads are not accepted.' }, { status: 400 })
+  const episode = await fetch(episode_url, { signal: AbortSignal.timeout(10_000) })
+    .then((r) => (r.ok && Number(r.headers.get('content-length') ?? 0) < 30_000_000 ? r.json() : null))
+    .catch(() => null)
   const frames: string[] = (Array.isArray(b.frames) ? b.frames : [])
     .filter((f: unknown) => typeof f === 'string' && f.startsWith('data:image/jpeg;base64,') && f.length < 400_000)
     .slice(0, 6)
   const thumb = typeof b.thumb === 'string' && b.thumb.startsWith('data:image/jpeg;base64,') && b.thumb.length < 100_000 ? b.thumb : null
   const description = clip(b.description, 1000), steps = clip(b.steps, 2000)
   const labels = cleanLabels(b.labels)
+  // A clip recorded for a request takes the request's task and camera angle where the seller left them blank.
+  const reqId = typeof b.request_id === 'string' && /^[0-9a-f-]{36}$/.test(b.request_id) ? b.request_id : null
+  const call = reqId ? (await sql`select * from calls where id = ${reqId}`)[0] : null
+  if (call) for (const k of ['task', 'industry', 'perspective'] as const) labels[k] ||= call[k] ?? undefined
   // ponytail: metrics are measured in the seller's browser and can be spoofed. The vision
   // review below is the server-side check. Move the measurements server-side (ffmpeg) when payouts are real.
   const num = (v: unknown, max: number) => (typeof v === 'number' && isFinite(v) ? Math.min(max, Math.max(0, v)) : undefined)
@@ -114,7 +123,19 @@ export async function POST(request: Request) {
     values (${user.id}, ${clip(b.title, 120) || null}, ${video_url}, ${episode_url}, ${JSON.stringify(labels)}::jsonb, ${description}, ${steps}, ${thumb}, ${JSON.stringify(metrics)}::jsonb, ${minutes},
       ${fingerprint}, ${JSON.stringify(hashes)}::jsonb, ${dup?.id ?? null})
     returning id`
-  await log(row.id, 'device', 'observed', { metrics, labels, description, steps, frames: frames.length, episode: !!episode_url, capture: b.capture === 'in-app' ? 'in-app' : 'gallery', consent: true, originality: dup ? `${dup.kind} match` : 'no match' }, user.id)
+  const auth = authenticity(episode, metrics.duration ?? 0)
+  await log(row.id, 'device', 'observed', {
+    metrics, labels, description, steps, frames: frames.length, episode: true, capture: 'in-app', authenticity: auth,
+    challenges: Array.isArray(episode?.challenges) ? episode.challenges.slice(0, 5) : [], request_id: call?.id ?? null,
+    consent: true, originality: dup ? `${dup.kind} match` : 'no match',
+  }, user.id)
+  if (!dup && !auth.passed) {
+    // Could not show it was recorded live: stored for the record, never reviewed, priced or listed.
+    const reason = !auth.challenge ? 'The live challenge was not passed' : 'Hand tracking does not cover the recording'
+    await sql`update uploads set status = 'scored', quality_score = 1, price = 0, title = coalesce(title, 'Unverified clip') where id = ${row.id}`
+    await log(row.id, 'market', 'unverified', { ...auth, reason })
+    return NextResponse.json({ id: row.id, quality_score: 1, price: 0, ai: null, aiError: 'skipped', unverified: reason })
+  }
   if (dup) {
     // A copy is stored for the record but never reviewed, priced or listed.
     await sql`update uploads set status = 'scored', quality_score = 1, price = 0, title = coalesce(title, 'Duplicate clip') where id = ${row.id}`
@@ -141,5 +162,20 @@ export async function POST(request: Request) {
   await sql`update uploads set status = 'scored', quality_score = ${score}, price = ${price}, ai = ${JSON.stringify(ai)}::jsonb,
     title = coalesce(title, ${ai?.title || 'Untitled clip'}) where id = ${row.id}`
   await log(row.id, 'market', 'priced', { score, technical: tech, completeness: comp, model_score: ai?.quality_score ?? null, rate, price })
-  return NextResponse.json({ id: row.id, quality_score: score, price, ai, aiError })
+
+  // Path 1, bounties: a clip recorded for a request is bought by that request as soon as it passes. Guaranteed payout.
+  let bounty: { paid: number; title?: string; reason?: string } | null = null
+  if (call) {
+    if (!(call.hours > 0) || call.buyer_id === user.id) bounty = { paid: 0, title: call.title, reason: 'This request is closed' }
+    else if (score < 3) bounty = { paid: 0, title: call.title, reason: 'The quality score is below 3' }
+    else if (!matchesCall(call, labels, minutes)) bounty = { paid: 0, title: call.title, reason: 'The clip does not match what the request asks for' }
+    else {
+      const paid = Math.max(1, Math.round((call.rate * minutes) / 60))
+      await sql`insert into purchases (buyer_id, upload_id, package, price, rate, call_id) values (${call.buyer_id}, ${row.id}, 'both', ${paid}, ${call.rate}, ${call.id})`
+      await sql`update calls set hours = greatest(hours - ${minutes / 60}, 0) where id = ${call.id}`
+      await log(row.id, 'buyer', 'accepted', { package: 'Raw + processed', price: paid, rate: call.rate, via: 'bid', reasons: [`Recorded for the request: ${call.title}`], score, labels }, call.buyer_id)
+      bounty = { paid, title: call.title }
+    }
+  }
+  return NextResponse.json({ id: row.id, quality_score: score, price, ai, aiError, bounty })
 }

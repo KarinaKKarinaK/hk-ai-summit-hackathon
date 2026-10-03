@@ -6,15 +6,16 @@ import { postCall } from '../actions'
 export default async function Calls({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams
   const user = await getUser()
-  const rows = await sql`select c.*, coalesce(b.org, b.name) as buyer, (select count(*)::int from purchases p where p.call_id = c.id) as clips
+  const rows = await sql`select c.*, coalesce(b.org, b.name) as buyer, (select count(*)::int from purchases p where p.call_id = c.id) as clips,
+      (select count(distinct u.seller_id)::int from purchases p join uploads u on u.id = p.upload_id where p.call_id = c.id) as people
     from calls c join users b on b.id = c.buyer_id order by c.created_at desc`
 
   return (
     <main className="mx-auto grid max-w-6xl gap-6 px-4 py-6 md:grid-cols-[1.5fr_1fr]">
       <div className="space-y-4">
         <div>
-          <h1 className="text-3xl md:text-5xl">Bounties</h1>
-          <p className="muted mt-2 text-sm">Buyers say exactly what their model is missing and what they will pay. Film to match a bounty and sell straight into it.</p>
+          <h1 className="text-3xl md:text-5xl">Requests</h1>
+          <p className="muted mt-2 text-sm">Buyers request exactly the data their model is missing, with a budget. Record for a request and the payout is guaranteed once the clip passes the checks.</p>
         </div>
         <ul className="grid gap-3">
           {rows.map((c) => {
@@ -36,10 +37,10 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
                 {spec.length > 0 && <ul className="muted list-disc pl-5 text-xs">{spec.map((s) => <li key={s as string}>{s}</li>)}</ul>}
                 <div>
                   <div className="bar"><i style={{ width: `${total ? (done / total) * 100 : 0}%` }} /></div>
-                  <p className="muted mt-1 text-xs">{done.toFixed(1)} of {Math.round(total)} h collected, {c.clips} clips. By {c.buyer}.</p>
+                  <p className="muted mt-1 text-xs">{c.clips}{c.demos ? ` of ${c.demos}` : ''} demos from {c.people}{c.min_people ? ` of ${c.min_people} required` : ''} people, {done.toFixed(1)} of {Math.round(total)} h. Budget ${Math.round(total * c.rate).toLocaleString('en-US')}. By {c.buyer}.</p>
                 </div>
                 <div className="flex flex-wrap gap-4 text-sm">
-                  <Link href="/sell" className="underline underline-offset-4">Film for this bounty</Link>
+                  <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="underline underline-offset-4">Record for this request</Link>
                   {user?.id === c.buyer_id && <a href={`/api/dataset/${c.id}`} className="underline underline-offset-4">Download dataset</a>}
                 </div>
               </li>
@@ -50,7 +51,7 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
 
       <aside className="md:sticky md:top-20 md:self-start">
         <form action={postCall} className="card grid gap-4 p-5">
-          <h2 className="text-xl">Post a bounty</h2>
+          <h2 className="text-xl">Post a request</h2>
           {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
           <div>
             <label className="label" htmlFor="title">What you need</label>
@@ -71,6 +72,8 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
             <input name="min_seconds" type="number" min={1} inputMode="numeric" className="input" placeholder="Min seconds" aria-label="Minimum clip length in seconds" />
             <input name="environment" className="input col-span-2" maxLength={120} placeholder="Environment, e.g. residential kitchen" aria-label="Environment" />
             <input name="objects" className="input col-span-2" maxLength={200} placeholder="Objects that must be visible" aria-label="Required objects" />
+            <input name="demos" type="number" min={1} inputMode="numeric" className="input" placeholder="Number of demos" aria-label="Number of demos wanted" />
+            <input name="min_people" type="number" min={1} inputMode="numeric" className="input" placeholder="Min different people" aria-label="Minimum number of different people" />
             <div>
               <label className="label" htmlFor="hours">Hours wanted</label>
               <input id="hours" name="hours" type="number" min={1} inputMode="numeric" className="input" required />

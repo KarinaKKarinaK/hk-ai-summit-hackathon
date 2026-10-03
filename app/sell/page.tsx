@@ -1,7 +1,6 @@
 import Link from 'next/link'
-import UploadForm from '@/components/UploadForm'
 import { sql, getUser, getMarket, priceOf } from '@/lib/server'
-import { payout, signal, tier, matchesCall, SELLER_SHARE, type Labels } from '@/lib/score'
+import { payout, signal, tier, matchesCall, SELLER_SHARE, HOLD_DAYS, type Labels } from '@/lib/score'
 import { reviewLabels, setAsk, fillBid, toggleListed } from '../actions'
 
 /** What the vision model saw that the seller did not enter. */
@@ -10,7 +9,7 @@ function suggestions(mine: Labels = {}, ai: Labels = {}): string[] {
   return out.concat((ai.tools ?? []).filter((t) => !mine.tools?.some((m) => m.toLowerCase() === t.toLowerCase())))
 }
 
-// Open to everyone: you can try the quality check before you have an account.
+// Open to everyone. Recording happens on /record, there is no gallery upload.
 export default async function Sell() {
   const user = await getUser()
   const [rows, calls, market] = await Promise.all([
@@ -20,12 +19,11 @@ export default async function Sell() {
         array(select buyer_id::text from purchases p where p.upload_id = u.id) as buyers,
         exists(select 1 from events e where e.upload_id = u.id and e.kind in ('changed', 'kept')) as reviewed
       from uploads u where seller_id = ${user.id} order by created_at desc` : [],
-    user ? sql`select c.*, coalesce(b.org, b.name) as buyer from calls c join users b on b.id = c.buyer_id where c.hours > 0 and c.buyer_id <> ${user.id} order by c.rate desc` : [],
+    sql`select c.*, coalesce(b.org, b.name) as buyer from calls c join users b on b.id = c.buyer_id where c.hours > 0 and c.buyer_id is distinct from ${user?.id ?? null}::uuid order by c.rate desc`,
     getMarket(),
   ])
   const t = tier(user?.years)
   const hot = Object.entries(market).sort((a, b) => b[1].rate - a[1].rate).slice(0, 4)
-  const rates = Object.fromEntries(Object.entries(market).map(([k, m]) => [k, { rate: m.rate, signal: signal(m) }]))
   const earned = payout(rows.reduce((a, r) => a + r.revenue, 0)) + rows.reduce((a, r) => a + r.bonus, 0)
   const sales = rows.reduce((a, r) => a + r.buyers.length, 0)
 
@@ -40,7 +38,7 @@ export default async function Sell() {
               {user.credential && <span className="chip ml-2">{user.credential}</span>}
             </p>
           ) : (
-            <p className="muted mt-2 text-sm">Pick a video to see its quality score and what it would earn. No account needed until you upload.</p>
+            <p className="muted mt-2 text-sm">Record in the app, get quality warnings while you film, and see what the clip earns. No account needed until you submit.</p>
           )}
         </div>
         <Link href="/record" className="btn btn-ghost">Record with hand tracking</Link>
@@ -70,7 +68,29 @@ export default async function Sell() {
         </ul>
       </section>
 
-      <UploadForm years={user?.years ?? 0} rates={rates} />
+      <section className="card grid gap-5 p-5 md:grid-cols-[1fr_1.2fr] md:p-6">
+        <div className="space-y-3">
+          <h2 className="text-2xl">Record a clip</h2>
+          <p className="muted text-sm">Recording happens inside the app, so every clip can be verified as real: live hand tracking, a quick finger challenge, and your phone&apos;s motion sensors. Gallery uploads are not accepted.</p>
+          <Link href="/record" className="btn">Open the recorder</Link>
+          <p className="muted text-xs">Quality warnings show while you film, so you fix problems before you submit. Payouts are released after a {HOLD_DAYS}-day hold.</p>
+        </div>
+        <div>
+          <p className="label">Guaranteed pay: open requests</p>
+          <ul className="divide-y divide-tan/15">
+            {calls.slice(0, 4).map((c) => (
+              <li key={c.id} className="flex items-center justify-between gap-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm">{c.title}</p>
+                  <p className="muted text-xs">${c.rate}/h, paid when the clip passes the checks</p>
+                </div>
+                <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="btn btn-ghost !min-h-9 flex-none text-sm">Film this</Link>
+              </li>
+            ))}
+          </ul>
+          <Link href="/calls" className="mt-2 inline-block text-sm underline underline-offset-4">All requests</Link>
+        </div>
+      </section>
 
       <section className="grid gap-3 md:grid-cols-3">
         {[
@@ -116,7 +136,7 @@ export default async function Sell() {
                     </div>
                     {scored && (
                       <p className="muted text-xs">
-                        {r.withdrawn_at ? 'Withdrawn from the market. ' : listed ? `Listed at $${r.ask ?? marketPrice}${r.ask ? ` (your ask, market says $${marketPrice})` : ' (market price, moves with demand)'}. You get $${payout(r.ask ?? marketPrice).toFixed(2)} per sale. ` : r.duplicate_of ? 'Not listed: this matches a clip that was already uploaded. ' : 'Not listed: score below 2. '}
+                        {r.withdrawn_at ? 'Withdrawn from the market. ' : listed ? `Listed at $${r.ask ?? marketPrice}${r.ask ? ` (your ask, market says $${marketPrice})` : ' (market price, moves with demand)'}. You get $${payout(r.ask ?? marketPrice).toFixed(2)} per sale, released after ${HOLD_DAYS} days. ` : r.duplicate_of ? 'Not listed: this matches a clip that was already uploaded. ' : 'Not listed: score below 2. '}
                         Sold {r.buyers.length} times. <Link href={`/buy/${r.id}`} className="underline underline-offset-4">Evidence trail and job record</Link>
                       </p>
                     )}

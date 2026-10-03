@@ -7,7 +7,7 @@ import { buy, pass, reportResult } from '../../actions'
 const HEAD: Record<string, string> = {
   observed: 'Observed on the device', proposed: 'Model proposed', changed: 'Reviewer changed', kept: 'Reviewer kept their labels',
   priced: 'Scored and priced', ask: 'Seller ask', accepted: 'Buyer accepted', passed: 'Buyer passed', result: 'Buyer reported a training result',
-  duplicate: 'Flagged as a copy of a clip already on Guild. Not listed', withdrawn: 'Seller withdrew the clip from the market', relisted: 'Seller put the clip back on the market',
+  duplicate: 'Flagged as a copy of a clip already on Guild. Not listed', unverified: 'Could not verify this was filmed live. Not listed', withdrawn: 'Seller withdrew the clip from the market', relisted: 'Seller put the clip back on the market',
 }
 const labelText = (l: Labels = {}) => [l.task, l.industry, l.perspective, l.device, ...(l.tools ?? [])].filter(Boolean).join(', ')
 const show = (v: unknown) => (Array.isArray(v) ? v.join(', ') : v ? String(v) : 'none')
@@ -17,7 +17,7 @@ const pct = (x: number) => `${Math.round(x * 100)}%`
 function lines(kind: string, d: any): string[] {
   switch (kind) {
     case 'observed':
-      return [checks(d.metrics ?? {}).map((c) => `${c.label}: ${c.value}`).join(', ') || 'No frames could be measured', `Seller entered: ${labelText(d.labels) || 'no labels'}`, d.episode ? 'Hand-pose episode attached' : '']
+      return [checks(d.metrics ?? {}).map((c) => `${c.label}: ${c.value}`).join(', ') || 'No frames could be measured', `Seller entered: ${labelText(d.labels) || 'no labels'}`, d.authenticity ? `Filmed live in the app: challenge ${d.authenticity.challenge ? 'passed' : 'failed'}${d.challenges?.[0]?.prompt ? ` (${d.challenges[0].prompt})` : ''}, hand tracking covers ${pct(d.authenticity.tracking)}, motion sensors ${d.authenticity.sensors ? 'recorded' : 'not available on this device'}` : d.episode ? 'Hand-pose episode attached' : '']
     case 'proposed':
       return d.error ? [`Review did not run: ${d.error}`] : [`Labels: ${labelText(d.labels) || 'none'}`, `Skill: ${d.skill?.level}. ${d.skill?.evidence ?? ''}`, `Content score ${d.quality_score ?? '?'}/5. ${(d.reasons ?? []).join(' ')}`, d.flags?.length ? `Flags: ${d.flags.join(', ')}` : '']
     case 'changed':
@@ -140,7 +140,7 @@ export default async function Listing({ params, searchParams }: { params: Promis
 
         <section className="card space-y-2 p-5">
           <p className="label">Provenance and licence</p>
-          <p className="text-sm">{capture === 'in-app' ? 'Recorded inside the Guild app, with a live hand-motion trace.' : capture ? 'Uploaded from the seller’s gallery. The seller declared they filmed it and have the right to license it.' : 'Sample listing, no capture record.'}</p>
+          <p className="text-sm">{capture === 'in-app' ? 'Recorded inside the Guild app, with a live hand-motion trace.' : capture ? 'Recorded before in-app capture was required.' : 'Sample listing, no capture record.'}</p>
           <ul className="muted list-disc space-y-1 pl-5 text-sm">{LICENCE.terms.map((t) => <li key={t}>{t}</li>)}</ul>
           <a className="inline-block text-sm underline underline-offset-4" href={`/api/provenance/${r.id}`}>Provenance certificate (JSON, hash-chained trail)</a>
         </section>

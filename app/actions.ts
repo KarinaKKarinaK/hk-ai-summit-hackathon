@@ -89,8 +89,8 @@ export async function postCall(f: FormData) {
   const hours = int(f, 'hours', 100000), rate = int(f, 'rate', 10000)
   if (!title || !hours || !rate) redirect('/calls?error=' + encodeURIComponent('A call needs a title, hours and a rate'))
   // A bounty is a bid plus a spec: what to film, how, and how much of it.
-  await sql`insert into calls (buyer_id, title, description, task, industry, hours, hours_total, rate, perspective, environment, objects, min_seconds, wants_failures, weakness, forward, due)
-    values (${user.id}, ${title}, ${str(f, 'description', 1000)}, ${pick(LABELS.task, str(f, 'task'))}, ${pick(LABELS.industry, str(f, 'industry'))}, ${hours}, ${hours}, ${rate},
+  await sql`insert into calls (buyer_id, title, description, task, industry, hours, hours_total, rate, demos, min_people, perspective, environment, objects, min_seconds, wants_failures, weakness, forward, due)
+    values (${user.id}, ${title}, ${str(f, 'description', 1000)}, ${pick(LABELS.task, str(f, 'task'))}, ${pick(LABELS.industry, str(f, 'industry'))}, ${hours}, ${hours}, ${rate}, ${int(f, 'demos', 1000000) || null}, ${int(f, 'min_people', 100000) || null},
       ${pick(LABELS.perspective, str(f, 'perspective'))}, ${str(f, 'environment', 120) || null}, ${str(f, 'objects', 200) || null}, ${int(f, 'min_seconds', 3600) || null},
       ${f.get('wants_failures') === 'on'}, ${str(f, 'weakness', 200) || null}, ${f.get('forward') === 'on'}, ${/^\d{4}-\d{2}-\d{2}$/.test(str(f, 'due')) ? str(f, 'due') : null})`
   revalidatePath('/calls')

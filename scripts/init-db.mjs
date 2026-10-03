@@ -53,6 +53,9 @@ const schema = [
   `alter table purchases add column if not exists bonus int default 0`,
   `alter table users add column if not exists verified boolean default false`,
   `alter table events add column if not exists hash text`,
+  // Task requests ask for a number of demos from a minimum number of different people.
+  `alter table calls add column if not exists demos int`,
+  `alter table calls add column if not exists min_people int`,
 ]
 for (const s of schema) await sql.query(s)
 

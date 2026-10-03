@@ -41,7 +41,7 @@ Robots need the long tail: different workshops, tools, countries, and above all 
 
 ```mermaid
 flowchart LR
-    B[Lab posts a bounty<br/>task, camera, objects,<br/>hours, rate] --> W[Worker films the job<br/>phone or in-app capture]
+    B[Lab posts a bounty<br/>task, camera, objects,<br/>hours, rate] --> W[Worker films the job<br/>in the app, verified live]
     W --> Q[Checks on the phone<br/>quality + originality]
     Q --> M[Vision model proposes<br/>labels, steps, skill]
     M --> R[Worker reviews<br/>accept or keep]
@@ -120,8 +120,8 @@ How we would start, given the cold-start problem: not as an open marketplace. Si
 | Page | What it does |
 |---|---|
 | `/` | The pitch: business model, unit economics calculator, mission, worker benefits |
-| `/record` | Camera hand tracking with a 3D robot arm that mirrors you. Records video, a hand-pose episode and phone motion sensors |
-| `/sell` | Upload from the gallery. Live quality and originality checks, labels, market price, set an ask, sell into a bounty, withdraw. Works before sign-up |
+| `/record` | The only way in. Camera hand tracking with a 3D robot arm that mirrors you, quality warnings while you film, a live finger challenge, and motion sensors recorded in sync |
+| `/sell` | Seller dashboard: open requests to film, earnings, market price, set an ask, withdraw. No gallery upload |
 | `/buy` | Marketplace with filters, including verified sellers and failure cases. Each buyer gets a private acceptance profile |
 | `/buy/[id]` | Evidence trail, price breakdown, seller reputation, licence, packages, accept or pass with a reason, report a training result |
 | `/market` | Guild Index and the price board per trade |
@@ -132,11 +132,62 @@ API: `/api/index` (open price index), `/api/provenance/[id]` (certificate), `/ap
 
 ### How an upload is checked
 
-1. **On the phone, before upload.** Six sampled frames are scored for resolution, length, lighting, sharpness, steadiness and hands in frame. Each failing check says how to fix it.
-2. **Originality.** A file fingerprint and a perceptual hash per frame are compared with every clip already uploaded by anyone. A copy is saved but never listed or paid.
-3. **Rights.** The seller confirms they filmed it and can license it. The capture method (in-app or gallery) is recorded.
-4. **On the server.** A Kimi vision call proposes labels, steps, a skill read and privacy flags.
-5. **Score 1 to 5** from technical checks, label completeness and the model's content score. Below 2 is not listed.
+1. **While recording.** Warnings appear live: hands out of frame, too dark, moving too fast. A quality estimate updates twice a second, so problems are fixed before submitting, not rejected after.
+2. **Authenticity.** See the table below. A clip that fails is stored but never listed.
+3. **After recording, on the phone.** Six sampled frames are scored for resolution, length, lighting, sharpness, steadiness and hands in frame.
+4. **Originality.** A file fingerprint and a perceptual hash per frame are compared with every clip already submitted by anyone. A copy is saved but never listed or paid.
+5. **Rights.** The seller confirms they filmed it, grants the licence, and has permission if it was filmed at a workplace. The consent record is written into the episode file.
+6. **On the server.** A Kimi vision call proposes labels, steps, a skill read and privacy flags.
+7. **Score 1 to 5** from technical checks, label completeness and the model's content score. Below 2 is not listed.
+
+### Authenticity: making fakes impractical
+
+There are no gallery uploads. Recording happens inside the web app, which blocks most fakes and gives us the session's tracking data for free.
+
+| Layer | How it works | Status |
+|---|---|---|
+| Challenge-response | A few seconds in, a random prompt ("show 3 fingers"). Checked against the live hand landmarks. Cannot be pre-produced | Built, required |
+| Hand tracking stream | Landmarks from the session must cover the video | Built, required |
+| Motion sensor sync | Accelerometer and gyroscope recorded alongside the video | Built, recorded. Not required, since laptops have none |
+| Duplicate detection | Perceptual hashing against our own catalog | Built. Not checked against footage elsewhere online |
+| Payout holding period | 14 days, so fraud found later is never paid | Shown in the UI. No payments yet |
+| Device attestation, C2PA | App Attest, Play Integrity, content credentials | Not built |
+
+The episode file is produced in the browser, so a determined cheat can forge it. Attestation is what closes that gap.
+
+### Two ways to earn
+
+| | Requests (bounties) | Open catalog |
+|---|---|---|
+| Who starts it | A buyer posts a request with a budget: task, number of demos, minimum number of different people, camera angle | A seller records any task |
+| Payout | Guaranteed at the request's rate once the clip passes the checks | A share every time it sells, at the market price |
+| Like | A freelance job | Stock footage |
+| In the app | "Film this" on a request opens the recorder. A passing clip is bought by the request automatically | Every clip is also listed in the catalog |
+
+Sellers need to know they will be paid before they film, which pay-on-sale alone does not give them. Licences are non-exclusive. Exclusive licences at a premium are not built.
+
+### Competitive landscape
+
+From the team's research in [UPDATED_BREAKDOWN.md](UPDATED_BREAKDOWN.md). Not re-verified here.
+
+| Company | What they do | Difference to us |
+|---|---|---|
+| Figure Index | Gig platform, people film tasks | Data stays with Figure |
+| DoorDash, Instawork, Sunain, Micro1 | Paid recording programs | Collect for specific clients, recruited workers |
+| Scale AI, Encord | Data services and tooling | Enterprise, managed programs |
+| Luel (YC W26) | Open marketplace, custom campaigns | Vetted contributors, mostly raw video |
+| Kinetic Blocks | Humanoid data marketplace (beta) | Vetted suppliers only |
+| Build AI | About 1M hours of free factory footage | Shows generic footage is a commodity |
+
+Our combination: self-serve supply, open demand, phone only, and every recording robot-ready and verified. Human demonstration data complements robot data. It does not replace teleoperation.
+
+### Demo script
+
+1. A buyer posts a request: "200 demos of replacing a SIM card".
+2. The presenter opens it on their phone and taps "Record for this request".
+3. The robot arm mirrors live, the challenge appears, the presenter holds up the fingers.
+4. Submit: verification, quality score and the guaranteed payout show on screen.
+5. The buyer sees the accepted demo on the request and downloads the dataset.
 
 ### Data captured
 
@@ -242,8 +293,10 @@ docs/           README screenshots
 - Kimi labelling needs `KIMI_API_KEY`. It is not set on the live demo, so the trail shows the review as not run.
 - Quality metrics and duplicate hashes are computed in the seller's browser and can be spoofed.
 - The duplicate check misses trimmed or mirrored copies. There is no manual review queue.
-- No detection of AI-generated video. In-app capture is recorded as such, but there is no device attestation, recording challenge or C2PA signing.
-- No automatic blurring of faces, plates, screens or documents. The vision model only flags them.
+- Authenticity checks run on data the browser produces, so they raise the cost of faking, they do not make it impossible. No device attestation or C2PA signing.
+- The finger challenge uses a simple landmark rule and has not been tuned on many hands.
+- Request diversity (minimum number of different people) is shown, not enforced. "Task completed" and "matches the request" are not checked by a model yet: a requested clip takes the request's task label.
+- No on-device blurring of faces, plates, screens or documents. The vision model only flags them, and only when the Kimi key is set.
 - A worker can film things they do not own: an employer's process, a customer's property, music in the background. The consent box is a declaration, not a check.
 - Training results and forward contracts are self-reported and not enforced.
 - Trade, years and licence are self-declared unless manually verified.

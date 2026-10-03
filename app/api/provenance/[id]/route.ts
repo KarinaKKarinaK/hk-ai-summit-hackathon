@@ -21,7 +21,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     certificate: 'Guild provenance certificate v1',
     issued: new Date().toISOString(),
     clip: { id: r.id, title: r.title, uploaded: r.created_at, file_fingerprint_sha256: r.fingerprint, has_hand_pose_episode: r.has_episode, quality_score: r.quality_score },
-    capture: { method: observed.capture ?? 'unknown', measured_on_device: observed.metrics ?? null },
+    capture: { method: observed.capture ?? 'unknown', authenticity: observed.authenticity ?? null, challenges: observed.challenges ?? [], measured_on_device: observed.metrics ?? null },
     originality: { check: 'file fingerprint and per-frame perceptual hash against all prior uploads', result: r.duplicate_of ? 'duplicate' : observed.originality ?? 'not checked' },
     contributor: { trade: r.trade, years: r.years, credential: r.credential, credential_status: r.verified ? 'verified by Guild' : 'self-declared' },
     rights: { contributor_declared_ownership_and_consent: observed.consent === true, licence: LICENCE },

@@ -12,7 +12,8 @@ const compare = [
   ['Ownership', 'Contributor gives it away for a flat fee', 'Worker keeps it and earns a royalty on every licence'],
   ['Price', 'A flat fee the collector picks', 'A live market: bids, asks, and a rate that follows demand'],
   ['Proof', 'None shown', 'An evidence trail on every clip, from measurement to buyer acceptance'],
-  ['Feedback', 'Accepted or rejected, after upload', 'Live checks before upload, with how to fix each one'],
+  ['Feedback', 'Accepted or rejected, after upload', 'Warnings while you record, so less footage is rejected'],
+  ['Authenticity', 'Trust the uploader', 'In-app capture only, live challenge, motion sensors, hand tracking'],
   ['Output', 'Video for one model', 'Video, step list, and a hand-pose episode file for any gripper'],
 ]
 
@@ -32,22 +33,28 @@ export default async function Home() {
 
   return (
     <main>
-      <section className="streaks">
-        <div className="mx-auto grid min-h-[68dvh] max-w-6xl content-end gap-10 px-4 pb-10 pt-20 md:grid-cols-2 md:pb-12 md:pt-24">
+      {/* Hero photo: shown clearly on the right (top on phones), tinted warm and faded into the page. */}
+      <section className="relative isolate overflow-hidden">
+        <Image src="/robot.jpg" alt="A humanoid robot working at a kitchen sink" fill priority sizes="100vw" className="-z-10 object-cover object-[68%_25%] saturate-[.85] max-md:h-[62%]! md:object-right" />
+        <div className="absolute inset-0 -z-10 bg-rust/20 mix-blend-color" />
+        <div className="absolute inset-0 -z-10 bg-linear-to-t from-ink from-42% via-ink/80 via-58% to-transparent md:bg-linear-to-r md:from-ink md:from-28% md:via-ink/75 md:via-52% md:to-transparent" />
+        <div className="absolute inset-x-0 top-0 -z-10 h-28 bg-linear-to-b from-ink/85 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 -z-10 h-48 bg-linear-to-t from-ink via-ink/80 to-transparent" />
+        <div className="rise mx-auto grid min-h-[86dvh] max-w-6xl content-end gap-8 px-4 pb-10 pt-72 md:min-h-[82dvh] md:gap-12 md:pb-14 md:pt-28 md:[&>div]:max-w-xl">
           <div>
             <p className="label">The exchange for physical AI data</p>
             <h1 className="text-5xl md:text-7xl">The open market for robot training data.</h1>
-            <p className="muted mt-5 max-w-md">AI can scrape the internet for information, but robots need structured experience of the physical world. Labs post bounties for exactly what their models are missing, skilled tradespeople film it, and the worker earns a royalty on every licence.</p>
+            <p className="muted mt-5 max-w-md">AI can scrape the internet for information, but robots need structured experience of the physical world. Labs request exactly what their models are missing. Anyone with a phone records it in the app, verified as real, and earns on every licence.</p>
             <div className="mt-7 grid grid-cols-2 gap-3 sm:flex">
               <Link href="/market" className="btn">See live prices</Link>
               <Link href="/sell" className="btn btn-ghost">Start earning</Link>
             </div>
           </div>
           {stats && (
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-5 self-end border-t border-paper/30 pt-4">
+            <dl className="grid max-w-3xl grid-cols-2 gap-x-10 gap-y-5 border-t border-paper/30 pt-5 tabular-nums md:grid-cols-4">
               {[[usd(stats.book), 'open bid book'], [`${stats.hours.toLocaleString('en-US')} h`, 'footage listed'], [stats.markets, 'trades with live bids'], [`${Math.round((1 - SELLER_SHARE) * 100)}%`, 'take rate per licence']].map(([n, l]) => (
                 <div key={l}>
-                  <dt className="text-3xl font-light tracking-tight md:text-5xl">{n}</dt>
+                  <dt className="text-3xl font-light tracking-tight md:text-4xl">{n}</dt>
                   <dd className="label mt-1">{l}</dd>
                 </div>
               ))}
@@ -61,7 +68,7 @@ export default async function Home() {
         <h2 className="max-w-3xl text-3xl md:text-5xl">A marketplace with no inventory cost and an asset that sells more than once.</h2>
         <div className="mt-6 grid gap-3 md:grid-cols-3 md:gap-4">
           {[
-            ['Supply costs nothing to stand up', 'Workers film on the phone they own, during jobs they are already paid for. No collection staff, no rigs, no studios.'],
+            ['Supply costs nothing to stand up', 'Anyone signs up and records on the phone they own. No headset, no glove, no recruiting, no collection staff.'],
             ['Demand is visible before supply exists', 'Labs post bids: hours wanted at a rate per hour. The bid book tells workers what to film and tells us where revenue is.'],
             [`${Math.round((1 - SELLER_SHARE) * 100)}% of every licence`, 'Licences are non-exclusive, so one hour of footage can be sold to many buyers. Each resale is revenue with no new cost.'],
           ].map(([t, d], i) => (
@@ -86,16 +93,11 @@ export default async function Home() {
       )}
 
       {/* Mission. The photo is tinted into the palette and faded into the page on every edge. */}
-      <section id="mission" className="relative isolate overflow-hidden">
-        <Image src="/robot.jpg" alt="A humanoid robot reaching into a kitchen sink" fill sizes="100vw" className="-z-10 object-cover object-[72%_center] brightness-75 saturate-50 sepia-[.35]" />
-        <div className="absolute inset-0 -z-10 bg-rust/30 mix-blend-color" />
-        <div className="absolute inset-0 -z-10 bg-linear-to-t from-ink from-45% via-ink/70 via-65% to-ink/20 md:bg-linear-to-r md:from-ink md:from-25% md:via-ink/80 md:via-50% md:to-transparent" />
-        <div className="absolute inset-0 -z-10 bg-linear-to-b from-ink via-transparent via-20% to-transparent md:via-15%" />
-        <div className="absolute inset-x-0 bottom-0 -z-10 h-24 bg-linear-to-t from-ink to-transparent" />
-        <div className="mx-auto max-w-6xl px-4 pb-12 pt-64 md:py-32">
+      <section id="mission" className="streaks border-y border-tan/15">
+        <div className="mx-auto max-w-6xl px-4 py-16 md:py-28">
           <p className="label">Our mission</p>
           <h2 className="max-w-xl text-4xl md:text-6xl">Robot data should not belong to one company.</h2>
-          <p className="mt-5 max-w-lg text-paper/80">The biggest collectors of human demonstration video keep all of it for their own robots. We think the people who do the work should own the record of it, and any lab, startup or university should be able to license it on the same terms.</p>
+          <p className="mt-5 max-w-lg text-paper/80">Figure can spend a billion dollars on its own data. The hundreds of other robotics startups and labs cannot, and Figure shares nothing. We are the open market for everyone else: the people who do the work own the record of it, and any lab, startup or university can license it on the same terms.</p>
         </div>
       </section>
 
