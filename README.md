@@ -276,7 +276,7 @@ pnpm dev
 | `DATABASE_URL` | yes | Set by the Neon integration |
 | `BLOB_READ_WRITE_TOKEN` | yes | Set by the Blob store |
 | `KIMI_API_KEY` | for labelling | Without it uploads are scored on technical checks and labels only |
-| `KIMI_MODEL`, `KIMI_BASE_URL` | no | Default `kimi-k2.5` on `https://api.moonshot.ai/v1` |
+| `KIMI_MODEL`, `KIMI_BASE_URL` | no | Default `kimi-k2.6` on `https://api.moonshot.ai/v1` |
 
 Keep secrets in Vercel (`vercel env add`). `vercel env pull` overwrites `.env.local`.
 

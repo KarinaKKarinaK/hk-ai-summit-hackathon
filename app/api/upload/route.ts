@@ -40,12 +40,12 @@ If no task is visible, say so in reasons and score 1. Do not guess labels you ca
 
 // Kimi (Moonshot) speaks the OpenAI chat format. Model and host are env knobs because
 // Moonshot runs separate .ai and .cn platforms and renames vision models often.
-const MODEL = process.env.KIMI_MODEL || 'kimi-k2.5'
+const MODEL = process.env.KIMI_MODEL || 'kimi-k2.6'
 const BASE = process.env.KIMI_BASE_URL || 'https://api.moonshot.ai/v1'
 
 async function review(frames: string[], context: string, oidc: string | null) {
   // Two ways to reach Kimi: a Moonshot key, or Vercel AI Gateway signed with this project's own identity (needs a card on the Vercel account).
-  const key = process.env.KIMI_API_KEY || process.env.MOONSHOT_API_KEY
+  const key = process.env.KIMI_API_KEY || process.env.KIMI_API || process.env.MOONSHOT_API_KEY
   if (!key && !oidc) throw new Error('Kimi is not connected: set KIMI_API_KEY or enable Vercel AI Gateway')
   const [endpoint, bearer, model] = key ? [`${BASE}/chat/completions`, key, MODEL] : ['https://ai-gateway.vercel.sh/v1/chat/completions', oidc, `moonshotai/${MODEL}`]
   const res = await fetch(endpoint, {
@@ -54,6 +54,8 @@ async function review(frames: string[], context: string, oidc: string | null) {
     signal: AbortSignal.timeout(50_000),
     body: JSON.stringify({
       model,
+      // Kimi's reasoning mode takes about 15 seconds an image. Off, it answers in under 2, which a live demo needs. Set KIMI_THINKING=1 to turn it on.
+      ...(key && !process.env.KIMI_THINKING ? { thinking: { type: 'disabled' } } : {}),
       messages: [{
         role: 'user',
         content: [
