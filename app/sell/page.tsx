@@ -80,7 +80,7 @@ export default async function Sell() {
         <div className="card card-warm min-w-0 p-5 md:p-6">
           <div className="mb-4 flex items-baseline justify-between">
             <h2 className="text-xl font-semibold tracking-tight">Guaranteed pay</h2>
-            <Link href="/calls" className="text-sm text-paper/70 underline underline-offset-4">All requests</Link>
+            <Link href="/calls" className="btn !min-h-9 text-sm">Browse open requests</Link>
           </div>
           <ul className="space-y-2">
             {calls.slice(0, 3).map((c) => (
@@ -179,7 +179,7 @@ export default async function Sell() {
         </section>
       )}
       <section>
-        <h2 className="mb-4 text-xl font-semibold tracking-tight">What an hour of your work is worth as data</h2>
+        <h2 className="mb-4 text-xl font-semibold tracking-tight">Estimate your earnings</h2>
         <Calculator rates={Object.fromEntries(Object.entries(market).sort((a, b) => b[1].rate - a[1].rate).map(([k, m]) => [k, m.rate]))} />
       </section>
     </main>

@@ -79,6 +79,9 @@ export default async function Buy({ searchParams }: { searchParams: Promise<Sear
           <Link href="/buy" className="muted ml-auto text-sm underline underline-offset-4">Clear</Link>
         </div>
       </form>
+      <p className="flex flex-wrap gap-1.5">
+        {[...new Set(all.map((r) => r.labels?.task).filter(Boolean))].map((t) => <Link key={t} href={`/buy?task=${encodeURIComponent(t)}`} className={`chip ${f.task === t ? 'chip-warm' : ''}`}>{t}</Link>)}
+      </p>
 
       {!rows.length && <p className="muted text-sm">No listings match. Clear a filter, or post an open call so sellers film it.</p>}
       {/* An irregular grid: every sixth tile is large, the fourth and fifth are wide. Photo, name, price, nothing else. */}

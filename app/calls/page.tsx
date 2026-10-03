@@ -1,25 +1,46 @@
 import Link from 'next/link'
 import { sql, getUser } from '@/lib/server'
-import { LABELS } from '@/lib/score'
+import { LABELS, matchesCall } from '@/lib/score'
 import Glyph, { taskGlyph } from '@/components/Glyph'
-import { postCall } from '../actions'
+import { postCall, fillBid } from '../actions'
 
-export default async function Calls({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams
+export default async function Calls({ searchParams }: { searchParams: Promise<{ error?: string; q?: string; task?: string }> }) {
+  const { error, q, task } = await searchParams
   const user = await getUser()
-  const rows = await sql`select c.*, coalesce(b.org, b.name) as buyer, (select count(*)::int from purchases p where p.call_id = c.id) as clips,
-      (select count(distinct u.seller_id)::int from purchases p join uploads u on u.id = p.upload_id where p.call_id = c.id) as people
-    from calls c join users b on b.id = c.buyer_id order by c.created_at desc`
+  const [all, mine] = await Promise.all([
+    sql`select c.*, coalesce(b.org, b.name) as buyer, (select count(*)::int from purchases p where p.call_id = c.id) as clips,
+        (select count(distinct u.seller_id)::int from purchases p join uploads u on u.id = p.upload_id where p.call_id = c.id) as people
+      from calls c join users b on b.id = c.buyer_id order by c.quick desc nulls last, c.created_at desc`,
+    // the seller's own clips that could be submitted into a request as they are: live or screen recordings, scored 3 or more
+    user ? sql`select u.id, u.title, u.labels, u.minutes, array(select buyer_id::text from purchases p where p.upload_id = u.id) as buyers
+      from uploads u where u.seller_id = ${user.id} and u.status = 'scored' and u.quality_score >= 3 and u.withdrawn_at is null and u.duplicate_of is null and u.capture is distinct from 'gallery'` : [],
+  ])
+  const needle = q?.toLowerCase().trim()
+  const rows = all.filter((c) => (!task || c.task === task) && (!needle || `${c.title} ${c.description} ${c.task} ${c.industry} ${c.buyer}`.toLowerCase().includes(needle)))
+  const tags = [...new Set(all.map((c) => c.task).filter(Boolean))] as string[]
 
   return (
     <main className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-6 md:grid-cols-[1.5fr_1fr]">
       <div className="space-y-4">
         <div>
-          <h1 className="text-3xl md:text-5xl">Requests</h1>
-          <p className="muted mt-2 text-sm">Buyers request exactly the data their model is missing, with a budget. Record for a request and the payout is guaranteed once the clip passes the checks.</p>
+          <h1 className="text-3xl md:text-5xl">Open requests</h1>
+          <p className="muted mt-2 text-sm">Companies say what they need and what they pay. Record for a request, or submit a clip you already have, and you are paid when it passes the checks.</p>
         </div>
+        {/* browse: search, then one tap per kind of task */}
+        <form className="flex gap-2">
+          <input name="q" defaultValue={q} placeholder="Search requests" aria-label="Search requests" className="input" />
+          {task && <input type="hidden" name="task" value={task} />}
+          <button className="btn flex-none">Search</button>
+        </form>
+        <p className="flex flex-wrap gap-1.5">
+          <Link href="/calls" className={`chip ${task ? '' : 'chip-warm'}`}>All</Link>
+          {tags.map((t) => <Link key={t} href={`/calls?task=${encodeURIComponent(t)}`} className={`chip ${task === t ? 'chip-warm' : ''}`}>{t}</Link>)}
+        </p>
+        {!rows.length && <p className="muted text-sm">No requests match. Clear the search to see all of them.</p>}
         <ul className="grid gap-3">
           {rows.map((c) => {
+            const screen = c.perspective === 'Screen'
+            const clip = user?.id !== c.buyer_id && c.hours > 0 ? mine.find((m) => matchesCall(c, m.labels ?? {}, m.minutes) && !m.buyers.includes(c.buyer_id)) : null
             const total = c.hours_total ?? c.hours, done = Math.max(0, total - c.hours)
             const spec = [c.perspective && `${c.perspective} view`, c.environment && `In: ${c.environment}`, c.objects && `Must show: ${c.objects}`, c.min_seconds && `At least ${c.min_seconds}s per clip`].filter(Boolean)
             return (
@@ -57,7 +78,19 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
                     {c.wants_failures && <span className="chip">Failure and recovery wanted</span>}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="btn btn-warm !min-h-10 text-sm">Record for this request</Link>
+                    {screen ? (
+                      <Link href={`/sell?request=${c.id}`} className="btn btn-warm !min-h-10 text-sm">Record your screen for this</Link>
+                    ) : (
+                      <Link href={`/record?request=${c.id}&title=${encodeURIComponent(c.title)}`} className="btn btn-warm !min-h-10 text-sm">Record for this request</Link>
+                    )}
+                    {/* submit a clip you already have straight into the request */}
+                    {clip && (
+                      <form action={fillBid}>
+                        <input type="hidden" name="id" value={clip.id} />
+                        <input type="hidden" name="call" value={c.id} />
+                        <button className="btn !min-h-10 text-sm">Submit &ldquo;{clip.title}&rdquo; for ${Math.max(1, Math.round((c.rate * clip.minutes) / 60))}</button>
+                      </form>
+                    )}
                     {user?.id === c.buyer_id && <a href={`/api/dataset/${c.id}`} className="btn btn-ghost !min-h-10 text-sm">Download dataset</a>}
                   </div>
                 </div>
@@ -102,7 +135,7 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
             </div>
           </div>
           <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="wants_failures" className="mt-1" /> Only failure and recovery clips</label>
-          {user ? <button className="btn">Post bounty</button> : <Link href="/login" className="btn">Sign in to post</Link>}
+          {user ? <button className="btn">Post request</button> : <Link href="/login" className="btn">Sign in to post</Link>}
         </form>
       </aside>
     </main>

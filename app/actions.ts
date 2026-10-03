@@ -152,7 +152,7 @@ export async function pass(f: FormData) {
 export async function fillBid(f: FormData) {
   const user = await requireUser()
   const [r] = await sql`select u.id, u.labels, u.minutes, u.quality_score from uploads u
-    where u.id = ${uuid(f, 'id')} and u.seller_id = ${user.id} and u.status = 'scored' and u.quality_score >= 3 and u.withdrawn_at is null`
+    where u.id = ${uuid(f, 'id')} and u.seller_id = ${user.id} and u.status = 'scored' and u.quality_score >= 3 and u.withdrawn_at is null and u.capture is distinct from 'gallery'`
   const [c] = await sql`select * from calls where id = ${uuid(f, 'call')} and hours > 0`
   const l = r?.labels ?? {}
   if (!r || !c || c.buyer_id === user.id || !matchesCall(c, l, r.minutes)) redirect('/sell')
@@ -163,6 +163,8 @@ export async function fillBid(f: FormData) {
   await sql`update calls set hours = greatest(hours - ${hours}, 0) where id = ${c.id}`
   await log(r.id, 'buyer', 'accepted', { package: 'Raw + processed', price, rate: c.rate, via: 'bid', reasons: [`Standing bid: ${c.title}`], score: r.quality_score, labels: l }, c.buyer_id, c.description ?? '')
   revalidatePath('/sell')
+  revalidatePath('/calls')
+  revalidatePath('/profile') // the seller's earnings and licence count move with every accepted submission
 }
 
 /** Seller control: pull a clip off the market, or put it back. Licences already sold stay valid. */

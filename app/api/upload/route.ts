@@ -119,14 +119,16 @@ export async function POST(request: Request) {
   // so a determined cheat can send fake ones. Recompute server-side when the measurements move there.
   const { fingerprint, hashes } = cleanHashes(b)
   const labelsets = cleanLabelsets(b.labelsets)
+  // How it came in. ponytail: 'screen' is the client's word for it. A screen recording has no episode to check it against.
+  const capture = episode_url ? 'in-app' : b.capture === 'screen' ? 'screen' : 'gallery'
   const dup = await findDuplicate(fingerprint, hashes, user.id)
-  const [row] = await sql`insert into uploads (seller_id, title, video_url, episode_url, labels, description, steps, thumb, metrics, minutes, fingerprint, phash, duplicate_of, labelsets)
+  const [row] = await sql`insert into uploads (seller_id, title, video_url, episode_url, labels, description, steps, thumb, metrics, minutes, fingerprint, phash, duplicate_of, labelsets, capture)
     values (${user.id}, ${clip(b.title, 120) || null}, ${video_url}, ${episode_url}, ${JSON.stringify(labels)}::jsonb, ${description}, ${steps}, ${thumb}, ${JSON.stringify(metrics)}::jsonb, ${minutes},
-      ${fingerprint}, ${JSON.stringify(hashes)}::jsonb, ${dup?.id ?? null}, ${JSON.stringify(labelsets)}::jsonb)
+      ${fingerprint}, ${JSON.stringify(hashes)}::jsonb, ${dup?.id ?? null}, ${JSON.stringify(labelsets)}::jsonb, ${capture})
     returning id`
   const auth = authenticity(episode, metrics.duration ?? 0)
   await log(row.id, 'device', 'observed', {
-    metrics, labels, description, steps, frames: frames.length, episode: !!episode_url, capture: episode_url ? 'in-app' : b.capture === 'screen' ? 'screen' : 'gallery', authenticity: episode_url ? auth : null,
+    metrics, labels, description, steps, frames: frames.length, episode: !!episode_url, capture, authenticity: episode_url ? auth : null,
     challenges: Array.isArray(episode?.challenges) ? episode.challenges.slice(0, 5) : [], request_id: call?.id ?? null,
     consent: true, originality: dup ? `${dup.kind} match` : 'no match',
   }, user.id)
@@ -168,7 +170,7 @@ export async function POST(request: Request) {
   // Path 1, bounties: a clip recorded for a request is bought by that request as soon as it passes. Guaranteed payout.
   let bounty: { paid: number; title?: string; reason?: string } | null = null
   if (call) {
-    if (!episode_url) bounty = { paid: 0, title: call.title, reason: 'Requests only accept clips recorded live in the app' }
+    if (capture === 'gallery') bounty = { paid: 0, title: call.title, reason: 'Requests only accept clips recorded in the app' }
     else if (!(call.hours > 0) || call.buyer_id === user.id) bounty = { paid: 0, title: call.title, reason: 'This request is closed' }
     else if (score < 3) bounty = { paid: 0, title: call.title, reason: 'The quality score is below 3' }
     else if (!matchesCall(call, labels, minutes)) bounty = { paid: 0, title: call.title, reason: 'The clip does not match what the request asks for' }

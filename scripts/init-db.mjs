@@ -60,6 +60,10 @@ const schema = [
   `alter table uploads add column if not exists labelsets jsonb`,
   `alter table uploads add column if not exists golden boolean default false`,
   `alter table purchases add column if not exists fee int default 0`,
+  // quick = a request anyone can do at a desk, offered on the recorder. capture = how a clip came in: in-app, screen or gallery.
+  `alter table calls add column if not exists quick boolean default false`,
+  `alter table uploads add column if not exists capture text`,
+  `update uploads set capture = case when episode_url is not null then 'in-app' else 'gallery' end where capture is null and video_url is not null`,
 ]
 for (const s of schema) await sql.query(s)
 
@@ -120,14 +124,17 @@ for (const [s, title, task, industry, perspective, device, tools, score, minutes
 
 // [buyer, title, description, task, industry, hours, rate]
 const calls = [
-  [4, '500 hours of egocentric panel wiring', 'Residential and light commercial boards. Head or chest mounted, both hands visible, terminations in focus.', 'Wiring', 'Electrical', 500, 15],
-  [4, 'Brake and suspension jobs, any make', 'Full jobs start to finish. Torque steps must be visible.', 'Repair', 'Automotive', 300, 13],
-  [5, 'Deformable material handling: fabric', 'Cutting, pinning, sewing and folding. Machine and hand work both wanted.', 'Sewing', 'Textile', 400, 10],
-  [5, 'Weld bead footage through the visor', 'MIG or TIG. Need torch angle and travel speed visible.', 'Welding', 'Manufacturing', 200, 22],
-  [5, 'Split AC installs in high-rise flats', 'Indoor and outdoor units, flare joints, vacuum and leak test.', 'Assembly', 'HVAC', 150, 16],
-  [5, 'Excel: build a pivot table from raw sales data', 'Screen recording from a raw export to a finished pivot table and chart.', 'Spreadsheet', 'Office', 100, 12],
+  [4, '500 hours of egocentric panel wiring', 'Residential and light commercial boards. Head or chest mounted, both hands visible, terminations in focus.', 'Wiring', 'Electrical', 500, 8],
+  [4, 'Brake and suspension jobs, any make', 'Full jobs start to finish. Torque steps must be visible.', 'Repair', 'Automotive', 300, 7],
+  [5, 'Deformable material handling: fabric', 'Cutting, pinning, sewing and folding. Machine and hand work both wanted.', 'Sewing', 'Textile', 400, 6],
+  [5, 'Weld bead footage through the visor', 'MIG or TIG. Need torch angle and travel speed visible.', 'Welding', 'Manufacturing', 200, 12],
+  [5, 'Split AC installs in high-rise flats', 'Indoor and outdoor units, flare joints, vacuum and leak test.', 'Assembly', 'HVAC', 150, 9],
+  [5, 'Excel: build a pivot table from raw sales data', 'Screen recording from a raw export to a finished pivot table and chart.', 'Spreadsheet', 'Office', 100, 7],
+  [4, 'Fold a t-shirt or towel', 'Lay it flat on a table, fold it in half twice, and smooth it. Keep both hands in frame the whole time.', 'Folding', 'Domestic', 50, 6],
+  [4, 'Open and close a screw-top bottle', 'Hold the bottle with one hand, unscrew the cap with the other, put the cap down, then screw it back on.', 'Assembly', 'Domestic', 50, 6],
 ]
 for (const [b, title, description, task, industry, hours, rate] of calls) {
   await sql`insert into calls (buyer_id, title, description, task, industry, hours, rate) values (${ids[b]}, ${title}, ${description}, ${task}, ${industry}, ${hours}, ${rate})`
 }
+await sql`update calls set quick = true where title in ('Fold a t-shirt or towel', 'Open and close a screw-top bottle')`
 console.log(`seeded ${listings.length} listings, ${calls.length} calls`)

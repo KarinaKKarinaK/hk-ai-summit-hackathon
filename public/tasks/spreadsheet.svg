@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-label="A spreadsheet with a pivot table and a bar chart">
+  <!-- Drawn for Guild: the stand-in picture for screen-recorded spreadsheet tasks. No third-party image. -->
+  <rect width="960" height="540" fill="#120c08"/>
+  <!-- window chrome -->
+  <rect x="40" y="36" width="880" height="468" rx="14" fill="#1b130d"/>
+  <rect x="40" y="36" width="880" height="44" rx="14" fill="#2a180a"/>
+  <rect x="40" y="62" width="880" height="18" fill="#2a180a"/>
+  <circle cx="66" cy="58" r="6" fill="#6b492e"/><circle cx="88" cy="58" r="6" fill="#6b492e"/><circle cx="110" cy="58" r="6" fill="#6b492e"/>
+  <rect x="150" y="50" width="220" height="16" rx="8" fill="#412c1a"/>
+  <!-- formula bar -->
+  <rect x="56" y="92" width="848" height="26" rx="6" fill="#241a12"/>
+  <rect x="64" y="99" width="46" height="12" rx="3" fill="#6b492e"/>
+  <rect x="122" y="99" width="260" height="12" rx="3" fill="#8e9a9b" opacity=".55"/>
+  <!-- sheet grid -->
+  <g stroke="#3a2a1d" stroke-width="1">
+    <path d="M56 132H560M56 162H560M56 192H560M56 222H560M56 252H560M56 282H560M56 312H560M56 342H560M56 372H560M56 402H560M56 432H560M56 462H560M56 488H560"/>
+    <path d="M56 132V488M100 132V488M215 132V488M330 132V488M445 132V488M560 132V488"/>
+  </g>
+  <!-- header row -->
+  <rect x="100" y="132" width="460" height="30" fill="#552f0f"/>
+  <g fill="#f1ece6" opacity=".85"><rect x="112" y="142" width="70" height="10" rx="3"/><rect x="227" y="142" width="60" height="10" rx="3"/><rect x="342" y="142" width="74" height="10" rx="3"/><rect x="457" y="142" width="52" height="10" rx="3"/></g>
+  <!-- the pivot selection -->
+  <rect x="100" y="162" width="460" height="180" fill="#8e9a9b" opacity=".12"/>
+  <rect x="100" y="162" width="460" height="180" fill="none" stroke="#8e9a9b" stroke-width="2"/>
+  <rect x="554" y="336" width="10" height="10" fill="#8e9a9b"/>
+  <!-- cell values -->
+  <g fill="#f1ece6" opacity=".5">
+    <rect x="112" y="172" width="58" height="9" rx="3"/><rect x="250" y="172" width="54" height="9" rx="3"/><rect x="372" y="172" width="46" height="9" rx="3"/><rect x="496" y="172" width="50" height="9" rx="3"/>
+    <rect x="112" y="202" width="76" height="9" rx="3"/><rect x="262" y="202" width="42" height="9" rx="3"/><rect x="360" y="202" width="58" height="9" rx="3"/><rect x="504" y="202" width="42" height="9" rx="3"/>
+    <rect x="112" y="232" width="50" height="9" rx="3"/><rect x="244" y="232" width="60" height="9" rx="3"/><rect x="378" y="232" width="40" height="9" rx="3"/><rect x="486" y="232" width="60" height="9" rx="3"/>
+    <rect x="112" y="262" width="66" height="9" rx="3"/><rect x="256" y="262" width="48" height="9" rx="3"/><rect x="366" y="262" width="52" height="9" rx="3"/><rect x="500" y="262" width="46" height="9" rx="3"/>
+    <rect x="112" y="292" width="54" height="9" rx="3"/><rect x="248" y="292" width="56" height="9" rx="3"/><rect x="374" y="292" width="44" height="9" rx="3"/><rect x="492" y="292" width="54" height="9" rx="3"/>
+  </g>
+  <rect x="100" y="312" width="460" height="30" fill="#6b492e" opacity=".55"/>
+  <g fill="#f1ece6" opacity=".9"><rect x="112" y="322" width="44" height="10" rx="3"/><rect x="240" y="322" width="64" height="10" rx="3"/><rect x="358" y="322" width="60" height="10" rx="3"/><rect x="482" y="322" width="64" height="10" rx="3"/></g>
+  <g fill="#f1ece6" opacity=".22">
+    <rect x="68" y="142" width="18" height="9" rx="3"/><rect x="68" y="172" width="18" height="9" rx="3"/><rect x="68" y="202" width="18" height="9" rx="3"/><rect x="68" y="232" width="18" height="9" rx="3"/><rect x="68" y="262" width="18" height="9" rx="3"/><rect x="68" y="292" width="18" height="9" rx="3"/><rect x="68" y="322" width="18" height="9" rx="3"/>
+    <rect x="112" y="382" width="60" height="9" rx="3"/><rect x="250" y="382" width="54" height="9" rx="3"/><rect x="112" y="412" width="72" height="9" rx="3"/><rect x="262" y="412" width="42" height="9" rx="3"/>
+  </g>
+  <!-- chart panel -->
+  <rect x="592" y="132" width="312" height="356" rx="10" fill="#241a12"/>
+  <rect x="612" y="150" width="120" height="12" rx="4" fill="#f1ece6" opacity=".8"/>
+  <rect x="612" y="170" width="70" height="8" rx="4" fill="#8e9a9b" opacity=".6"/>
+  <g>
+    <rect x="620" y="340" width="40" height="110" rx="4" fill="#6b492e"/>
+    <rect x="676" y="290" width="40" height="160" rx="4" fill="#6b492e"/>
+    <rect x="732" y="310" width="40" height="140" rx="4" fill="#6b492e"/>
+    <rect x="788" y="240" width="40" height="210" rx="4" fill="#8e9a9b"/>
+    <rect x="844" y="270" width="40" height="180" rx="4" fill="#6b492e"/>
+  </g>
+  <path d="M612 450H892" stroke="#3a2a1d" stroke-width="2"/>
+  <!-- cursor -->
+  <path d="M520 352l0 34 9-8 7 15 7-3-7-15 12 0z" fill="#f1ece6" stroke="#120c08" stroke-width="1.5"/>
+</svg>

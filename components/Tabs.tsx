@@ -3,10 +3,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-// Three places, one per job: earn from recordings, buy data, see your numbers.
-// Recording, requests and prices are reached from inside Earn and Marketplace.
+// Four places: record a task, earn from it, buy data, see your numbers.
+// Requests are reached from Earn (to fill them) and Marketplace (to post them). Prices sit under Marketplace.
 const tabs = [
-  { href: '/sell', name: 'Earn', under: ['/sell', '/record', '/calls'], icon: 'M12 20V6m0 0l-6 6m6-6l6 6M4 3h16' },
+  { href: '/record', name: 'Record', under: ['/record'], icon: 'M12 8a4 4 0 100 8 4 4 0 000-8zm0-5a9 9 0 100 18 9 9 0 000-18z' },
+  { href: '/sell', name: 'Earn', under: ['/sell', '/calls'], icon: 'M12 20V6m0 0l-6 6m6-6l6 6M4 3h16' },
   { href: '/buy', name: 'Marketplace', under: ['/buy', '/market'], icon: 'M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z' },
   { href: '/profile', name: 'Profile', under: ['/profile', '/login'], icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zm-7 9a7 7 0 0114 0' },
 ]
@@ -29,7 +30,7 @@ export default function Tabs({ bar = false }: { bar?: boolean }) {
     )
   }
   return (
-    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-3 bg-ink pb-[env(safe-area-inset-bottom)] shadow-[0_-18px_30px_-6px_#080403] after:absolute after:inset-x-0 after:top-full after:h-60 after:bg-ink md:hidden">
+    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-4 bg-ink pb-[env(safe-area-inset-bottom)] shadow-[0_-18px_30px_-6px_#080403] after:absolute after:inset-x-0 after:top-full after:h-60 after:bg-ink md:hidden">
       {tabs.map((t) => {
         const active = on(t)
         return (

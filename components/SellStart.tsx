@@ -16,8 +16,15 @@ export default function SellStart({ years = 0 }: { years?: number }) {
   const [error, setError] = useState('')
   const rec = useRef<MediaRecorder | null>(null)
 
+  const [requestId, setRequestId] = useState<string>()
+
   // screen capture exists on desktop browsers only. Checked after mount so server and client render the same.
-  useEffect(() => setCanScreen(!!navigator.mediaDevices?.getDisplayMedia), [])
+  // A buyer's screen-task request links here as /sell?request=<id>, so the recording is submitted into it.
+  useEffect(() => {
+    setCanScreen(!!navigator.mediaDevices?.getDisplayMedia)
+    const id = new URLSearchParams(location.search).get('request') ?? ''
+    if (/^[0-9a-f-]{36}$/.test(id)) setRequestId(id)
+  }, [])
 
   async function screen() {
     if (rec.current) return rec.current.stop()
@@ -48,13 +55,14 @@ export default function SellStart({ years = 0 }: { years?: number }) {
     return (
       <section className="space-y-3">
         <button className="muted text-sm underline underline-offset-4" onClick={() => setPick(null)}>Start over</button>
-        <UploadForm key={pick.file.name + pick.file.size} initialFile={pick.file} kind={pick.kind} years={years} />
+        <UploadForm key={pick.file.name + pick.file.size} initialFile={pick.file} kind={pick.kind} requestId={requestId} years={years} />
       </section>
     )
   }
   const card = 'card block overflow-hidden text-left'
   return (
     <section>
+      {requestId && <p className="card-warm mb-3 rounded-2xl p-4 text-sm">You are submitting into a buyer&apos;s request. Record your screen doing the task, and it is paid when it passes the checks.</p>}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <Link href="/record" className={`${card} card-warm`}>
           <Glyph name="record" className="h-24 w-full md:h-40" />

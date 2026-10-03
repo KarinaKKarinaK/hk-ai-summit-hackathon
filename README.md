@@ -211,7 +211,7 @@ Our combination: self-serve supply, open demand, phone only, and every recording
 
 Each task is its own market, in USD per hour of footage.
 
-- **Rate** = average bid ($8/h if none) x 0.6 to 1.4 by hours wanted against hours listed, then pulled 30% toward the last sale. The last sale is clamped so one odd trade cannot move a market more than 30%.
+- **Rate** = average bid ($5/h if none) x 0.6 to 1.4 by hours wanted against hours listed, then pulled 30% toward the last sale. The last sale is clamped so one odd trade cannot move a market more than 30%.
 - **Clip price** = rate x length x score / 4 x experience tier (1x, 1.25x at 3 years, 1.5x at 10 years).
 - **Split**: 80% to the worker, 20% to the platform. Licences are non-exclusive, so one clip can sell many times.
 - **Result bonus**: 20% of the price again, to the worker, when the buyer reports the clip improved their model.

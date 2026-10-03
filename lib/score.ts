@@ -12,7 +12,11 @@ export const LABELS = {
 
 // Stand-in photos for listings without their own thumbnail. Files and credits are in public/tasks.
 const TASK_PHOTOS = ['assembly', 'carpentry', 'cleaning', 'folding', 'machining', 'plumbing', 'repair', 'sewing', 'welding', 'wiring']
-export const taskPhoto = (task?: string): string | null => (task && TASK_PHOTOS.includes(task.toLowerCase()) ? `/tasks/${task.toLowerCase()}.jpg` : null)
+const SCREEN_TASKS = ['spreadsheet', 'data entry', 'software task'] // these share one drawn picture of a spreadsheet
+export const taskPhoto = (task?: string): string | null => {
+  const t = task?.toLowerCase() ?? ''
+  return SCREEN_TASKS.includes(t) ? '/tasks/spreadsheet.svg' : TASK_PHOTOS.includes(t) ? `/tasks/${t}.jpg` : null
+}
 
 export type Labels = { perspective?: string; task?: string; industry?: string; device?: string; tools?: string[]; outcome?: string }
 
@@ -144,7 +148,7 @@ export function tier(years = 0): { name: string; mult: number } {
 
 // ---- Market pricing. One market per task, priced in USD per hour of par (score 4) footage. ----
 
-export const BASE_RATE = 8 // USD/h used until a task has bids
+export const BASE_RATE = 5 // USD/h used until a task has bids
 export const SELLER_SHARE = 0.8 // seller keeps 80% of every sale
 
 /** demand = hours buyers have open calls for, supply = hours listed, bid = volume-weighted bid USD/h, last = last sale USD/h */
