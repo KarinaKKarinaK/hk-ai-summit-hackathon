@@ -26,7 +26,7 @@ export default function Tabs({ bar = false }: { bar?: boolean }) {
     )
   }
   return (
-    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-tan/25 bg-ink/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 bg-ink/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
       {tabs.map((t) => {
         const on = path.startsWith(t.href)
         return (

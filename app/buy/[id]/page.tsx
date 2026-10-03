@@ -198,7 +198,7 @@ export default async function Listing({ params, searchParams }: { params: Promis
             <fieldset className="space-y-2">
               <legend className="label">Package</legend>
               {packages(price).map((p, i) => (
-                <label key={p.key} className="flex cursor-pointer items-start gap-3 rounded-xl border border-tan/30 p-3 has-[:checked]:border-slate">
+                <label key={p.key} className="flex cursor-pointer items-start gap-3 rounded-xl bg-white/5 p-3 has-[:checked]:bg-white/15">
                   <input type="radio" name="package" value={p.key} defaultChecked={i === 2} className="mt-1" />
                   <span className="flex-1"><span className="flex justify-between"><span>{p.name}{owned.includes(p.key) ? ' (owned)' : ''}</span><span>${p.price.toLocaleString('en-US')}</span></span><span className="muted block text-xs">{p.what}</span></span>
                 </label>
@@ -207,7 +207,7 @@ export default async function Listing({ params, searchParams }: { params: Promis
             <fieldset>
               <legend className="label">Why are you accepting it?</legend>
               <div className="flex flex-wrap gap-2">
-                {ACCEPT_REASONS.map((x) => <label key={x} className="chip cursor-pointer has-[:checked]:border-slate has-[:checked]:text-paper"><input type="checkbox" name="reasons" value={x} className="sr-only" />{x}</label>)}
+                {ACCEPT_REASONS.map((x) => <label key={x} className="chip cursor-pointer has-[:checked]:bg-paper has-[:checked]:text-ink"><input type="checkbox" name="reasons" value={x} className="sr-only" />{x}</label>)}
               </div>
             </fieldset>
             <input name="note" className="input" maxLength={500} placeholder="Anything specific (optional)" aria-label="Acceptance note" />
@@ -221,7 +221,7 @@ export default async function Listing({ params, searchParams }: { params: Promis
             <form action={pass} className="mt-3 space-y-3">
               <input type="hidden" name="id" value={r.id} />
               <div className="flex flex-wrap gap-2">
-                {PASS_REASONS.map((x) => <label key={x} className="chip cursor-pointer has-[:checked]:border-slate has-[:checked]:text-paper"><input type="checkbox" name="reasons" value={x} className="sr-only" />{x}</label>)}
+                {PASS_REASONS.map((x) => <label key={x} className="chip cursor-pointer has-[:checked]:bg-paper has-[:checked]:text-ink"><input type="checkbox" name="reasons" value={x} className="sr-only" />{x}</label>)}
               </div>
               <input name="note" className="input" maxLength={500} placeholder="What would make it usable?" aria-label="Pass note" />
               <button className="btn btn-ghost w-full">Pass on this clip</button>

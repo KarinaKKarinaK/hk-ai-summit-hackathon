@@ -145,7 +145,7 @@ export default async function Sell() {
                     {r.ai?.flags?.includes('faces') && <p className="text-xs text-amber-200">A face is visible in this clip.</p>}
 
                     {sug.length > 0 && (
-                      <form action={reviewLabels} className="space-y-2 rounded-xl border border-slate/25 p-3">
+                      <form action={reviewLabels} className="space-y-2 rounded-xl bg-white/5 p-3">
                         <input type="hidden" name="id" value={r.id} />
                         <p className="flex flex-wrap items-center gap-2"><span className="label !mb-0">Model proposed</span>{sug.map((s) => <span key={s} className="chip chip-slate">{s}</span>)}</p>
                         <input name="note" className="input" maxLength={500} placeholder="Why you agree or disagree (goes on the evidence trail)" aria-label="Review note" />

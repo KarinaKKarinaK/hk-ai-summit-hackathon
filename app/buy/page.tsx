@@ -56,22 +56,27 @@ export default async function Buy({ searchParams }: { searchParams: Promise<Sear
         </section>
       )}
 
-      <form className="grid grid-cols-2 gap-3 md:grid-cols-6">
-        <input name="q" defaultValue={f.q} placeholder="Search tool, task, trade" aria-label="Search" className="input col-span-2" />
-        {select('task', 'Task')}
-        {select('industry', 'Industry')}
-        {select('perspective', 'View')}
-        <select name="min" aria-label="Minimum score" defaultValue={f.min ?? ''} className="input">
-          <option value="">Score: any</option>
-          {[3, 4, 5].map((n) => <option key={n} value={n}>Score {n}+</option>)}
-        </select>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="verified" defaultChecked={!!f.verified} /> Verified sellers</label>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="failures" defaultChecked={!!f.failures} /> Failure cases</label>
-        <button className="btn col-span-2 md:col-span-1">Filter</button>
-        <p className="muted col-span-2 flex items-center justify-between text-sm md:col-span-1 md:justify-start md:gap-4">
-          <Link href="/buy" className="underline underline-offset-4">Clear</Link>
-          <Link href="/calls" className="underline underline-offset-4 md:hidden">Not here? Place a bid</Link>
-        </p>
+      {/* one row of filters, toggles as pills underneath */}
+      <form className="space-y-3">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-[2fr_repeat(4,1fr)_auto]">
+          <input name="q" defaultValue={f.q} placeholder="Search tool, task, trade" aria-label="Search" className="input col-span-2 md:col-span-1" />
+          {select('task', 'Task')}
+          {select('industry', 'Industry')}
+          {select('perspective', 'View')}
+          <select name="min" aria-label="Minimum score" defaultValue={f.min ?? ''} className="input">
+            <option value="">Score: any</option>
+            {[3, 4, 5].map((n) => <option key={n} value={n}>Score {n}+</option>)}
+          </select>
+          <button className="btn col-span-2 md:col-span-1">Filter</button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {[['verified', 'Verified sellers'], ['failures', 'Failure cases']].map(([name, text]) => (
+            <label key={name} className="chip cursor-pointer !px-3 !py-1.5 !text-sm has-[:checked]:bg-paper has-[:checked]:text-ink has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-slate">
+              <input type="checkbox" name={name} defaultChecked={!!f[name as 'verified' | 'failures']} className="sr-only" />{text}
+            </label>
+          ))}
+          <Link href="/buy" className="muted ml-auto text-sm underline underline-offset-4">Clear</Link>
+        </div>
       </form>
 
       {!rows.length && <p className="muted text-sm">No listings match. Clear a filter, or post an open call so sellers film it.</p>}

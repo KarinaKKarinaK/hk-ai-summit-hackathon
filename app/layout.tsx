@@ -23,7 +23,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={inter.variable}>
       <body className="font-sans antialiased">
-        <header className="sticky top-0 z-40 border-b border-tan/20 bg-ink/85 pt-[env(safe-area-inset-top)] backdrop-blur">
+        <header className="sticky top-0 z-40 bg-ink/85 pt-[env(safe-area-inset-top)] backdrop-blur">
           <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
             <Link href="/" className="text-lg font-medium tracking-tight">Guild</Link>
             <Tabs />

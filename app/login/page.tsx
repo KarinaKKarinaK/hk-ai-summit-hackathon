@@ -19,7 +19,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
             <fieldset className="grid grid-cols-2 gap-3">
               <legend className="label">I want to</legend>
               {[['seller', 'Sell footage'], ['buyer', 'Buy data']].map(([v, l], i) => (
-                <label key={v} className="input flex cursor-pointer items-center gap-2 has-[:checked]:border-slate">
+                <label key={v} className="input flex cursor-pointer items-center gap-2 has-[:checked]:bg-white/15">
                   <input type="radio" name="role" value={v} defaultChecked={i === 0} required /> {l}
                 </label>
               ))}
