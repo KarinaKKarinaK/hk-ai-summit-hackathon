@@ -21,3 +21,128 @@
 
 8. A city of AI citizens. A miniature 3D city populated by hundreds of AI agents, each with a job, a home, opinions and a daily routine. Introduce a change ("a new metro line opens," "rent rises 20%," "a typhoon warning is issued") and watch the population react: people change commutes, businesses move, arguments break out, all visible on the map with individual agents you can click on to see what they're thinking. Why it's cool: SimCity where the people actually think. Why it matters: a sandbox for testing policies or urban plans before rolling them out. Catch: hundreds of agents can burn through your credits fast. Use a few dozen full agents plus simple rules for the crowd, and don't claim it predicts real behavior.
 !! inspired by Shenzhen??
+
+
+
+
+
+  1. RoboCFO — a robot delivery company run by AI
+
+  You build a small simulated delivery business. Robots have batteries, carrying capacities, locations, and operating costs. Delivery requests have payouts and deadlines.
+
+  The user gives Kimi a business objective:
+
+  > “Earn as much as possible, but complete at least 90% of deliveries on time.”
+
+  Kimi checks the fleet, requests cost estimates, and chooses which jobs to accept and which robots to dispatch. Your code calculates routes, costs, battery consumption, and whether an action is possible.
+
+  The interesting part is competing priorities: a high-paying delivery might strand a robot, while charging now might mean missing a profitable order.
+
+  Your screen would show a moving fleet, incoming orders, a financial dashboard, and a short explanation of each decision.
+
+  Demo: Run the same set of orders through a basic nearest-robot dispatcher and your Kimi-powered dispatcher. Then block a road. Compare profit, delivery completion, and response to the disruption—without assuming Kimi will always win.
+
+  MVP: Three robots, a grid map, one charging station, ten orders, and a handful of actions.
+
+  Main challenge: Keeping decisions responsive. Let Kimi make decisions when meaningful events happen; your simulator handles movement continuously.
+
+  ———
+
+  2. BotBourse — a marketplace where robots negotiate for work
+
+  Instead of one company controlling the fleet, imagine robots owned by different businesses competing for delivery contracts.
+
+  Each robot has different economics:
+
+  - A small robot is cheap but has limited capacity.
+  - A large robot carries more but consumes more energy.
+  - A fast robot charges a premium for urgent deliveries.
+
+  A customer posts:
+
+  > “Move this package to the hospital within five minutes. Maximum budget: $15.”
+
+  Kimi generates bids for each robot based on its costs and availability. The marketplace selects a valid bid using explicit rules, then the winning robot completes the simulated delivery and receives mock payment.
+
+  Kimi can also decide whether a robot should decline a job or subcontract it after a breakdown. You can use the same API key for these separate agent roles.
+
+  Demo: Start a bidding round, reveal the bids and their reasoning, then disable the winning robot. Watch it seek a replacement while trying to avoid losing money.
+
+  MVP: Three robot profiles, one type of delivery contract, one bidding round per job, and a simulated payment ledger.
+
+  Main challenge: Making the marketplace credible. Give each bidder access only to its own information, and enforce budgets and costs in code.
+
+  Why it stands out: The financial transaction is central to the robotics story. Negotiation also gives Kimi a natural role.
+
+  ———
+
+  3. RepairBank — an AI that decides how to pay for robot breakdowns
+
+  This is a financial planning tool for a company that depends on robots.
+
+  A robot develops a fault. The cheapest repair isn’t necessarily the cheapest business decision: waiting three days for a part could lose more revenue than renting a replacement.
+
+  You provide synthetic maintenance reports, repair quotes, job schedules, and cash balances. Kimi gathers those facts and compares options:
+
+   Option                Financial tradeoff
+  ━━━━━━━━━━━━━━━━━━━━  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Repair immediately    Pay now and reduce downtime
+  ────────────────────  ──────────────────────────────────────────────────────────
+   Delay repair          Preserve cash but increase modeled failure risk
+  ────────────────────  ──────────────────────────────────────────────────────────
+   Rent a replacement    Add rental expense while preserving deliveries
+  ────────────────────  ──────────────────────────────────────────────────────────
+   Replace the robot     Large upfront cost with different future operating costs
+
+  Your code computes the cash-flow scenarios. Kimi explains the recommendation and identifies assumptions that could change it.
+
+  Demo: A robot fails during a busy period. Kimi initially recommends renting a replacement. Then you change the rental price or available cash and watch the recommendation update.
+
+  MVP: One fleet, one fault scenario, three recovery options, and a cash-flow chart.
+
+  Main challenge: Avoiding invented certainty. Label maintenance probabilities and revenue forecasts as simulation assumptions and let users adjust them.
+
+  Why it stands out: It addresses a concrete business problem with a clear connection between engineering and finance.
+
+  ———
+
+  4. InvoiceGuard — a software robot that investigates suspicious payments
+
+  This one is finance + AI automation. It fits if your hackathon accepts “robot” as a software agent; it has little physical robotics content.
+
+  A company uploads invoices, purchase orders, supplier records, and a mock bank transaction file. Basic rules identify potential problems, then Kimi investigates them.
+
+  For example:
+
+  > “This invoice looks new, but its amount and purchase order match an invoice paid last week.”
+
+  Kimi queries the relevant records, compares the evidence, and produces a case explaining whether the invoice appears valid, duplicated, or unresolved.
+
+  Useful cases include duplicate billing, mismatched quantities, unexpected bank-detail changes, and invoices with no matching purchase order.
+
+  Demo: Upload ten synthetic invoices containing three planted problems. Open a flagged invoice and show the exact records behind the warning. A human approves or rejects the mock payment.
+
+  MVP: CSV inputs, three types of suspicious activity, an investigation panel, and approval buttons.
+
+  Main challenge: Handling legitimate exceptions without flagging everything. Include a valid partial payment or recurring invoice in the demo.
+
+  Why it stands out: It is easy to explain, test, and measure: how many planted issues did it catch, and how many valid invoices did it incorrectly flag?
+
+  ———
+
+  My ranking for your situation:
+
+   Your priority                                    Best choice
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  ━━━━━━━━━━━━━━
+   Strong robotics + finance connection             RoboCFO
+  ───────────────────────────────────────────────  ──────────────
+   Most distinctive negotiation demo                BotBourse
+  ───────────────────────────────────────────────  ──────────────
+   Clear business decision with manageable scope    RepairBank
+  ───────────────────────────────────────────────  ──────────────
+   Easiest to validate and finish                   InvoiceGuard
+
+
+   9. Automation ROI Copilot. A small manufacturer describes a manual process in text, photos or a short video ("worker picks part from a bin, places it in a test fixture, sorts good/bad, two shifts"). The AI breaks it into steps (picking, placing, inspecting, sorting), rates each one for automation feasibility with cobots, machine vision or conveyors, and flags the hard parts, like bin picking or flexible materials. A financial model then estimates investment, labor savings, payback period and NPV, compares buying, leasing and Robot-as-a-Service, and outputs a one-page business case ready for management or the bank. Startup: SMEs make up the vast majority of manufacturers but rarely automate, not because of the technology but because nobody can tell them whether it pays off, and integrator consultations cost thousands before the first answer. Natural revenue from robot vendors and integrators paying for qualified leads. Why it's impressive: connects real engineering judgment with hard numbers, and MBA judges immediately get the business model. Catch: the estimates are only as good as the cost data behind them, so show ranges instead of single numbers and be upfront that it's a first-pass screening, not a final quote.
+
+   10. Safety Shield for AI-controlled robots. An AI model (LLM or vision-language-action model) proposes robot actions, but before anything moves, an independent, deterministic safety layer checks each command against hard constraints: workspace boundaries, speed and force limits for human-robot collaboration (ISO/TS 15066), forbidden zones and collision checks. Unsafe actions are vetoed or replaced with a safe alternative, and every decision is
