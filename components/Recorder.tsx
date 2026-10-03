@@ -6,6 +6,7 @@ import { FaceLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision'
 import { getHands, getFace, getPose } from '@/lib/quality'
 import { countFingers } from '@/lib/score'
 import { buildArm, buildMug, buildTable, addLights, GRIP } from '@/lib/arm'
+import Dither from './Dither'
 import UploadForm from '@/components/UploadForm'
 
 const clamp = (x: number, a: number, b: number) => Math.min(b, Math.max(a, x))
@@ -311,21 +312,24 @@ export default function Recorder({ tasks }: { tasks: QuickTask[] }) {
 
       {/* pick what to record */}
       <div role="group" aria-label="What to record" className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        {choices.map((c) => (
-          <button key={c.key} disabled={recording} aria-pressed={choice === c.key} onClick={() => pickTask(c)} className={`rounded-box p-3 text-left transition-colors ${choice === c.key ? 'card-warm' : 'bg-white/[.05]'}`}>
-            <span className="block text-sm font-semibold leading-snug">{c.name}</span>
-            <span className={`mt-0.5 block text-xs ${c.request ? 'text-emerald-300' : 'muted'}`}>{c.tag}</span>
+        {/* the landing page's posters: the picked task is the orange one */}
+        {choices.map((c, i) => (
+          <button key={c.key} disabled={recording} aria-pressed={choice === c.key} onClick={() => pickTask(c)} className={`tile flex min-h-24 flex-col justify-end p-3 text-left md:min-h-28 md:p-4 ${choice === c.key ? 'tile-flame text-ink' : 'tile-coal'}`}>
+            <Dither tone={choice === c.key ? 'flame' : 'coal'} seed={i * 1.7 + 0.8} />
+            <span className="block text-sm font-semibold leading-snug md:text-base">{c.name}</span>
+            <span className={`mt-0.5 block text-xs ${choice === c.key ? 'opacity-80' : c.request ? 'text-emerald-300' : 'muted'}`}>{c.tag}</span>
           </button>
         ))}
       </div>
 
-      <div className="card card-warm flex items-start gap-3 p-4 text-sm">
-        <span className="chip bg-white/[.05] flex-none">Try this</span>
+      <div className="tile tile-coal flex items-start gap-3 border-l-[3px] border-flame p-4 text-sm">
+        <Dither tone="coal" seed={3.1} className="opacity-40" />
+        <span className="chip flex-none !bg-ink/70">Try this</span>
         <p>{current.hint}</p>
       </div>
 
       <div className={`grid gap-3 ${mode === 'arm' ? 'md:grid-cols-2' : ''}`}>
-        <div className={`card relative overflow-hidden ${mode === 'arm' ? 'aspect-video' : 'aspect-[3/4] md:aspect-video'}`}>
+        <div className={`card relative overflow-hidden !bg-coal ${mode === 'arm' ? 'aspect-video' : 'aspect-[3/4] md:aspect-video'}`}>
           <video ref={video} playsInline muted className={`h-full w-full object-cover ${mirror}`} />
           <canvas ref={overlay} className={`absolute inset-0 h-full w-full object-cover ${mirror}`} />
           <p className={`chip absolute left-3 top-3 ${recording ? 'bg-red-700 text-paper' : 'bg-ink/70'}`}>{recording ? 'Recording' : status}</p>
@@ -337,7 +341,7 @@ export default function Recorder({ tasks }: { tasks: QuickTask[] }) {
           </ul>
         </div>
         {mode === 'arm' && (
-          <div className="card relative aspect-video overflow-hidden">
+          <div className="card relative aspect-video overflow-hidden !bg-coal">
             <div ref={stage} className="absolute inset-0" />
             <p role="status" className={`chip absolute left-3 top-3 ${cup === 'lifted' ? 'bg-emerald-500 text-ink' : cup === 'held' ? 'bg-emerald-500/30 text-emerald-200' : 'bg-ink/70'}`}>
               {cup === 'lifted' ? 'Picked up. Open your hand to put it down' : cup === 'held' ? 'Got it. Now lift' : cup === 'near' ? 'Lower the claw and pinch to grab' : 'Move the claw over the cup'}
