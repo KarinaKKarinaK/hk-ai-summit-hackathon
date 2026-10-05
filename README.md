@@ -10,19 +10,10 @@ Built at the HK AI Summit hackathon. It is a working demo: no money moves, and s
 
 ![Landing page](docs/desktop-landing.jpg)
 
-| | |
-|---|---|
-| ![How it works, in four posters](docs/desktop-steps.jpg) | ![Cost chart](docs/desktop-chart.jpg) |
-| ![Scroll-driven 3D arm with data labels](docs/desktop-arm.jpg) | ![Earn page](docs/desktop-earn.jpg) |
-| ![Open requests](docs/desktop-requests.jpg) | ![Seller profile](docs/desktop-profile.jpg) |
-
-On a phone it installs from the browser (share menu, Add to Home Screen) and runs like an app:
-
-![Phone views: landing, steps, earn, profile, requests](docs/mobile.jpg)
-
 ## Contents
 
 - [What it does](#what-it-does)
+- [On a phone](#on-a-phone)
 - [Data processing pipeline](#data-processing-pipeline)
 - [Pricing](#pricing)
 - [Pages and API](#pages-and-api)
@@ -34,14 +25,7 @@ On a phone it installs from the browser (share menu, Add to Home Screen) and run
 
 ## What it does
 
-```mermaid
-flowchart LR
-    B[Company posts a request<br/>task, objects, hours, rate] --> W[Person records the task<br/>hands or screen]
-    W --> P[Pipeline<br/>quality, authenticity,<br/>originality, labelling]
-    P --> L[Listed at the<br/>market price]
-    L --> S[Buyer licenses it<br/>or the request pays out]
-    S --> E[Seller earns 80%<br/>every time]
-```
+![One clip travels from request to payout](docs/flow.gif)
 
 - **Two ways to earn.** Record for a request and be paid its rate when the clip passes, or record anything and earn a share each time it sells.
 - **Three ways to add data.** Film your hands in the app (verified live), record your screen (desktop browsers), or upload an existing video (listed as not verified, cannot fill a paid request).
@@ -49,9 +33,36 @@ flowchart LR
 - **Proof on every clip.** Each step of processing is written to an append-only, hash-chained trail that a buyer can read.
 - **Open prices.** One hourly rate per task, moved by open requests against listed supply, published as JSON.
 
+The four steps as they appear on the landing page. Each poster leans toward the cursor and shows a short label beside it:
+
+![The four step posters, with the cursor crossing them](docs/posters.gif)
+
+Further down the page, scrolling drives a 3D arm that reaches, grips and carries a glass mug, with the frame marked up the way a labelling tool would mark it (joint angles, gripper state, the action, a box round the mug). The same arm appears in the recorder, where your hand drives it:
+
+![Scrolling the landing page moves the arm](docs/arm.gif)
+
+## On a phone
+
+<img src="docs/phone.gif" alt="Guild running on a phone: landing, steps, Earn and profile" width="250" align="right">
+
+Guild is a web app that installs from the browser: open the site, use the share menu, then Add to Home Screen. It then opens full screen like a native app.
+
+- Four tabs sit in a bar at the bottom: Add data, Earn, Buy data, Profile.
+- The recorder uses the phone's camera and motion sensors, so a phone is all the kit a seller needs.
+- Every page is laid out for a narrow screen first. Nothing scrolls sideways.
+- Screen recording is the one feature that needs a desktop browser.
+
+The animation shows the landing page, the four steps, the Earn page and a seller's profile.
+
+<br clear="both">
+
 ## Data processing pipeline
 
+![The eight stages of the pipeline, lighting up in turn](docs/pipeline.gif)
+
 A recording is submitted automatically when it stops, and runs to completion with a progress view. Most of the work happens in the browser, so labelling costs nothing to offer and nothing leaves the device until the seller submits.
+
+What talks to what, in order:
 
 ```mermaid
 sequenceDiagram
@@ -124,6 +135,11 @@ The rates, the split and the labelling fees are our own choices for the demo. No
 
 ### What the market reports
 
+The landing page turns these figures into one chart: hours of data that $1,000 buys. Pick a bar and the big number shows how much further the budget goes than the dearest rig.
+
+![The cost chart: bars grow in, then each is picked in turn](docs/chart.gif)
+
+
 Figures from a web search on 2026-10-04, read from search summaries and not verified at source.
 
 | What | Reported range | Where to check |
@@ -149,6 +165,18 @@ The demo's rates ($5 to $16 per hour) sit at the low end of what buyers reported
 | `/market` | Buy data | The Guild Index and the price board per task |
 | `/profile` | Profile | Earnings this month and all time, a 30-day chart, earnings by task, recent sales |
 | `/login` | Profile | Email and password, seller or buyer |
+
+**Earn.** Three ways to add data as posters, the seller's totals, top-paying tasks and open requests.
+
+![Earn page](docs/desktop-earn.jpg)
+
+**Open requests.** What companies are asking for, with the rate, hours collected and budget. Buyers post from the form on the right.
+
+![Open requests](docs/desktop-requests.jpg)
+
+**Profile.** A seller's earnings this month and all time, a 30-day chart, earnings by task and recent sales. The account shown is a seeded sample seller.
+
+![Seller profile](docs/desktop-profile.jpg)
 
 | Endpoint | What it returns |
 |---|---|
@@ -233,7 +261,7 @@ lib/
   arm.ts              the 3D arm, mug and workbench, built from primitives
   server.ts           database, sessions, market query, evidence log
 scripts/              init-db.mjs, seed-wong.mjs, verify-seller.mjs
-docs/                 README screenshots
+docs/                 README screenshots and animations
 ```
 
 ## Known limits
