@@ -10,8 +10,8 @@ import { logout } from './actions'
 const inter = Inter({ subsets: ['latin'], axes: ['opsz'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'Guild: skilled hands, robot-ready data',
-  description: 'Tradespeople film their work, get a live quality score, and sell it as robot training data.',
+  title: 'Guild: the open market for task data',
+  description: 'People record how they do a task. It is checked and labelled, and companies license it as training data.',
   appleWebApp: { capable: true, title: 'Guild', statusBarStyle: 'black-translucent' },
   icons: { icon: '/pwa-icon/192', apple: '/pwa-icon/180' },
 }

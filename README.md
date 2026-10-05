@@ -2,329 +2,189 @@
 
 **The open market for task data.**
 
-AI companies can scrape the internet for information, but models that act need examples of people doing real tasks. Guild lets a company request the exact task examples its model is missing, and pays the people who record them. A recording can be hands filmed on a phone or a screen recording of a software task. The person who did the work keeps ownership and earns 80% of every licence.
+Companies post the tasks their AI needs to learn. People record themselves doing them: hands on a phone or laptop camera, or a screen recording of a software task. Every recording is checked, labelled and listed with a training licence. The person who did the work keeps ownership and earns 80% each time it is licensed.
 
-Live demo: **https://guild-data.vercel.app** (on a phone: share menu, Add to Home Screen, and it runs like an app)
+Live demo: **https://guild-data.vercel.app**
 
-Built at the HK AI Summit hackathon. It is a working demo: no money moves, and listings marked Sample are seeded.
+Built at the HK AI Summit hackathon. It is a working demo: no money moves, and sample listings and sample sellers are seeded.
 
-![Landing page](docs/landing.png)
+![Landing page](docs/desktop-landing.jpg)
 
-![The app on a phone](docs/mobile.png)
+| | |
+|---|---|
+| ![How it works, in four posters](docs/desktop-steps.jpg) | ![Cost chart](docs/desktop-chart.jpg) |
+| ![Scroll-driven 3D arm with data labels](docs/desktop-arm.jpg) | ![Earn page](docs/desktop-earn.jpg) |
+| ![Open requests](docs/desktop-requests.jpg) | ![Seller profile](docs/desktop-profile.jpg) |
 
-The screenshots are from an earlier build. The live site is the current design.
+On a phone it installs from the browser (share menu, Add to Home Screen) and runs like an app:
+
+![Phone views: landing, steps, earn, profile, requests](docs/mobile.jpg)
 
 ## Contents
 
-- [What the demo shows](#what-the-demo-shows)
-- [The problem](#the-problem)
-- [How it works](#how-it-works)
-- [AI in the pipeline](#ai-in-the-pipeline)
-- [What makes it different](#what-makes-it-different)
-- [Evidence of demand](#evidence-of-demand)
-- [What is built](#what-is-built)
+- [What it does](#what-it-does)
+- [Data processing pipeline](#data-processing-pipeline)
 - [Pricing](#pricing)
-- [Labelling options](#labelling-options)
-- [What a buyer receives](#what-a-buyer-receives)
-- [Trust: originality, provenance, licence](#trust-originality-provenance-licence)
-- [For the people doing the work](#for-the-people-doing-the-work)
+- [Pages and API](#pages-and-api)
+- [Architecture](#architecture)
 - [Run it](#run-it)
+- [Project structure](#project-structure)
 - [Known limits](#known-limits)
+- [Credits and licence](#credits-and-licence)
 
-## What the demo shows
-
-One journey:
-
-1. A company posts a request: the task, the rate, what must be visible.
-2. A person records it. Hands on a phone camera, tracked live, or a screen recording on a laptop.
-3. The recording is processed on its own: quality, authenticity, originality, then two labelling systems.
-4. Kimi names the task and says whether it matches the request and was completed.
-5. A passing clip fills the request and is listed on the marketplace.
-
-Navigation is four tabs: **Add data**, **Earn**, **Buy data**, **Profile**.
-
-Recordings are not only physical work. A screen recording of a software task, such as building a pivot table in a spreadsheet, goes through the same pipeline and sells as a task example for automation.
-
-Built but not part of the demo flow: forward contracts, result bonuses, the provenance certificate link and seller reputation. Their routes and data are still in the code.
-
-## The problem
-
-| What AI teams have today | Why it falls short |
-|---|---|
-| Scraped web video | Messy, unlabelled, unclear training rights, no sensor data, no failure cases |
-| Their own collection teams | Slow and expensive: recruiting and managing thousands of collectors |
-| Single-buyer crowd apps | Flat fee, household chores, data locked to one company |
-| Staged teleoperation | Lab conditions, not how an expert actually works |
-
-Models need the long tail: different workshops, tools, countries and software, and above all skilled work that only an experienced person can perform.
-
-## How it works
+## What it does
 
 ```mermaid
 flowchart LR
-    B[Company posts a request<br/>task, camera, objects,<br/>hours, rate] --> W[Person records the task<br/>hands or screen]
-    W --> Q[Checks on the device<br/>quality, authenticity,<br/>originality]
-    Q --> O[Open source labelling<br/>objects and hands]
-    O --> M[Kimi labelling<br/>task, steps, skill,<br/>matches and completed]
-    M --> L[Listed at the<br/>market price]
-    L --> S[Buyer licenses it<br/>or the request fills]
+    B[Company posts a request<br/>task, objects, hours, rate] --> W[Person records the task<br/>hands or screen]
+    W --> P[Pipeline<br/>quality, authenticity,<br/>originality, labelling]
+    P --> L[Listed at the<br/>market price]
+    L --> S[Buyer licenses it<br/>or the request pays out]
+    S --> E[Seller earns 80%<br/>every time]
 ```
 
-Every step is written to an append-only evidence trail on the clip.
+- **Two ways to earn.** Record for a request and be paid its rate when the clip passes, or record anything and earn a share each time it sells.
+- **Three ways to add data.** Film your hands in the app (verified live), record your screen (desktop browsers), or upload an existing video (listed as not verified, cannot fill a paid request).
+- **Your hand drives a robot arm.** In the recorder, hand tracking moves a 3D arm that can pick up a cup. The recording is stored as state, action and next state, not only as video.
+- **Proof on every clip.** Each step of processing is written to an append-only, hash-chained trail that a buyer can read.
+- **Open prices.** One hourly rate per task, moved by open requests against listed supply, published as JSON.
+
+## Data processing pipeline
+
+A recording is submitted automatically when it stops, and runs to completion with a progress view. Most of the work happens in the browser, so labelling costs nothing to offer and nothing leaves the device until the seller submits.
 
 ```mermaid
-flowchart TB
-    subgraph Trail[Evidence trail, hash-chained]
-        O[Observed<br/>device metrics, capture method, consent] --> La[Labelled<br/>open source detections]
-        La --> P[Proposed<br/>Kimi labels and score]
-        P --> T[Task check<br/>matches the request, completed]
-        T --> D[Priced<br/>score parts and market rate]
-        D --> A[Accepted or passed<br/>buyer reasons]
-    end
+sequenceDiagram
+    participant D as Device (browser)
+    participant B as Vercel Blob
+    participant A as /api/upload
+    participant K as Kimi
+    participant DB as Postgres
+
+    D->>D: 1. Live tracking and challenge while recording
+    D->>D: 2. Sample 6 frames: quality metrics, hashes, object labels
+    D->>B: 3. Video file and episode file
+    D->>A: 4. URLs, metrics, hashes, labels, 6 frames
+    A->>DB: 5. Authenticity and duplicate check
+    A->>K: 6. Frames and request text
+    K-->>A: Task, steps, skill, flags, match and completed
+    A->>DB: 7. Score, price, evidence trail
+    A->>DB: 8. Request payout if every check passes
+    A-->>D: Report: score, price, labels, payout
 ```
 
-The market side works like an exchange, not a shop:
+| # | Stage | Where | What it does | Code |
+|---|---|---|---|---|
+| 1 | Live capture | Browser | MediaPipe tracks both hands (21 landmarks each), face mesh and body pose at camera rate. Warnings show while filming: hands out of frame, too dark, moving too fast. A random "show N fingers" challenge is checked against the hand landmarks. Phone motion sensors are logged alongside | `components/Recorder.tsx` |
+| 2 | Frame analysis | Browser | Six frames are sampled across the clip. Measured: resolution, length, brightness, sharpness, camera shake, share of frames with hands. An object detector (EfficientDet-Lite0, 80 everyday objects) labels each frame. A SHA-256 fingerprint of the file and a 64-bit difference hash per frame are computed | `lib/quality.ts` |
+| 3 | Upload | Browser to Blob | The video and the episode file go straight to storage with a short-lived client token | `app/api/blob` |
+| 4 | Submit | Browser to server | The server receives URLs, metrics, hashes, open source labels and the six frames as JPEG | `app/api/upload` |
+| 5a | Authenticity | Server | For in-app recordings: the tracking stream must cover the video (at least 30% of 10 tracked frames per second) and every challenge must be passed. A clip that fails is stored but never listed | `authenticity()` in `lib/score.ts` |
+| 5b | Originality | Server | Exact copies match on the fingerprint. Re-encoded copies match when two thirds of the frame hashes are within 10 of 64 bits. A copy is stored but never listed or paid | `nearDuplicate()` in `lib/score.ts` |
+| 6 | Language model | Server to Kimi | `kimi-k2.6` sees the six frames and returns: the task it sees, labels (task, industry, camera angle, tools), a step list, a skill read, a content score from 1 to 5, privacy flags, and for a request whether the clip matches it and was completed | `review()` in `app/api/upload` |
+| 7 | Score and price | Server | Score 1 to 5 from the technical checks (40%), label completeness (20%) and Kimi's content score (40%). Without Kimi: 60% technical, 40% completeness. Price follows from the task's market rate | `finalScore()`, `listPrice()` |
+| 8 | Request payout | Server | Paid only if: recorded in the app, Kimi does not say "different task" or "not completed", the score is 3 or more, and the labels match the request. If Kimi did not run, the object detector must have seen the objects the request names | `app/api/upload` |
 
-```mermaid
-flowchart LR
-    Bids[Bids<br/>requests: hours x rate] --> Rate((Rate per task<br/>USD per hour))
-    Asks[Asks<br/>listed hours] --> Rate
-    Last[Last sale] --> Rate
-    Rate --> Index[Guild Index<br/>open JSON]
-    Rate --> Price[Clip price =<br/>rate x length x score x experience]
-    Price --> Split[80% seller / 20% platform]
-```
+### Two labelling systems
 
-## AI in the pipeline
+The report shows only what each system actually returned.
 
-Two labelling systems run on every clip, and the report shows only what each one actually returned.
-
-| System | Where it runs | What it returns |
+| System | Runs | Returns |
 |---|---|---|
-| **Open source: MediaPipe** | In the browser, on the seller's device | Objects seen with confidence and frame counts, hand coverage and confidence. While filming: both hands, face mesh and body skeleton drawn live |
-| **Kimi (`kimi-k2.6`)** | On the server, from six sampled frames | The task it sees, labels (task, industry, camera angle, tools), a step list, a skill read, a content score, privacy flags, and for a request: does this match, and was it completed |
+| **Open source: MediaPipe** | On the seller's device | Objects with confidence and frame counts, hand coverage and confidence |
+| **Kimi (`kimi-k2.6`)** | On the server, from six frames | Task, labels, steps, skill, content score, privacy flags, and the task check for requests |
 
-How the task check decides a payout:
-
-- Kimi says the clip is a different task, or the task was not completed: the request is not paid.
-- Kimi did not run: the open source detector must have seen the objects the request names in at least two frames.
-- A gallery upload can never fill a paid request, because it was not verified live.
-- The clip must score 3 or more out of 5.
-
-Tested on the live site: a photo of a plumber under a sink, submitted against the "Open and close a screw-top bottle" request, came back as "plumbing", not the requested task, and was not paid.
-
-## What makes it different
-
-| # | Idea | Status in this repo |
-|---|---|---|
-| 1 | **Own the price.** A reference rate per task, the Guild Index | Built. `/market` and open JSON at `/api/index` |
-| 2 | **Verified capture.** Live hand tracking and a random finger challenge that cannot be filmed in advance | Built, required for paid requests |
-| 3 | **Task check by a model.** The clip must be the requested task, and completed | Built with Kimi |
-| 4 | **More than robotics.** Screen recordings of software tasks use the same pipeline | Built. Desktop browsers only |
-| 5 | **Audit-ready provenance.** Consent, ownership, capture method and a hash-chained trail as a certificate | Built. `/api/provenance/[id]` |
-| 6 | **Robot-neutral output.** State, action, next state, with no joint angles of any one robot | Built for in-app recordings. `guild-episode-v2` |
-| 7 | **Pay on results.** A clip that improved the buyer's model earns the seller a 20% bonus | In the code, not in the demo flow. Self-reported |
-| 8 | **Verified experts.** Licences checked, not just claimed | Partial. Manual check with `scripts/verify-seller.mjs` |
-| 9 | **An exchange, not a vendor.** Labelling vendors and teleoperation farms sell staged collection as a service. We sell unstaged work on a market | Positioning |
-
-Against scraping: original recordings, explicit training rights, known provenance, structured labels, requested environments and camera angles, failure cases, and a consistent format.
-
-Against Figure's Index app: any buyer instead of one, a share of every sale instead of a flat fee, and the person keeps the data. See [DETAILED_BREAKDOWN.md](DETAILED_BREAKDOWN.md) section 6.
-
-The moat we are aiming at is not the videos. It is the contributor network, rights-cleared provenance, reputation, and what we learn about what each buyer accepts. That last advantage does not exist yet. The app records the data that would build it.
-
-### Competitive landscape
-
-From the team's research in [UPDATED_BREAKDOWN.md](UPDATED_BREAKDOWN.md). Not re-verified here.
-
-| Company | What they do | Difference to us |
-|---|---|---|
-| Figure Index | Gig platform, people film tasks | Data stays with Figure |
-| DoorDash, Instawork, Sunain, Micro1 | Paid recording programs | Collect for specific clients, recruited workers |
-| Scale AI, Encord | Data services and tooling | Enterprise, managed programs |
-| Luel (YC W26) | Open marketplace, custom campaigns | Vetted contributors, mostly raw video |
-| Kinetic Blocks | Humanoid data marketplace (beta) | Vetted suppliers only |
-| Build AI | About 1M hours of free factory footage | Shows generic footage is a commodity |
-
-Our combination: self-serve supply, open demand, phone or laptop only, and every recording checked, labelled and verified before it is listed. Human demonstration data complements robot data. It does not replace teleoperation.
-
-## Evidence of demand
-
-These are reported market figures, not ours. They come from a web search of industry roundups on 2026-10-03. We did not open every page to confirm which one carries which number, so check each figure against its link before quoting it on stage.
-
-| Signal | Figure | Where to check |
-|---|---|---|
-| A robot maker is paying the public for video | Figure's Index app: 16M+ videos, 108 countries, $15M paid to contributors, $1B committed to data and compute | [explainx](https://explainx.ai/blog/figure-index-robot-dataset-august-2026), [Humanoids Daily](https://x.com/humanoidsdaily/status/2092317847645032776) |
-| That works out to | About $0.94 per video, flat, for household tasks | Our arithmetic on the above |
-| Capital is flowing into humanoids | $6.1B of venture funding across 139 deals in 2025 | [Humanoid market statistics roundup](https://cervo-tech.com/blog/humanoid-robot-market-statistics-2026.html) |
-| Data collectors are scaling fast | Mecka reports about 160,000 hours a month and a roughly $100M run rate on signed contracts. Hub.xyz reports 540,000+ hours from 150 countries | [Robotics training data landscape](https://www.teahose.com/guides/robotics-training-data), [DreamVu landscape](https://www.dreamvu.ai/blog/robot-training-data-companies-2026) |
-| Demand for the data is growing | Robot training data market reported up 200%+ in 2026 | [Where robot training data comes from](https://labelstud.io/learning-center/where-robot-training-data-comes-from-in-2026/) |
-| The skill we want to capture is scarce | US manufacturing may need 3.8M workers by 2033, and 1.9M of those jobs could go unfilled | [Deloitte and The Manufacturing Institute](https://www.deloitte.com/us/en/insights/industry/manufacturing-industrial-products/manufacturing-industry-outlook/2025.html) |
-| And it is retiring | Roughly five skilled workers retire for every two who enter | [Trades shortage summary](https://tradecolleges.org/blog/skilled-trades-outlook/skilled-trades-shortage-opportunity) |
-
-What this shows: companies already pay for human demonstration data at scale, and the competitors doing it are closed pipelines or service vendors. What it does not show: that people will record their work, or that buyers will pay more for verified footage. Those are the two things to test first.
-
-**Our own traction: none.** No real buyers, no real sellers, no revenue. The numbers on the live site come from seeded demo data and the page says so.
-
-How we would start, given the cold-start problem: not as an open marketplace. Sign two or three buyers with specific requests first, then recruit sellers for exactly those through one trade school or workshop.
-
-## What is built
-
-| Page | Tab | What it does |
-|---|---|---|
-| `/` | | The pitch: a full-screen video hero, how it works in four posters (halftone style, a short label follows the cursor), an interactive cost chart, benefits for sellers and buyers, a scroll-driven 3D arm that picks up a glass mug on a workbench with data labels drawn over it, and the mission |
-| `/record` | Add data | Pick a task (cup practice, two in-demand requests, or your own), then film. Both hands, face mesh and body skeleton drawn live in green, a virtual cup to pick up, quality warnings and a finger challenge |
-| `/sell` | Earn | Three ways in: film your hands, record your screen, upload a video. Then earnings, listings, asks and withdrawals |
-| `/sell/[id]` | Earn | Processing report for one clip: result, checks, both labelling systems, and the form to confirm labels and make it golden |
-| `/calls` | Earn | Open requests. Search and filter by task, record for one, or submit a clip you already have. Buyers post requests here |
-| `/buy` | Buy data | Marketplace grid with filters and tags |
-| `/buy/[id]` | Buy data | Evidence trail, price breakdown, licence, labelling options, accept or pass with a reason |
-| `/market` | Buy data | Guild Index and the price board per task |
-| `/profile` | Profile | Seller: earnings this month and all time, a 30-day chart, earnings by task and recent sales. Buyer: the same for what they spent |
-| `/login` | Profile | Email and password, seller or buyer |
-
-API: `/api/upload` (the pipeline), `/api/blob` (video upload), `/api/check` (originality), `/api/index` (open price index), `/api/provenance/[id]` (certificate), `/api/dataset/[id]` (request owner's dataset manifest).
-
-### How a recording is processed
-
-A recording or upload is submitted automatically and runs to completion with a progress view.
-
-1. **While recording.** Warnings appear live: hands out of frame, too dark, moving too fast.
-2. **Authenticity.** See the table below. A clip that fails is stored but never listed.
-3. **Quality, on the device.** Six sampled frames are scored for resolution, length, lighting, sharpness, steadiness and hands in frame. Screen recordings skip the hand checks.
-4. **Originality.** A file fingerprint and a perceptual hash per frame are compared with every clip already submitted by anyone. A copy is saved but never listed or paid.
-5. **Rights.** By adding a recording the seller confirms they made it, anyone identifiable agreed, and they grant the licence. The consent record is written to the trail.
-6. **Open source labelling.** The MediaPipe object detector and hand tracker.
-7. **Kimi labelling.** Task, labels, steps, skill, privacy flags and the task check.
-8. **Score 1 to 5** from the technical checks, label completeness and Kimi's content score. Then the price.
-
-### Authenticity: making fakes impractical
+### Authenticity
 
 | Layer | How it works | Status |
 |---|---|---|
-| Challenge-response | A few seconds in, a random prompt ("show 3 fingers"). Checked against the live hand landmarks. Cannot be filmed in advance | Built, required for in-app recordings |
+| Challenge and response | A few seconds in, a random prompt ("show 3 fingers"), checked against live landmarks. Cannot be filmed in advance | Built, required for in-app recordings |
 | Hand tracking stream | Landmarks from the session must cover the video | Built, required for in-app recordings |
-| Motion sensor sync | Accelerometer and gyroscope recorded alongside the video | Built, recorded. Not required, since laptops have none |
-| Duplicate detection | Perceptual hashing against our own catalog | Built. Not checked against footage elsewhere online |
-| Payout holding period | 14 days, so fraud found later is never paid | Shown in the UI. No payments yet |
+| Motion sensors | Accelerometer and gyroscope logged with the video | Built, recorded. Not required, since laptops have none |
+| Duplicate detection | Fingerprint and perceptual hashes against everything on the platform | Built. Not checked against footage elsewhere online |
 | Device attestation, C2PA | App Attest, Play Integrity, content credentials | Not built |
 
-Gallery uploads go through the same quality and labelling steps, are listed as "not verified live", and cannot fill paid requests.
+### What is stored for a clip
 
-The episode file is produced in the browser, so a determined cheat can forge it. Attestation is what closes that gap.
-
-### Two ways to earn
-
-| | Requests | Open catalog |
-|---|---|---|
-| Who starts it | A buyer posts a request with a budget: task, number of demos, camera angle, objects that must be visible | A seller records any task |
-| Payout | The request's rate, once the clip passes the checks and the task check | A share every time it sells, at the market price |
-| Like | A freelance job | Stock footage |
-| In the app | "Record for this request" opens the recorder. A passing clip is bought by the request automatically | Every clip is also listed in the catalog |
-
-Licences are non-exclusive. Exclusive licences at a premium are not built.
-
-### Data captured
-
-| Captured now | Not captured |
-|---|---|
-| RGB video, timestamps, device type | Depth |
-| Hand landmarks for both hands, per frame (in-app) | Audio (recorded without it on purpose) |
-| Body pose, and the result of each challenge (in-app) | Camera pose |
-| Accelerometer and gyroscope (in-app, where the phone allows) | Location |
-| Screen video for software tasks | Clicks and keystrokes |
-| Task, industry, tools, camera angle, steps, outcome | Object tracking across frames |
+- **Video** and, for in-app recordings, an **episode file** (`guild-episode-v2`): per-frame hand landmarks for both hands, body pose, gripper pose with the action to the next frame, motion sensor traces, and the challenge result. No joint angles of any one robot, so it is not tied to one machine.
+- **Labels**: the seller's own, the open source detections, and Kimi's.
+- **Evidence trail**: one event per step (`observed`, `labelled`, `proposed`, `task_check`, `priced`, `accepted`, and `duplicate` or `unverified` when a clip is refused). Each event stores a SHA-256 hash that covers the event before it, so an edited or deleted event breaks the chain. `/api/provenance/[id]` returns the trail as one certificate and reports whether the chain is intact.
 
 ## Pricing
 
 Each task is its own market, in USD per hour of footage.
 
-- **Rate** = average bid ($5/h if none) x 0.6 to 1.4 by hours wanted against hours listed, then pulled 30% toward the last sale. The last sale is clamped so one odd trade cannot move a market more than 30%.
-- **Clip price** = rate x length x score / 4 x experience tier (1x, 1.25x at 3 years, 1.5x at 10 years), in dollars and cents. There is no per-clip minimum: a one-minute clip is worth cents, the same per hour as a long one.
-- **Golden clips** list 30% higher.
-- **Split**: 80% to the seller, 20% to the platform. Licences are non-exclusive, so one clip can sell many times.
+- **Rate** = average bid from open requests ($5/h if none) x 0.6 to 1.4 by hours wanted against hours listed, then pulled 30% toward the last sale. The last sale is clamped so one odd trade cannot move a market far.
+- **Clip price** = rate x length x score / 4 x experience (1x, 1.25x at 3 years, 1.5x at 10 years), in dollars and cents. No per-clip minimum: a one-minute clip is worth cents.
+- **Golden clips**, whose labels the seller checked by hand, list 30% higher.
+- **Split**: 80% to the seller, 20% to the platform. Licences are non-exclusive, so a clip can sell many times.
+- **Labelling** is a separate line the buyer picks per clip: bring your own (free), Kimi's labels (+15%), or human-checked (+60%).
 
-Common footage gets cheaper, rare footage gets dearer, and sellers see what pays most right now. All of it is in `lib/score.ts` and covered by tests.
+The rates, the split and the labelling fees are our own choices for the demo. Nobody has paid them.
 
-### What the market pays today
+### What the market reports
 
-Reported figures from a web search on 2026-10-04, not verified at source by us. They are why the demo's rates sit between 5 and 16 USD per hour of footage, and why clips are priced in cents.
+Figures from a web search on 2026-10-04, read from search summaries and not verified at source.
 
 | What | Reported range | Where to check |
 |---|---|---|
-| Raw egocentric video, cost to the buyer | 15 to 22 USD per hour | [Dexset pricing guide](https://dexset.ai/blogs/robot-training-data-costs-pricing-complete-2026/) |
-| Annotated egocentric video | 30 to 40 USD per hour | [Dexset pricing guide](https://dexset.ai/blogs/robot-training-data-costs-pricing-complete-2026/) |
+| Raw first-person video, cost to the buyer | 15 to 22 USD per hour | [Dexset pricing guide](https://dexset.ai/blogs/robot-training-data-costs-pricing-complete-2026/) |
+| Annotated first-person video | 30 to 40 USD per hour | [Dexset pricing guide](https://dexset.ai/blogs/robot-training-data-costs-pricing-complete-2026/) |
 | Teleoperated robot data | 28 to 60 USD per hour, 80 to 150 for complex humanoid programs | [Dexset](https://dexset.ai/blogs/robot-training-data-costs-pricing-complete-2026/), [DataXPower](https://www.dataxpower.com/blog/humanoid-robot-data-collection-cost) |
-| What contributors are paid | Mostly 3 to 9 USD per hour of accepted footage, as low as 1, up to 15 to 30 for some US roles | [TechCrunch](https://techcrunch.com/2026/05/26/human-archive-taps-into-indias-services-startups-to-collect-data-for-physical-ai/), [Remowork roundup](https://remowork.life/blog/get-paid-to-record-household-chores-egocentric-ai-data-platforms-2026) |
+| What contributors are paid | Mostly 3 to 9 USD per hour of accepted footage | [TechCrunch](https://techcrunch.com/2026/05/26/human-archive-taps-into-indias-services-startups-to-collect-data-for-physical-ai/), [Remowork roundup](https://remowork.life/blog/get-paid-to-record-household-chores-egocentric-ai-data-platforms-2026) |
 
-Our rates are at the low end of what buyers pay elsewhere, and a seller's 80% share lands inside the range contributors earn today. The difference is that a Guild clip can sell more than once.
+The demo's rates ($5 to $16 per hour) sit at the low end of what buyers reportedly pay, and a seller's 80% lands inside what contributors reportedly earn.
 
-## Labelling options
+## Pages and API
 
-A buyer always pays for the raw data. Labelling is a separate line they choose per clip:
-
-| Option | Cost | What they get |
+| Page | Tab | What it does |
 |---|---|---|
-| Bring your own labelling | Free | The recording, the episode file and motion data, plus the open source detections |
-| LLM labelling (Kimi) | +15% | Task, step list, skill level and privacy flags from a vision language model |
-| Guild verified | +60% | Model labels checked by a person, field by field |
+| `/` | | Full-screen video hero, four posters for how it works, an interactive cost chart, benefits for sellers and buyers, a scroll-driven 3D arm that picks up a glass mug |
+| `/record` | Add data | Pick a task, then film. Hands, face and body tracked live, a robot arm that mirrors your hand, live warnings, the finger challenge |
+| `/sell` | Earn | Three ways to add data, top-paying tasks, open requests, your uploads with price and ask |
+| `/sell/[id]` | Earn | Processing report for one clip, and the form to confirm labels and make it golden |
+| `/calls` | Earn | Open requests: search, filter, record for one, or submit a clip you already have. Buyers post requests here |
+| `/buy` | Buy data | Marketplace with filters and tags |
+| `/buy/[id]` | Buy data | Evidence trail, price breakdown, licence, labelling options |
+| `/market` | Buy data | The Guild Index and the price board per task |
+| `/profile` | Profile | Earnings this month and all time, a 30-day chart, earnings by task, recent sales |
+| `/login` | Profile | Email and password, seller or buyer |
 
-An option is only sold when its labels exist for that clip: LLM labelling needs the Kimi review to have run, and Guild verified needs a golden clip.
+| Endpoint | What it returns |
+|---|---|
+| `POST /api/upload` | Runs the pipeline for one recording |
+| `POST /api/blob` | Client upload token for the video |
+| `POST /api/check` | Originality check before submitting |
+| `GET /api/index` | The open price index, as JSON |
+| `GET /api/provenance/[id]` | Provenance certificate for a clip |
+| `GET /api/dataset/[id]` | Dataset manifest for a request's owner, with a fixed 80/10/10 split |
 
-**Golden clips.** On the processing report the seller checks each label against what they recorded and confirms it. The clip becomes golden, lists 30% higher, and unlocks the Guild verified option. The correction is written to the evidence trail.
+## Architecture
 
-### Open source video labelling tools we looked at
+```mermaid
+flowchart TB
+    subgraph Browser
+        R[Recorder<br/>MediaPipe hands, face, pose]
+        Q[Frame analysis<br/>metrics, hashes, object labels]
+        T[three.js arm<br/>driven by hand landmarks]
+    end
+    subgraph Vercel
+        N[Next.js 16<br/>pages, server actions, API routes]
+    end
+    Blob[(Vercel Blob<br/>video, episode files)]
+    PG[(Neon Postgres<br/>users, uploads, requests,<br/>purchases, events)]
+    Kimi[Kimi vision API<br/>Moonshot]
 
-| Project | Licence | What it is | Why it is or is not in the build |
-|---|---|---|---|
-| [MediaPipe](https://github.com/google-ai-edge/mediapipe) | Apache 2.0 | On-device vision models and runtime | Used. Small enough to run on a phone, so labelling is free and instant |
-| [Label Studio](https://github.com/HumanSignal/label-studio) | Apache 2.0 | Multi-type annotation platform | Not hosted by us |
-| [CVAT](https://github.com/cvat-ai/cvat) | MIT | The reference tool for video and object tracking annotation | Needs its own server. The natural home for a human review queue later |
-| SAM 2, Grounded-SAM-2 | Apache 2.0 | Segmentation and tracking across video | Needs a GPU server. The next step for per-object masks |
+    R --> Q
+    R --> T
+    Q --> N
+    R --> Blob
+    N --> PG
+    N --> Kimi
+    N --> Blob
+```
 
-Licence and usage notes for CVAT and Label Studio are from the projects' own pages and [this comparison](https://www.cvat.ai/resources/blog/best-open-source-data-annotation-tools).
-
-## What a buyer receives
-
-Not a folder of videos. For each request, the owner downloads a manifest with:
-
-- video and episode links
-- labels, step list, skill read, privacy flags
-- capture metrics and contributor credentials
-- licence terms
-- a link to each clip's provenance certificate
-- a fixed 80/10/10 train, validation and test split
-
-Buyers can state where their model is weak when posting a request ("cable routing 51%"), so collection targets the gap.
-
-## Trust: originality, provenance, licence
-
-**Provenance certificate.** One JSON document per clip: file fingerprint, capture method, on-device measurements, originality result, contributor credentials and their verification status, the consent declaration, the licence, and the full trail. Each trail event carries a hash of the previous one, and the certificate reports whether the chain is intact. Buyers' private reasons are left out.
-
-**Licence (Guild training licence v1).**
-
-- The contributor keeps ownership of the footage.
-- Non-exclusive: the same clip can be licensed to other buyers.
-- The buyer may train and evaluate commercial AI models on it.
-- The buyer may not resell, sublicense or publish the footage itself.
-- Not licensed for surveillance, biometric identification, or generating likenesses of the people shown.
-- Perpetual for models already trained. If the contributor withdraws the clip, no new licences are sold.
-
-This is a demo licence written by us, not reviewed by a lawyer.
-
-**Reputation.** Each seller has a score out of 100 from buyer acceptance rate, originality, and number of listed clips.
-
-## For the people doing the work
-
-We do not promise AI will not change a job. We make sure that if a person's skill trains a model, they are paid every time and stay in control.
-
-- A share of every licence, not a one-off fee
-- Withdraw any clip from the market at any time
-- See who bought it and why
-- Experience prices higher
-- A dated record with steps and tools for each recording
-
-More in [DETAILED_BREAKDOWN.md](DETAILED_BREAKDOWN.md) section 10.
+**Stack:** Next.js 16, React 19, Tailwind 4, Vercel, Neon Postgres, Vercel Blob, MediaPipe tasks-vision, three.js, GSAP and Lenis, Kimi (Moonshot) vision API. Sign-in is the app's own: scrypt password hashes and a session cookie.
 
 ## Run it
 
@@ -332,59 +192,74 @@ More in [DETAILED_BREAKDOWN.md](DETAILED_BREAKDOWN.md) section 10.
 pnpm install
 vercel link
 vercel env pull .env.local                        # DATABASE_URL, BLOB_READ_WRITE_TOKEN, KIMI_API_KEY
-node --env-file=.env.local scripts/init-db.mjs    # tables and demo data, safe to rerun
+node --env-file=.env.local scripts/init-db.mjs    # tables and sample data, safe to rerun
 pnpm dev
 ```
 
 | Variable | Needed | Notes |
 |---|---|---|
-| `DATABASE_URL` | yes | Set by the Neon integration |
-| `BLOB_READ_WRITE_TOKEN` | yes | Set by the Blob store |
+| `DATABASE_URL` | yes | A Neon Postgres connection string |
+| `BLOB_READ_WRITE_TOKEN` | yes | A Vercel Blob store token |
 | `KIMI_API_KEY` | for Kimi labelling | A Moonshot key. Without it clips are scored on the technical checks and open source labels only |
 | `KIMI_MODEL`, `KIMI_BASE_URL` | no | Default `kimi-k2.6` on `https://api.moonshot.ai/v1` |
 | `KIMI_THINKING` | no | Set to `1` to turn on Kimi's reasoning mode. Slower: about 15 seconds instead of 2 |
 
-Keep secrets in Vercel (`vercel env add`). `vercel env pull` overwrites `.env.local`, so a key that only lives in that file is lost.
+Keep secrets in Vercel (`vercel env add`). `vercel env pull` overwrites `.env.local`.
 
-- Tests: `pnpm test` (scoring, pricing, duplicate check, request matching, reputation)
-- Mark a seller's licence as checked: `node --env-file=.env.local scripts/verify-seller.mjs seller@example.com`
-- Demo seller with a month of sales (Mr. Wong, electrician, `wong@guild.demo`): `node --env-file=.env.local scripts/seed-wong.mjs <password>`. Sample data, safe to rerun
-- Deploy: `vercel --prod`
+- **Tests:** `pnpm test` (scoring, pricing, duplicate check, request matching, reputation, finger counting)
+- **Sample seller with a month of sales:** `node --env-file=.env.local scripts/seed-wong.mjs <password>`
+- **Mark a seller's licence as checked:** `node --env-file=.env.local scripts/verify-seller.mjs seller@example.com`
+- **Deploy:** `vercel --prod`
 
-**Stack:** Next.js 16, React 19, Tailwind 4, Vercel, Neon Postgres, Vercel Blob, MediaPipe (hands, face, pose, objects) in the browser, three.js, GSAP and Lenis for the landing page, Kimi (Moonshot) vision API.
+## Project structure
 
 ```
-app/            pages, server actions (actions.ts), API routes (api/)
-components/     Recorder, SellStart, UploadForm, ClipStats, ArmScene, CostChart, Dither, Benefits, Tabs, Glyph
-lib/score.ts    scoring, pricing, hashing, matching, reputation. Pure, shared by browser and server
-lib/quality.ts  in-browser frame analysis and the MediaPipe models
-lib/arm.ts      the 3D arm, mug and workbench
-lib/server.ts   database, sessions, market query, evidence log
-scripts/        init-db.mjs, verify-seller.mjs, seed-wong.mjs
-docs/           README screenshots
+app/
+  page.tsx            landing page
+  record/ sell/ calls/ buy/ market/ profile/ login/
+  api/                upload (the pipeline), blob, check, index, provenance, dataset
+  actions.ts          server actions: sign-in, requests, asks, purchases, golden clips
+components/
+  Recorder.tsx        camera, live tracking, challenge, robot arm
+  UploadForm.tsx      progress view for the pipeline
+  ClipStats.tsx       result, checks and both labelling systems for one clip
+  ArmScene.tsx        scroll-driven 3D scene on the landing page
+  Dither.tsx          the halftone poster background
+  CostChart.tsx  Benefits.tsx  SellStart.tsx  Calculator.tsx  Tabs.tsx  Glyph.tsx
+lib/
+  score.ts            scoring, pricing, hashing, matching, authenticity. Pure, shared by browser and server
+  score.test.mjs      tests for the above
+  quality.ts          in-browser frame analysis and the MediaPipe models
+  arm.ts              the 3D arm, mug and workbench, built from primitives
+  server.ts           database, sessions, market query, evidence log
+scripts/              init-db.mjs, seed-wong.mjs, verify-seller.mjs
+docs/                 README screenshots
 ```
 
 ## Known limits
 
-- Kimi judges six still frames, not the whole video, so "completed" is often "unclear" on a short or static clip. Its reasoning mode is off by default for speed.
-- The task check has been tested on a small number of clips. It has not been tuned or measured for accuracy.
-- The open source detector knows 80 everyday objects. It does not know cloth or trade tools.
-- Quality metrics, detections and duplicate hashes are computed in the seller's browser and can be spoofed.
-- The duplicate check misses trimmed or mirrored copies. There is no manual review queue.
-- Authenticity checks raise the cost of faking, they do not make it impossible. No device attestation or C2PA signing.
-- The finger challenge uses a simple landmark rule and has not been tuned on many hands.
-- Screen recording works in desktop browsers only, and has no authenticity check beyond the duplicate check.
-- "Guild verified" today means the seller checked their own labels, not an independent reviewer.
-- Request diversity (minimum number of different people) is shown, not enforced.
-- No blurring of faces, plates, screens or documents. Kimi only flags them.
-- A person can record things they do not own: an employer's process, a customer's property, confidential data on a screen. Consent is a declaration, not a check.
-- Experience, trade and licence are self-declared unless manually verified.
-- Video files sit on unguessable but public URLs.
-- No payments, no password reset, no login rate limit.
-- The hero image and video are third-party and should be replaced before any public use.
-- The labels drawn over the 3D arm on the landing page (joint angles, "mug 0.97") are an illustration of labelling, not model output.
-- Short clips are worth cents at these rates. Whether sellers will record for that, without a request paying a guaranteed rate, is untested.
+- **No traction.** No real buyers, sellers or revenue. Listings marked Sample and the sample sellers are seeded.
+- **No payments.** Amounts shown are what recorded sales would pay. The 14-day payout hold is shown, not enforced.
+- **Kimi sees six still frames**, not the video, so "completed" is often "unclear" on a short clip. The task check has been tried on a handful of clips and its accuracy is not measured.
+- **The open source detector knows 80 everyday objects.** It does not know cloth or trade tools.
+- **Browser-side checks can be spoofed.** Quality metrics, detections, hashes and the episode file are produced on the seller's device. The checks raise the cost of faking, they do not make it impossible.
+- **The duplicate check misses trimmed or mirrored copies**, and does not look at footage elsewhere online.
+- **The finger challenge uses a simple landmark rule** and has not been tuned on many hands.
+- **Screen recording** works in desktop browsers only and has no authenticity check beyond the duplicate check.
+- **"Human-checked" labels** today means the seller checked their own, not an independent reviewer.
+- **Consent is a declaration, not a check.** A person can record an employer's process, a customer's property or confidential data on a screen. Faces are flagged by Kimi, not blurred.
+- **Experience and credentials are self-declared** unless manually verified.
+- **Video files sit on unguessable but public URLs.**
+- **No password reset and no login rate limit.**
+- **The licence text shown to buyers is a demo**, not reviewed by a lawyer.
+- **The labels drawn over the 3D arm on the landing page** are an illustration, not model output.
 
-## Photo credits
+## Credits and licence
 
-Sample listings use stand-in photos from Wikimedia Commons (public domain and CC BY / CC BY-SA). Authors, licences and source links are in [public/tasks/CREDITS.md](public/tasks/CREDITS.md). `wiring.jpg` was supplied by the team and its source is not recorded.
+The code is released under the [MIT License](LICENSE).
+
+Third-party material is not covered by that licence:
+
+- Sample listing photos are from Wikimedia Commons (public domain and CC BY / CC BY-SA). Authors, licences and links are in [public/tasks/CREDITS.md](public/tasks/CREDITS.md). `wiring.jpg` was supplied by the team and its source is not recorded.
+- The hero video and its poster image are third-party and should be replaced before any commercial use.
+- MediaPipe models are Apache 2.0, from Google.

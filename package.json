@@ -1,6 +1,8 @@
 {
   "name": "guild",
   "version": "0.1.0",
+  "description": "The open market for task data: people record how they do a task, it is checked and labelled, companies license it.",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "dev": "next dev",

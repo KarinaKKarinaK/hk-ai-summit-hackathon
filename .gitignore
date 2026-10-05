@@ -40,3 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /public/mediapipe
+
+# local source media, not part of the app (the site uses its own copies under /public)
+/*.mp4
+/*.webm
+/*.jpg
+/*.jpeg
